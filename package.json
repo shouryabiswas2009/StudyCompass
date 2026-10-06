@@ -17,7 +17,9 @@
     "data:fx": "node scripts/fx/fetch-ecb.mjs",
     "data:validate-international": "node scripts/curated/build-international-sql.mjs --check",
     "data:build-international": "node scripts/curated/build-international-sql.mjs",
-    "data:report": "node scripts/data-report.mjs"
+    "data:report": "node scripts/data-report.mjs",
+    "data:validate-country-info": "node scripts/curated/build-country-info-sql.mjs --check",
+    "data:build-country-info": "node scripts/curated/build-country-info-sql.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

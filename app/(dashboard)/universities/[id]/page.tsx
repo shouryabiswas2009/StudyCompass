@@ -20,6 +20,9 @@ import { COOP_LABELS, RESEARCH_LABELS, focusSummary, focusesOf } from "@/lib/foc
 import { compareUrl } from "@/lib/compare";
 import type { Profile, University } from "@/lib/types";
 import { getCurrentUser } from "@/lib/auth";
+import { canonicalCountry } from "@/lib/countries";
+import { getCountryInfo } from "@/lib/data/country-info";
+import { CountryGuidance } from "@/components/universities/country-guidance";
 
 export default async function UniversityDetailsPage({
   params,
@@ -39,7 +42,7 @@ export default async function UniversityDetailsPage({
 
   if (!university) notFound();
 
-  const [{ data: savedRow }, { data: profile }] = await Promise.all([
+  const [{ data: savedRow }, { data: profile }, countryInfo] = await Promise.all([
     user
       ? supabase
           .from("saved_universities")
@@ -55,7 +58,9 @@ export default async function UniversityDetailsPage({
           .eq("id", user.id)
           .maybeSingle<Profile>()
       : Promise.resolve({ data: null }),
+    getCountryInfo(),
   ]);
+  const country = canonicalCountry(university.country);
 
   // Personal fit needs a profile. Without one (not signed in, or no profile
   // yet) the page still works and shows a plain "Overall" ranking.
@@ -351,6 +356,14 @@ export default async function UniversityDetailsPage({
           not that there isn&apos;t one. Graduate earnings (above) are shown for
           information only and don&apos;t affect the work-experience focus.
         </p>
+      </div>
+
+      <div className="mt-8">
+        <CountryGuidance
+          country={country}
+          info={countryInfo.byCountry.get(country) ?? null}
+          pending={countryInfo.pending}
+        />
       </div>
 
       <div className="mt-8 space-y-2">

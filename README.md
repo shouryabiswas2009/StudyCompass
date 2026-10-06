@@ -59,7 +59,10 @@ Supabase (Auth + Database), and Framer Motion.
      shown first" below).
    - Then run [`supabase/migration_011_international.sql`](supabase/migration_011_international.sql)
      and the files in [`supabase/seed_international/`](supabase/seed_international/)
-     in order: the hand-checked international universities. (`npm run db:check` runs all of the SQL above on a
+     in order: the hand-checked international universities.
+   - Then run [`supabase/migration_012_country_info.sql`](supabase/migration_012_country_info.sql)
+     and [`supabase/seed_country_info.sql`](supabase/seed_country_info.sql):
+     visa and post-study work guidance per country. (`npm run db:check` runs all of the SQL above on a
      scratch database first, if you want to be sure.) Each file, what
      breaks until it's run and a one-line check are in
      [`docs/PENDING-DB-STEPS.md`](docs/PENDING-DB-STEPS.md).
@@ -96,7 +99,7 @@ and in the compare table:
 | Label | What it means | Coverage |
 | --- | --- | --- |
 | **College Scorecard** | Official US Department of Education data, fetched from the [College Scorecard API](https://collegescorecard.ed.gov/data/api-documentation/) | 1,577 US schools (operating, mainly bachelor's-granting, with a published admission rate); data year 2024 in the current import |
-| **Source: <university site>** (curated) | Checked by hand on the university's **own** website; every figure has its page linked on the details page. Never shown as "official" | 111 universities in 27 countries (see the coverage report below) |
+| **Source: <university site>** (curated) | Checked by hand on the university's **own** website; every figure has its page linked on the details page. Never shown as "official" | 111 universities in 26 countries (see the coverage report below) |
 | **Illustrative** | Hand-written sample figures for this demo, **not** official statistics | None left: every sample school was replaced by a curated or Scorecard row. The label stays for anything added later |
 | **Added by you** | Figures a student entered themselves, optionally with a source link | Only visible to that student |
 
@@ -188,6 +191,26 @@ does steps 2–3 for you once a year, or whenever you run it from the Actions
 tab, and opens a pull request instead of pushing to `main`. It needs a
 `SCORECARD_API_KEY` repository secret and "Allow GitHub Actions to create
 and approve pull requests" turned on.
+
+### Visa and post-study work guidance
+
+The details page (and the offers page, once per country) shows three
+figures for the school's country: how long graduates may stay to work or
+look for work, how much money a student must prove, and how many hours a
+student may work during term. They come from
+[`data/curated/country_info.csv`](data/curated/country_info.csv), one row
+per country that has schools in the app.
+
+- Every figure needs a page on an **official government website** (the
+  validator checks the domain: `.gov`, `.gov.uk`, `canada.ca`, `ind.nl`, …)
+  and the date it was checked. Anything else stays empty and shows "Not
+  available"; the `notes` column says why.
+- The app shows how old each check is ("checked 3 months ago", with a
+  warning after 6 months) and always says "Guidance only: rules change,
+  so check the official source".
+- `npm run data:validate-country-info` checks the CSV (including that no
+  country with schools is missing); `npm run data:build-country-info`
+  writes `supabase/seed_country_info.sql`.
 
 ### Which schools are shown first (the relevance rule)
 
@@ -342,6 +365,8 @@ supabase/
   featured/featured.sql            # Generated: applies the relevance rule
   migration_011_international.sql  # Curated source, currencies, aliases, accent-free search
   seed_international/*.sql         # Generated from data/curated/ (upsert, safe to re-run)
+  migration_012_country_info.sql   # country_info table: visa / post-study guidance (public read)
+  seed_country_info.sql            # Generated from data/curated/country_info.csv
 ```
 
 ## How matching works

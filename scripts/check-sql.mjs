@@ -51,6 +51,15 @@ if (intlFiles.length) {
   }
 }
 
+// Visa and post-study guidance per country (migration_012): run twice too.
+const COUNTRY_SQL = join(import.meta.dirname, "..", "supabase", "seed_country_info.sql");
+if (existsSync(COUNTRY_SQL)) {
+  await db.exec(readFileSync(COUNTRY_SQL, "utf8"));
+  await db.exec(readFileSync(COUNTRY_SQL, "utf8"));
+  const { rows } = await db.query("select count(*)::int as n from public.country_info");
+  console.log(`OK  seed_country_info.sql run twice: ${rows[0].n} countries`);
+}
+
 // The featured rule exists twice (SQL for the database, JavaScript for counts
 // and tests). Run the SQL and check both agree on the Scorecard schools.
 const FEATURED_SQL = join(import.meta.dirname, "..", "supabase", "featured", "featured.sql");

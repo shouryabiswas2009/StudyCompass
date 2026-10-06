@@ -78,7 +78,7 @@ async function selectList(
 
 // A plain (cookie-less) client: the shared rows are readable by anyone (RLS
 // allows created_by is null), so they can be cached once for everyone.
-function anonClient(): SupabaseClient {
+export function anonClient(): SupabaseClient {
   return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

@@ -8,6 +8,9 @@ import { focusesOf } from "@/lib/focus";
 import { netCostPerYear, totalProgramCost } from "@/lib/offers";
 import type { Application, Profile, University } from "@/lib/types";
 import { getCurrentUser } from "@/lib/auth";
+import { canonicalCountry } from "@/lib/countries";
+import { getCountryInfo } from "@/lib/data/country-info";
+import { CountryGuidance } from "@/components/universities/country-guidance";
 
 type OfferApplication = Application & { universities: University };
 
@@ -25,12 +28,19 @@ export default async function OffersPage() {
 
   // Admitted offers, plus an accepted one — accepting doesn't make the
   // comparison stop being useful until you've actually enrolled.
-  const { data: applications } = await supabase
-    .from("applications")
-    .select("*, universities(*)")
-    .eq("user_id", user.id)
-    .in("status", ["admitted", "accepted"])
-    .returns<OfferApplication[]>();
+  const [{ data: applications }, countryInfo] = await Promise.all([
+    supabase
+      .from("applications")
+      .select("*, universities(*)")
+      .eq("user_id", user.id)
+      .in("status", ["admitted", "accepted"])
+      .returns<OfferApplication[]>(),
+    getCountryInfo(),
+  ]);
+  // One guidance card per destination country among the offers.
+  const offerCountries = [
+    ...new Set((applications ?? []).map((a) => canonicalCountry(a.universities.country))),
+  ].sort();
 
   const offers: OfferRow[] = (applications ?? []).map((application) => {
     const university = application.universities;
@@ -89,6 +99,24 @@ export default async function OffersPage() {
         </div>
       ) : (
         <OffersBoard offers={offers} focuses={focusesOf(profile)} />
+      )}
+
+      {offerCountries.length > 0 && (
+        <div className="mt-10 space-y-6">
+          <h2 className="text-lg font-semibold">Visas and work, by country</h2>
+          <div className="grid gap-6 lg:grid-cols-2">
+            {offerCountries.map((country) => (
+              <div key={country} className="rounded-2xl border p-4">
+                <CountryGuidance
+                  country={country}
+                  info={countryInfo.byCountry.get(country) ?? null}
+                  pending={countryInfo.pending}
+                  compact
+                />
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -23,7 +23,7 @@ verified: the migration_011 columns exist (search_text included); all
 levels; sources are College Scorecard 1,577, curated 42, illustrative 29
 (442 featured); Oxford was upgraded in place (£39,620 stored with its
 currency, illustrative ranking removed) and a search for "lse" finds the
-London School of Economics by its alias. **Step 11 is pending.**
+London School of Economics by its alias. **Steps 11–13 are pending.**
 
 New migrations will be added to this table when they're written.
 
@@ -44,6 +44,8 @@ this order: the seed files need both migrations first.
 | 9 | `supabase/seed_scorecard/00_link_existing.sql` … `06_universities.sql` again (regenerated) | Done, verified 2026-10-06 (1,577 linked, 1,572 levels) |
 | 10 | `supabase/seed_international/00_link_existing.sql`, `01_universities.sql`, `90_coop.sql`, `91_rankings.sql` | Done, verified 2026-10-06 (42 curated) |
 | 11 | `supabase/seed_international/00_link_existing.sql`, `01_universities.sql`, `02_universities.sql`, `90_coop.sql`, `91_rankings.sql` (regenerated, 111 universities) | **Not run yet** |
+| 12 | `supabase/migration_012_country_info.sql` | **Not run yet** |
+| 13 | `supabase/seed_country_info.sql` (right after step 12) | **Not run yet** |
 
 All of them are safe to run again if you're not sure whether one went
 through.
@@ -266,7 +268,7 @@ Expect `College Scorecard 1577`, `curated 42`, `illustrative 29`.
 ## 11. `seed_international/` again (5 files, in order)
 
 **What it does:** the same upsert as step 10, regenerated with the second
-and third batches: 111 curated universities in 27 countries (the
+and third batches: 111 curated universities in 26 countries (the
 Netherlands, Switzerland, France, the Nordics, East and South Asia,
 Italy, Ireland, Austria, Belgium, Spain, New Zealand and the UAE added).
 `00` now links all 47 sample schools so they're upgraded **in place**,
@@ -284,6 +286,39 @@ lists are missing (their major factor stays unknown).
 select source, count(*) from public.universities where created_by is null group by source order by source;
 ```
 Expect `College Scorecard 1577` and `curated 111` (no `illustrative` row).
+
+## 12. `migration_012_country_info.sql`
+
+**What it does:** creates the `country_info` table: per destination
+country, how long graduates may stay after studying, the proof-of-funds
+amount and the student work-hour limit, each with its government source
+page and the date it was checked. Row level security is on; everyone can
+read it, nobody can write to it through the app (only the SQL Editor).
+Database checks refuse a figure without its source and date.
+
+**What's affected until it runs:** nothing breaks. The details and offers
+pages show "Visa guidance isn't set up yet" instead of the figures.
+
+**Check:**
+```sql
+select relrowsecurity from pg_class where oid = 'public.country_info'::regclass;
+```
+Expect `true`.
+
+## 13. `seed_country_info.sql`
+
+**What it does:** fills in `country_info` for the 27 countries that have
+schools (generated from `data/curated/country_info.csv`). Figures nobody
+could verify on an official page are left empty. Safe to re-run.
+
+**What's affected until it runs:** after step 12, every country shows
+"Not available" for all three figures.
+
+**Check:**
+```sql
+select count(*) as countries, count(post_study_text) as post_study, count(funds_text) as funds, count(work_text) as work from public.country_info;
+```
+Expect `27`, `16`, `7`, `16`.
 
 ---
 
