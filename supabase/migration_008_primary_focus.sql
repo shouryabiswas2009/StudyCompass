@@ -1,4 +1,4 @@
--- StudyCompass migration 008 — "what matters most to me" + the signals it uses
+-- Unicelerate migration 008 — "what matters most to me" + the signals it uses
 -- Run this once in the Supabase SQL Editor, after migration_007 and BEFORE
 -- the files in supabase/seed_scorecard/ (they fill in the new columns).
 -- Safe to re-run: "if not exists" / "drop ... if exists" throughout.

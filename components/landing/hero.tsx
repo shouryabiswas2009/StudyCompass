@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Compass } from "lucide-react";
+import { BRAND_NAME } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { Flag } from "@/components/flag";
 
@@ -82,7 +83,7 @@ export function Hero() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="max-w-xl text-lg text-muted-foreground text-balance"
         >
-          StudyCompass matches you to universities based on your budget,
+          {BRAND_NAME} matches you to universities based on your budget,
           academic profile, and preferences — not just generic rankings.
         </motion.p>
 

@@ -1,4 +1,4 @@
--- StudyCompass migration 010 — "featured" universities
+-- Unicelerate migration 010 — "featured" universities
 -- Run this once in the Supabase SQL Editor, after migration_009, then run
 -- supabase/featured/featured.sql (which decides which rows are featured).
 -- Safe to re-run.

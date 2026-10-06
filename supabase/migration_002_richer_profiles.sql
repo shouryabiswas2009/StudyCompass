@@ -1,4 +1,4 @@
--- StudyCompass migration 002 — richer profiles + subject-specific rankings
+-- Unicelerate migration 002 — richer profiles + subject-specific rankings
 -- Run this once in your Supabase project's SQL Editor, after supabase/seed.sql.
 --
 -- What changes:

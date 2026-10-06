@@ -1,4 +1,4 @@
--- StudyCompass migration 006 — application tracker and offers
+-- Unicelerate migration 006 — application tracker and offers
 -- Run this once in the Supabase SQL Editor, after migration_005.
 -- Safe to re-run: "if not exists" / "drop ... if exists" throughout.
 --

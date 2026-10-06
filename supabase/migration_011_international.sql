@@ -1,4 +1,4 @@
--- StudyCompass migration 011 — curated international universities
+-- Unicelerate migration 011 — curated international universities
 -- Run this once in the Supabase SQL Editor, after migration_010, and BEFORE
 -- the files in supabase/seed_international/. Safe to re-run.
 

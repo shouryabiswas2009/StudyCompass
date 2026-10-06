@@ -1,4 +1,4 @@
-// The public address of the site, e.g. "https://studycompass.com", used in
+// The public address of the site, e.g. "https://www.unicelerate.com", used in
 // links that leave the app (the sign-up confirmation email) and as the base
 // for link previews. In order:
 //   1. NEXT_PUBLIC_SITE_URL, if you set it (do this for a custom domain)

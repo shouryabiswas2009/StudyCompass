@@ -1,4 +1,4 @@
-// Builds a throwaway, in-memory copy of the StudyCompass database by running
+// Builds a throwaway, in-memory copy of the Unicelerate database by running
 // supabase/seed.sql and every supabase/migration_*.sql in order, using PGlite
 // (real PostgreSQL compiled to run inside Node). Nothing touches Supabase.
 //

@@ -1,4 +1,4 @@
--- StudyCompass migration 007 — data provenance + official College Scorecard fields
+-- Unicelerate migration 007 — data provenance + official College Scorecard fields
 -- Run this once in the Supabase SQL Editor, after migration_006, and BEFORE
 -- the files in supabase/seed_scorecard/.
 -- Safe to re-run: "if not exists" / "drop ... if exists" throughout.

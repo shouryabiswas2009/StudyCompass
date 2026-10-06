@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Compass } from "lucide-react";
+import { BRAND_NAME } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { LogoutButton } from "@/components/layout/logout-button";
@@ -22,7 +23,7 @@ export function Navbar({ userEmail }: { userEmail: string | null }) {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 font-semibold">
           <Compass className="size-5 text-primary" />
-          <span>StudyCompass</span>
+          <span>{BRAND_NAME}</span>
         </Link>
 
         {userEmail && (

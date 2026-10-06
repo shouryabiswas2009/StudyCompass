@@ -1,4 +1,4 @@
-# StudyCompass ML pipeline
+# Unicelerate ML pipeline
 
 Offline model training in Python. The app never runs Python: the trained
 logistic regression is exported to `lib/model/admission-model.json` and

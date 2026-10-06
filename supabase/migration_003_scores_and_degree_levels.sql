@@ -1,4 +1,4 @@
--- StudyCompass migration 003 — SAT score, input checks, degree levels
+-- Unicelerate migration 003 — SAT score, input checks, degree levels
 -- Run this once in the Supabase SQL Editor, after migration_002.
 -- Safe to re-run: columns use "if not exists" and each check constraint is
 -- dropped before being re-added.

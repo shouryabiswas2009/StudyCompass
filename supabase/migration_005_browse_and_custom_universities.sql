@@ -1,4 +1,4 @@
--- StudyCompass migration 005 — student-added universities + more seed data
+-- Unicelerate migration 005 — student-added universities + more seed data
 -- Run this once in the Supabase SQL Editor, after migration_004.
 -- Safe to re-run: "if not exists" / "drop ... if exists" throughout, and
 -- seed rows are only inserted when no shared row with that name exists.

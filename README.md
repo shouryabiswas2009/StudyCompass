@@ -1,6 +1,6 @@
-# StudyCompass
+# Unicelerate
 
-StudyCompass matches students to universities based on their budget, academic
+Unicelerate matches students to universities based on their budget, academic
 profile, and preferences instead of showing generic rankings.
 
 Built with Next.js (App Router), React, TypeScript, Tailwind CSS, shadcn/ui,

@@ -3,13 +3,13 @@ import { siteUrl } from "@/lib/site-url";
 
 describe("siteUrl", () => {
   it("prefers NEXT_PUBLIC_SITE_URL, without a trailing slash", () => {
-    expect(siteUrl({ NEXT_PUBLIC_SITE_URL: "https://studycompass.com/", VERCEL_PROJECT_PRODUCTION_URL: "x.vercel.app" })).toBe(
-      "https://studycompass.com"
+    expect(siteUrl({ NEXT_PUBLIC_SITE_URL: "https://www.unicelerate.com/", VERCEL_PROJECT_PRODUCTION_URL: "x.vercel.app" })).toBe(
+      "https://www.unicelerate.com"
     );
   });
 
   it("falls back to Vercel's production domain, adding https://", () => {
-    expect(siteUrl({ VERCEL_PROJECT_PRODUCTION_URL: "studycompass.vercel.app" })).toBe("https://studycompass.vercel.app");
+    expect(siteUrl({ VERCEL_PROJECT_PRODUCTION_URL: "unicelerate.vercel.app" })).toBe("https://unicelerate.vercel.app");
   });
 
   it("uses localhost when nothing is set (local development)", () => {

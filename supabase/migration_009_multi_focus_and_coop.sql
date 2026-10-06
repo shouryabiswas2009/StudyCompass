@@ -1,4 +1,4 @@
--- StudyCompass migration 009 — multi-select focus + co-op programs
+-- Unicelerate migration 009 — multi-select focus + co-op programs
 -- Run this once in the Supabase SQL Editor, after migration_008.
 -- Safe to re-run: every step checks before it changes anything.
 

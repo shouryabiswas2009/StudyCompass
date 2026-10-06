@@ -1,4 +1,4 @@
--- StudyCompass migration 004 — admission stats and living costs
+-- Unicelerate migration 004 — admission stats and living costs
 -- Run this once in the Supabase SQL Editor, after migration_003.
 -- Safe to re-run: columns use "if not exists", checks are dropped and
 -- re-added, and the backfill only touches rows that are still empty.

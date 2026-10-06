@@ -1,4 +1,4 @@
--- StudyCompass database setup
+-- Unicelerate database setup
 -- Run this once in your Supabase project's SQL Editor (Dashboard > SQL Editor > New query).
 -- It creates the tables, locks them down with Row Level Security (RLS), and
 -- seeds a sample list of universities so recommendations have data to work with.

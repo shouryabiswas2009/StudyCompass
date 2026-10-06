@@ -1,4 +1,4 @@
-# Putting StudyCompass online with your own domain
+# Putting Unicelerate online with your own domain
 
 Everything here is free: **Vercel** (Hobby plan) hosts the Next.js app,
 **Supabase** (free plan) is the database you already use, and your domain
