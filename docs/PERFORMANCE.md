@@ -180,7 +180,38 @@ What changed and what didn't, honestly:
   of a names-only query of the first 1,000.
 - **Expected after migration 010:** the shared list comes from the cache,
   so these pages should only wait for the profile and saved-schools
-  queries. To be measured, not assumed; see the next section.
+  queries. Measured below.
+
+### Final: after migration 010, cache active (2026-10-06)
+
+Same method: production build, signed in, live Supabase, total time
+(server work plus download), median of 5, after one warm-up request.
+
+| Page | Before | After | Change | Page size before → after |
+| --- | --- | --- | --- | --- |
+| `/universities` (browse) | 2,228 ms | **343 ms** | −85% | 10,369 KB → 286 KB |
+| `/recommendations` | 2,220 ms | **327 ms** | −85% | 10,360 KB → 298 KB |
+| `/universities?all=1` (all 1,624) | — | 323 ms | | 287 KB |
+| `/universities?q=state&sort=tuition-asc&page=3` | — | 330 ms | | 90 KB |
+| `/saved` | 1,074 ms | 583 ms | −46% | 70 KB → 74 KB |
+| `/compare` (3 schools) | 1,344 ms | 587 ms | −56% | 180 KB → 131 KB |
+| `/profile` | 801 ms | 286 ms | −64% | 48 KB → 51 KB |
+| `/applications` | 805 ms | 308 ms | −62% | 45 KB → 49 KB |
+| `/offers` | 1,059 ms | 557 ms | −47% | 33 KB → 37 KB |
+| `/universities/[id]` | 1,090 ms | 604 ms | −45% | 74 KB → 77 KB |
+
+And browse and recommendations now cover all **1,624** schools instead of
+the first 1,000.
+
+The pages still around 550–600 ms make two database queries one after
+the other (e.g. the profile, then the school or the offers). They're
+fast enough for now; running those queries in parallel would be the next
+step if they matter.
+
+A cached request still pays about 300 ms: the profile and saved-schools
+queries to Supabase (free tier, a round trip each) plus rendering. The
+first visitor after the 15-minute cache expires pays the uncached cost
+once (about 2.3 s, measured above) while the list is reloaded.
 
 ## Reproducing
 

@@ -13,7 +13,11 @@ research levels 146 / 126 / 154 / 1,093 with 58 unknown). Step 5 was run
 the same day and verified: `focuses`, `coop_program` and
 `internship_support_url` exist, `primary_focus` and `has_coop` are gone,
 all 1,624 schools start at co-op `unknown`, and a signed-in profile's old
-single focus shows up in the new list. **Steps 6 and 7 are pending.**
+single focus shows up in the new list. Steps 6 and 7 were run the same
+day and verified: `is_featured` exists, 371 of 1,577 College Scorecard
+schools and all 47 illustrative schools are featured (matching
+`npm run db:check`), and recommendations show "Featured schools only
+(418). Include all 1,624 schools". **Nothing pending.**
 
 New migrations will be added to this table when they're written.
 
@@ -28,8 +32,8 @@ this order: the seed files need both migrations first.
 | 3 | `supabase/seed_scorecard/00_link_existing.sql` | Done, verified 2026-10-06 (14 linked) |
 | 4 | `supabase/seed_scorecard/01_universities.sql` … `06_universities.sql` (one at a time, in order) | Done, verified 2026-10-06 (1,577 rows) |
 | 5 | `supabase/migration_009_multi_focus_and_coop.sql` | Done, verified 2026-10-06 |
-| 6 | `supabase/migration_010_featured.sql` | **Not run yet** |
-| 7 | `supabase/featured/featured.sql` (right after step 6) | **Not run yet** |
+| 6 | `supabase/migration_010_featured.sql` | Done, verified 2026-10-06 |
+| 7 | `supabase/featured/featured.sql` (right after step 6) | Done, verified 2026-10-06 (371 + 47 featured) |
 
 All of them are safe to run again if you're not sure whether one went
 through.
