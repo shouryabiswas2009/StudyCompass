@@ -12,11 +12,11 @@ import {
 // scikit-learn gave them. If TypeScript and Python ever compute features or
 // predictions differently, these fail.
 describe("TypeScript vs Python parity", () => {
-  it("covers missing SAT, non-US schools and missing IELTS", () => {
+  it("covers SAT submitted, SAT not submitted, and schools with no SAT range", () => {
     expect(fixtures.length).toBe(20);
+    expect(fixtures.some((f) => f.profile.sat_score !== null)).toBe(true);
     expect(fixtures.some((f) => f.profile.sat_score === null && f.university.sat_25 !== null)).toBe(true);
     expect(fixtures.some((f) => f.university.sat_25 === null)).toBe(true);
-    expect(fixtures.some((f) => f.profile.ielts_score === null)).toBe(true);
   });
 
   it.each(fixtures.map((f, i) => [i, f] as const))("row %i matches scikit-learn", (_, fixture) => {
@@ -24,44 +24,43 @@ describe("TypeScript vs Python parity", () => {
       fixture.profile as ModelProfile,
       fixture.university as ModelUniversity
     );
-    expect(prediction).not.toBeNull();
-    expect(prediction!.probability).toBeCloseTo(fixture.expected_probability, 9);
+    expect(prediction.probability).toBeCloseTo(fixture.expected_probability, 9);
   });
 });
 
 describe("predictAdmission behaviour", () => {
-  const university: ModelUniversity = {
-    avg_admitted_gpa: 90,
-    sat_25: 1300,
-    sat_75: 1500,
-    min_ielts: 6.5,
-    acceptance_rate: 40,
-  };
-  const profile: ModelProfile = { gpa_percentage: 90, sat_score: 1400, ielts_score: 7 };
+  const university: ModelUniversity = { sat_25: 1300, sat_75: 1500, acceptance_rate: 40 };
+  const profile: ModelProfile = { gpa_percentage: 90, sat_score: 1400 };
 
   it("gives a higher chance for a higher GPA, all else equal", () => {
-    const lower = predictAdmission({ ...profile, gpa_percentage: 85 }, university)!;
-    const higher = predictAdmission({ ...profile, gpa_percentage: 95 }, university)!;
+    const lower = predictAdmission({ ...profile, gpa_percentage: 80 }, university);
+    const higher = predictAdmission({ ...profile, gpa_percentage: 95 }, university);
+    expect(higher.probability).toBeGreaterThan(lower.probability);
+  });
+
+  it("gives a higher chance for a higher SAT within the school's range", () => {
+    const lower = predictAdmission({ ...profile, sat_score: 1300 }, university);
+    const higher = predictAdmission({ ...profile, sat_score: 1500 }, university);
     expect(higher.probability).toBeGreaterThan(lower.probability);
   });
 
   it("gives a lower chance at a more selective school", () => {
-    const easier = predictAdmission(profile, { ...university, acceptance_rate: 60 })!;
-    const harder = predictAdmission(profile, { ...university, acceptance_rate: 10 })!;
+    const easier = predictAdmission(profile, { ...university, acceptance_rate: 60 });
+    const harder = predictAdmission(profile, { ...university, acceptance_rate: 10 });
     expect(harder.probability).toBeLessThan(easier.probability);
   });
 
   it("shows a strong GPA as a positive contribution and a weak one as negative", () => {
-    const strong = predictAdmission({ ...profile, gpa_percentage: 99 }, university)!;
-    const weak = predictAdmission({ ...profile, gpa_percentage: 75 }, university)!;
-    const gpa = (p: typeof strong) => p.contributions.find((c) => c.label.startsWith("GPA"))!.points;
-    expect(gpa(strong)).toBeGreaterThan(0);
-    expect(gpa(weak)).toBeLessThan(0);
+    const gpa = (p: ReturnType<typeof predictAdmission>) =>
+      p.contributions.find((c) => c.label === "Your GPA")!.points;
+    expect(gpa(predictAdmission({ ...profile, gpa_percentage: 99 }, university))).toBeGreaterThan(0);
+    expect(gpa(predictAdmission({ ...profile, gpa_percentage: 70 }, university))).toBeLessThan(0);
   });
 
-  it("returns null when the school has no admitted-GPA figure", () => {
-    expect(predictAdmission(profile, { ...university, avg_admitted_gpa: null })).toBeNull();
-    expect(admissionFeatures(profile, { ...university, avg_admitted_gpa: null })).toBeNull();
+  it("marks SAT as 'no data' when the school publishes no SAT range", () => {
+    const noRange = predictAdmission(profile, { ...university, sat_25: null, sat_75: null });
+    expect(noRange.contributions.find((c) => c.label === "SAT")!.known).toBe(false);
+    expect(admissionFeatures(profile, { ...university, sat_25: null, sat_75: null })[2]).toBe(0);
   });
 });
 

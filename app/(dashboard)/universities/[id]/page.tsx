@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, TrendingUp, Percent, DollarSign, Pencil } from "lucide-react";
 import { DeleteUniversityButton } from "@/components/universities/delete-university-button";
+import { SourceBadge } from "@/components/universities/source-badge";
 import { createClient } from "@/lib/supabase/server";
 import { formatRank, scoreUniversity } from "@/lib/matching";
 import { Badge } from "@/components/ui/badge";
@@ -60,13 +61,17 @@ export default async function UniversityDetailsPage({
   const entry = profile ? scoreUniversity(profile, university) : null;
   const ranking = entry?.ranking ?? { rank: university.qs_ranking, label: "Overall" };
 
+  const official = university.source === "College Scorecard";
+
   const admissionFigures = [
     {
       label: "Typical admitted GPA",
       value: university.avg_admitted_gpa != null ? `${university.avg_admitted_gpa} / 100` : "Not available",
     },
     {
-      label: "SAT middle 50%",
+      // Scorecard publishes Reading and Math separately; adding them only
+      // approximates the total-score range (see the note below).
+      label: official ? "SAT 25th–75th (Reading + Math)" : "SAT middle 50%",
       value:
         university.sat_25 != null && university.sat_75 != null
           ? `${university.sat_25}–${university.sat_75}`
@@ -84,6 +89,20 @@ export default async function UniversityDetailsPage({
           : "Not available",
     },
   ];
+
+  // Extra official figures only Scorecard schools have. Each is shown only
+  // when Scorecard actually reports it.
+  const officialFigures = [
+    { label: "Type", value: university.ownership ? university.ownership[0].toUpperCase() + university.ownership.slice(1) : null },
+    { label: "Undergraduates", value: university.student_size != null ? university.student_size.toLocaleString("en-US") : null },
+    { label: "In-state tuition", value: university.tuition_in_state != null ? `${usd(university.tuition_in_state)}/yr` : null },
+    { label: "Average net price", value: university.avg_net_price != null ? `${usd(university.avg_net_price)}/yr` : null },
+    { label: "Graduate within 6 years", value: university.completion_rate != null ? `${university.completion_rate}%` : null },
+    {
+      label: "Median earnings, 10 yrs after entry",
+      value: university.median_earnings_10yr != null ? `${usd(university.median_earnings_10yr)}/yr` : null,
+    },
+  ].filter((f) => f.value !== null);
 
   const stats = [
     {
@@ -117,14 +136,12 @@ export default async function UniversityDetailsPage({
           <h1 className="text-3xl font-semibold tracking-tight">
             {university.name}
           </h1>
-          <p className="flex items-center gap-1.5 text-muted-foreground">
+          <p className="flex flex-wrap items-center gap-1.5 text-muted-foreground">
             <Flag country={university.country} />
-            {university.country}
-            {university.created_by && (
-              <Badge variant="secondary" className="ml-1">
-                Added by you
-              </Badge>
-            )}
+            {[university.city, university.state, university.country].filter(Boolean).join(", ")}
+            <span className="ml-1">
+              <SourceBadge university={university} showLink />
+            </span>
           </p>
         </div>
         <SaveButton universityId={university.id} initiallySaved={!!savedRow} />
@@ -197,10 +214,43 @@ export default async function UniversityDetailsPage({
           ))}
         </dl>
         <p className="text-xs text-muted-foreground">
-          Illustrative approximations for this demo, not official admissions
-          statistics. Check the university&apos;s own website before deciding.
+          {official ? (
+            <>
+              From the US Department of Education College Scorecard (data year{" "}
+              {university.data_year}). Scorecard doesn&apos;t publish admitted
+              GPAs or English-test minimums, so those show as not available. The
+              SAT range adds the Reading and Math percentiles, which only
+              approximates the total-score range.
+            </>
+          ) : university.source === "user-entered" ? (
+            <>Entered by you{university.source_url ? " — see the source link at the top" : ""}.</>
+          ) : (
+            <>
+              Illustrative approximations for this demo, not official admissions
+              statistics. Check the university&apos;s own website before deciding.
+            </>
+          )}
         </p>
       </div>
+
+      {officialFigures.length > 0 && (
+        <div className="mt-8 space-y-2">
+          <h2 className="font-medium">More official figures</h2>
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {officialFigures.map((figure) => (
+              <div key={figure.label} className="rounded-xl border p-3">
+                <dt className="text-xs text-muted-foreground">{figure.label}</dt>
+                <dd className="font-medium">{figure.value}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="text-xs text-muted-foreground">
+            College Scorecard, data year {university.data_year}. Earnings follow
+            students who started several years earlier, so they describe an
+            older group than the other figures.
+          </p>
+        </div>
+      )}
 
       <div className="mt-8 space-y-2">
         <h2 className="font-medium">Popular programs</h2>

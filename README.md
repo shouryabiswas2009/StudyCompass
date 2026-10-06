@@ -42,6 +42,14 @@ Supabase (Auth + Database), and Framer Motion.
    - Then run [`supabase/migration_006_applications.sql`](supabase/migration_006_applications.sql).
      It adds the `applications` table (owner-only RLS) behind the
      application tracker and the offers page.
+   - Then run [`supabase/migration_007_data_sources.sql`](supabase/migration_007_data_sources.sql).
+     It labels every university with where its figures come from and adds
+     the official College Scorecard columns.
+   - Then run every file in [`supabase/seed_scorecard/`](supabase/seed_scorecard/),
+     in order (`00_…` first). They import ~1,600 US universities with
+     official data and update the 14 sample US schools in place. They're
+     safe to re-run. (`npm run db:check` runs all of the SQL above on a
+     scratch database first, if you want to be sure.)
    - Copy `.env.local.example` to `.env.local` and fill in your project's
      URL and anon/publishable key (Project Settings → API in the dashboard).
 
@@ -59,12 +67,70 @@ Supabase (Auth + Database), and Framer Motion.
 
    Open [http://localhost:3000](http://localhost:3000).
 
-5. Run the unit tests (Vitest; covers the matching logic and profile
-   validation):
+5. Run the unit tests (Vitest; covers matching, validation, filters,
+   offers, the admission model's TypeScript-vs-Python parity and the
+   Scorecard import):
 
    ```bash
    npm test
    ```
+
+## Where the data comes from
+
+Every university is labeled with its source, on cards, on the details page
+and in the compare table:
+
+| Label | What it means | Coverage |
+| --- | --- | --- |
+| **College Scorecard** | Official US Department of Education data, fetched from the [College Scorecard API](https://collegescorecard.ed.gov/data/api-documentation/) | 1,577 US schools (operating, mainly bachelor's-granting, with a published admission rate); data year 2024 in the current import |
+| **Illustrative** | Hand-written sample figures for this demo, **not** official statistics | 47 schools in 25 countries outside the US |
+| **Added by you** | Figures a student entered themselves, optionally with a source link | Only visible to that student |
+
+**Only the US has official data here.** College Scorecard is the only free,
+official source that publishes admission statistics for each school in a
+structured form. For other countries I didn't scrape ranking sites (their
+terms don't allow it) and didn't invent statistics, so non-US schools stay
+labeled illustrative. To add verified figures for any school, use "Add a
+university" and paste the link you got them from.
+
+What Scorecard does and doesn't give the app:
+- **Official:** admission rate, SAT percentiles, tuition (out-of-state,
+  which international students pay at public universities), living costs,
+  net price, completion rate, median earnings, size, type and location.
+- **SAT range:** Scorecard reports Reading and Math separately. The app adds
+  the two 25th (and 75th) percentiles, which only approximates the
+  total-score range, and labels it that way.
+- **Programs:** the school's largest fields of study by share of degrees
+  awarded.
+- **Not available:** admitted GPA, English-test minimums and QS rankings,
+  so those show as "not available". The QS and subject rankings that remain
+  on the 14 original sample US schools are illustrative.
+- **Data year:** Scorecard's own label (`2024`), worked out by the fetch
+  script rather than assumed. Earnings describe students who started
+  several years earlier.
+
+### Refreshing the official data
+
+1. Get a free key at <https://api.data.gov/signup/> and add
+   `SCORECARD_API_KEY=...` to `.env.local`.
+2. Run:
+
+   ```bash
+   npm run data:refresh-scorecard
+   ```
+
+   This re-downloads the data politely (100 schools per request, waits
+   between requests, retries on rate limits), caches the raw responses in
+   `ml/data/raw/scorecard/` (not committed), and rewrites
+   `data/scorecard/universities.json` and `supabase/seed_scorecard/`.
+3. Run `npm run db:check`, review the diff, then run the new
+   `supabase/seed_scorecard/*.sql` files in the SQL Editor.
+
+[`.github/workflows/refresh-scorecard.yml`](.github/workflows/refresh-scorecard.yml)
+does steps 2–3 for you once a year, or whenever you run it from the Actions
+tab, and opens a pull request instead of pushing to `main`. It needs a
+`SCORECARD_API_KEY` repository secret and "Allow GitHub Actions to create
+and approve pull requests" turned on.
 
 ## Keeping the Supabase project awake
 
@@ -143,12 +209,16 @@ lib/
   offers.ts   # Net cost, offer ranking with adjustable weights, reasons
   admission-model.ts    # Runs the exported logistic regression (no server)
   model/                # admission-model.json + parity fixtures, written by ml/
-ml/           # Python: synthetic data, model training, reports (see ml/README.md)
-scripts/      # export-universities.mjs: builds the DB in memory (PGlite) from the SQL files
   format.ts   # Shared number formatting
   *-validation.ts       # Form validation (profile, university)
   types.ts    # Shared TypeScript types
   *.test.ts   # Vitest unit tests
+ml/           # Python: synthetic data, model training, reports (see ml/README.md)
+data/scorecard/universities.json # Normalized official US data (what the seed SQL is built from)
+scripts/
+  scorecard/  # fetch.mjs → normalize.mjs → build-seed-sql.mjs (College Scorecard import)
+  check-sql.mjs   # npm run db:check: applies all SQL to an in-memory Postgres, twice
+  in-memory-db.mjs # PGlite helper used by check-sql.mjs
 proxy.ts      # Next.js 16's "Proxy" (renamed Middleware) — refreshes the
               # Supabase session and protects dashboard routes
 supabase/
@@ -158,6 +228,8 @@ supabase/
   migration_004_admission_stats.sql # Illustrative admit GPA, SAT range, IELTS, living cost
   migration_005_browse_and_custom_universities.sql # Student-added schools + RLS, 34 more schools
   migration_006_applications.sql   # Application tracker / offers (owner-only RLS)
+  migration_007_data_sources.sql   # Source label on every school + College Scorecard columns
+  seed_scorecard/00–06_*.sql       # Generated: official US schools (upsert, safe to re-run)
 ```
 
 ## How matching works
@@ -226,31 +298,59 @@ missing rather than quietly showing tuition alone.
 
 ## Admission model (trained on synthetic data)
 
-For undergraduate profiles, Reach / Match / Safety and the "~%" estimate
-come from a logistic regression trained offline in Python ([`ml/`](ml/README.md))
-and run in TypeScript ([`lib/admission-model.ts`](lib/admission-model.ts)):
-standardize six features, take a dot product, apply a sigmoid. A Vitest
-parity test checks the TypeScript predictions match scikit-learn's on 20
-fixture rows. The details page shows how much each factor (GPA, SAT,
-IELTS, selectivity) moves the estimate.
+For undergraduate profiles at schools with official College Scorecard
+data, Reach / Match / Safety and the "~%" estimate come from a logistic
+regression trained offline in Python ([`ml/`](ml/README.md)) and run in
+TypeScript ([`lib/admission-model.ts`](lib/admission-model.ts)):
+standardize four features (GPA, SAT z-score within the school's range,
+"SAT known", and the school's admission rate on a log-odds scale), take a
+dot product, apply a sigmoid. A Vitest parity test checks the TypeScript
+predictions match scikit-learn's on 20 fixture rows. The details page shows
+how much each factor moves the estimate. Illustrative and self-entered
+schools keep the hand-written rule, because the model was only simulated
+around official figures.
 
 **It's trained on synthetic applicants**, because there's no public
-per-student undergraduate admissions data. On the held-out synthetic test
-set ([`ml/reports/admission_report.md`](ml/reports/admission_report.md)):
+per-student undergraduate admissions data. The *schools* are real (each
+school's official admission rate and SAT range from Scorecard, 50
+simulated applicants per school, 78,850 in total); the *applicants* and
+the admission rule are invented. On the held-out synthetic test set
+([`ml/reports/admission_report.md`](ml/reports/admission_report.md)):
 
 | Model | ROC-AUC | Log-loss | Brier |
 | --- | --- | --- | --- |
-| Old rule (baseline) | 0.730 | 0.500 | 0.165 |
-| Logistic regression (used in the app) | 0.874 | 0.386 | 0.124 |
-| Gradient boosting (comparison) | 0.885 | 0.371 | 0.118 |
+| Old rule (baseline) | 0.627 | 0.564 | 0.190 |
+| Logistic regression (used in the app) | 0.895 | 0.355 | 0.112 |
+| Gradient boosting (comparison) | 0.895 | 0.355 | 0.113 |
 
 These numbers show the pipeline recovers the structure of data it was
 built to have. They say nothing about real admissions, and the UI labels
-the estimate as a demo. Gradient boosting scores slightly higher;
-logistic regression is used because its coefficients and per-factor
-contributions can be explained, and it runs in plain TypeScript inside the
-Next.js app, with no Python server. The model only replaces the old rule
-because training recorded that it beats the rule on all three metrics.
+the estimate as a demo. (They aren't comparable with the earlier version of
+this model, which was simulated around the illustrative sample schools.)
+Gradient boosting scores the same here; logistic regression is used
+because its coefficients and per-factor contributions can be explained,
+and it runs in plain TypeScript inside the Next.js app, with no Python
+server. The model only replaces the old rule because training recorded
+that it beats the rule on all three metrics.
+
+## School-level regressions (real data)
+
+[`ml/train_school_regression.py`](ml/train_school_regression.py) fits two
+linear regressions on the official Scorecard data, one row per school:
+admission rate, and median earnings 10 years after entry, each from SAT
+midpoint, size, tuition, ownership and region. Full results, coefficients
+and plots are in
+[`ml/reports/school_regression.md`](ml/reports/school_regression.md):
+
+| Target | Schools | Test R² | 5-fold CV R² (train) | Test RMSE | RMSE of predicting the mean |
+| --- | --- | --- | --- | --- | --- |
+| Admission rate | 918 | 0.416 | 0.328 ± 0.122 | 16.4 points | 21.6 points |
+| Median earnings | 910 | 0.639 | 0.627 ± 0.088 | $9,484 | $15,834 |
+
+This is **ecological** data: it describes how schools differ, not what
+will happen to any student, and the coefficients are associations, not
+causes. Only schools that report an SAT range are included (many are
+test-optional), and groups with fewer than 20 schools are left out.
 
 ## How offer ranking works
 
@@ -287,7 +387,7 @@ is **Admitted** (or **Accepted**), it appears on `/offers`, ranked by
   it. Because every page reads the same `universities` table, a school a
   student adds shows up (and is scored) everywhere in their account
   without any extra code.
-- Universities without a known ranking show as "Unranked" rather than a
+- Universities without a known ranking show "Ranking not available" rather than a
   made-up number, and sort last when sorting by ranking.
 - Auth uses `@supabase/ssr` with cookie-based sessions shared between the
   browser, Server Components, and Server Actions.

@@ -1,110 +1,93 @@
-"""Generate SYNTHETIC undergraduate applicants.
+"""Generate SYNTHETIC undergraduate applicants around real school figures.
 
-There's no public per-student undergraduate admissions data, so this
-simulates applicants around each school's (illustrative) admission figures
-and admits them with a noisy rule. The result demonstrates the modeling
-pipeline; it is NOT real admissions data, and a model trained on it does
-not predict real admissions. Everything downstream is labeled accordingly.
+There's no public per-student admissions data, so this simulates applicants
+for every US school in the official College Scorecard import, using each
+school's REAL admission rate and SAT range. Everything about the individual
+applicants (their GPAs, who submits an SAT, how admissions decide) is
+invented here and labeled as such. A model trained on it demonstrates the
+pipeline; it is NOT evidence of predicting real admissions.
 
-Run from the project root:
-    npm run ml:export-universities
+Run from the project root (after `npm run data:refresh-scorecard`):
     ml/.venv/Scripts/python ml/generate_synthetic.py
 """
 
+import json
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent
-UNIVERSITIES = ROOT / "data" / "universities.csv"
+SCHOOLS = ROOT.parent / "data" / "scorecard" / "universities.json"
 OUT = ROOT / "data" / "synthetic_applicants.csv"
 
 SEED = 42  # fixed so every run produces the same data
-APPLICANTS_PER_SCHOOL = 300
-SAT_NOT_SUBMITTED = 0.20  # share of US applicants who apply test-optional
-IELTS_NOT_REPORTED = 0.15  # e.g. native speakers
+APPLICANTS_PER_SCHOOL = 50
+SAT_NOT_SUBMITTED = 0.20  # assumption: share who apply test-optional
 
-# The hidden "true" rule of this synthetic world. Schools admit the
-# strongest share of their pool (so each school's admit rate tracks its
-# acceptance rate), where strength is a weighted mix of grades and scores
-# plus random noise for everything we don't observe (essays, interviews...).
+# ── Invented assumptions (there's no real per-student data to base them on) ──
+# Applicant GPAs: pools at more selective schools are assumed to be stronger.
+GPA_BASE = 78
+GPA_SELECTIVITY_BONUS = 14  # added for a school admitting ~0%
+GPA_SD = 7
+# The hidden "true" rule: each school admits the strongest share of its pool
+# equal to its REAL admission rate, where strength mixes GPA, SAT and noise
+# for everything unobserved (essays, interviews, ...).
 GPA_WEIGHT = 1.5
 SAT_WEIGHT = 0.9
-IELTS_WEIGHT = 0.6
 NOISE_SCALE = 1.0
-# English requirements behave like hard cutoffs: most applicants below the
-# minimum are rejected even if otherwise strong (a few get conditional offers).
-BELOW_IELTS_MIN_REJECT_RATE = 0.85
 
 
 def simulate_school(school: pd.Series, rng: np.random.Generator) -> pd.DataFrame:
     n = APPLICANTS_PER_SCHOOL
+    rate = school.acceptance_rate / 100
 
-    # Applicant pools are a bit weaker on average than the students admitted.
-    gpa = np.clip(rng.normal(school.avg_admitted_gpa - 4, 6, n), 50, 100).round(1)
+    gpa_mean = GPA_BASE + GPA_SELECTIVITY_BONUS * (1 - rate)
+    gpa = np.clip(rng.normal(gpa_mean, GPA_SD, n), 50, 100).round(1)
 
     has_sat_range = pd.notna(school.sat_25) and pd.notna(school.sat_75)
     if has_sat_range:
+        # Applicants are spread a bit wider and lower than the enrolled
+        # middle 50% that Scorecard reports.
         mid = (school.sat_25 + school.sat_75) / 2
-        sd = (school.sat_75 - school.sat_25) / 1.349
+        sd = max(school.sat_75 - school.sat_25, 10) / 1.349
         sat = np.clip(np.round(rng.normal(mid - 0.3 * sd, 1.1 * sd, n) / 10) * 10, 400, 1600)
         sat[rng.random(n) < SAT_NOT_SUBMITTED] = np.nan
+        sat_part = np.where(np.isnan(sat), 0.0, (sat - np.nanmean(sat)) / (np.nanstd(sat) or 1))
     else:
-        sat = np.full(n, np.nan)
+        sat = np.full(n, np.nan)  # test-optional/test-blind school: no range published
+        sat_part = np.zeros(n)
 
-    if pd.notna(school.min_ielts):
-        ielts = np.clip(np.round(rng.normal(school.min_ielts + 0.3, 0.7, n) * 2) / 2, 4, 9)
-        ielts[rng.random(n) < IELTS_NOT_REPORTED] = np.nan
-    else:
-        ielts = np.full(n, np.nan)
-
-    # Strength: standardized within the school's pool, missing scores count 0.
-    gpa_part = (gpa - gpa.mean()) / gpa.std()
-    if has_sat_range:
-        sat_part = np.where(np.isnan(sat), 0.0, (sat - np.nanmean(sat)) / np.nanstd(sat))
-    else:
-        sat_part = np.zeros(n)  # non-US school: SAT plays no part
-    ielts_part = np.where(np.isnan(ielts), 0.0, ielts - (school.min_ielts if pd.notna(school.min_ielts) else 0))
-    strength = (
-        GPA_WEIGHT * gpa_part
-        + SAT_WEIGHT * sat_part
-        + IELTS_WEIGHT * ielts_part
+    strength = GPA_WEIGHT * (gpa - gpa.mean()) / (gpa.std() or 1) + SAT_WEIGHT * sat_part \
         + rng.logistic(0, NOISE_SCALE, n)
-    )
 
-    # Admit the top `acceptance_rate`% of the pool.
-    cutoff = np.quantile(strength, 1 - school.acceptance_rate / 100)
-    admitted = strength > cutoff
-
-    # Hard-ish English requirement.
-    below_min = ~np.isnan(ielts) & (ielts < school.min_ielts)
-    admitted &= ~(below_min & (rng.random(n) < BELOW_IELTS_MIN_REJECT_RATE))
+    # Admit the top `rate` share of the pool (the school's real admit rate).
+    admitted = strength > np.quantile(strength, 1 - rate)
 
     return pd.DataFrame(
         {
+            "scorecard_id": school.scorecard_id,
             "university": school["name"],
             "gpa": gpa,
             "sat": sat,
-            "ielts": ielts,
-            "avg_admitted_gpa": school.avg_admitted_gpa,
             "sat_25": school.sat_25,
             "sat_75": school.sat_75,
-            "min_ielts": school.min_ielts,
             "acceptance_rate": school.acceptance_rate,
+            # Not published by Scorecard; kept (as empty) so the old rule
+            # can be evaluated exactly as the app would run it.
+            "avg_admitted_gpa": np.nan,
             "admitted": admitted.astype(int),
         }
     )
 
 
 def main() -> None:
-    if not UNIVERSITIES.exists():
-        raise SystemExit(
-            f"{UNIVERSITIES} not found. Run `npm run ml:export-universities` first."
-        )
+    if not SCHOOLS.exists():
+        raise SystemExit(f"{SCHOOLS} not found. Run `npm run data:refresh-scorecard` first.")
 
-    schools = pd.read_csv(UNIVERSITIES)
-    schools = schools[schools["avg_admitted_gpa"].notna()]
+    payload = json.loads(SCHOOLS.read_text(encoding="utf-8"))
+    schools = pd.DataFrame(payload["universities"])
+    schools = schools[schools["acceptance_rate"].notna()]
     rng = np.random.default_rng(SEED)
 
     data = pd.concat(
@@ -114,15 +97,18 @@ def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     data.to_csv(OUT, index=False)
 
-    # Sanity check: simulated admit rates should track listed acceptance rates
-    # (a little lower, because of the English cutoff).
-    by_school = data.groupby("university").agg(
+    # Grouped by id, not name: several different US colleges share a name
+    # (e.g. "Bethel University").
+    by_school = data.groupby("scorecard_id").agg(
         listed=("acceptance_rate", "first"), simulated=("admitted", "mean")
     )
     gap = (by_school["simulated"] * 100 - by_school["listed"]).abs()
-    print(f"Wrote {len(data)} synthetic applicants for {len(schools)} schools to {OUT.name}")
-    print(f"Overall admit rate: {data['admitted'].mean():.1%}")
-    print(f"Simulated vs listed acceptance rate: mean gap {gap.mean():.1f} pts, max {gap.max():.1f} pts")
+    print(f"Wrote {len(data)} synthetic applicants for {len(schools)} real schools "
+          f"(Scorecard data year {payload['data_year']}) to {OUT.name}")
+    print(f"Overall admit rate: {data['admitted'].mean():.1%}; "
+          f"schools with an SAT range: {schools['sat_25'].notna().sum()}")
+    print(f"Simulated vs real admission rate: mean gap {gap.mean():.1f} pts, max {gap.max():.1f} pts "
+          f"(with only {APPLICANTS_PER_SCHOOL} applicants per school, rates are rounded to 2-pt steps)")
 
 
 if __name__ == "__main__":

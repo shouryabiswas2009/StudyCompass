@@ -65,6 +65,21 @@ describe("validateUniversityForm", () => {
     }
   });
 
+  it("accepts an optional https source link and rejects other kinds", () => {
+    const ok = validateUniversityForm(makeForm({ source_url: "https://www.example.ac.in/admissions" }));
+    expect(ok.ok).toBe(true);
+    if (ok.ok) expect(ok.data.source_url).toBe("https://www.example.ac.in/admissions");
+
+    const blank = validateUniversityForm(makeForm({ source_url: "" }));
+    expect(blank.ok && blank.data.source_url).toBeNull();
+
+    for (const bad of ["javascript:alert(1)", "not a link"]) {
+      const result = validateUniversityForm(makeForm({ source_url: bad }));
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.errors.source_url).toMatch(/https:\/\//);
+    }
+  });
+
   it("requires a program and a valid degree level", () => {
     const result = validateUniversityForm(
       makeForm({ popular_programs: null, degree_levels: ["Diploma"] })

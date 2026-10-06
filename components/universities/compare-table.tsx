@@ -2,6 +2,7 @@ import { Flag } from "@/components/flag";
 import { ChanceBadge } from "@/components/universities/chance-badge";
 import { MatchScoreBadge } from "@/components/universities/match-score-badge";
 import { StrengthsConcerns } from "@/components/universities/strengths-concerns";
+import { SourceBadge } from "@/components/universities/source-badge";
 import { bestIndexes, totalYearlyCost } from "@/lib/compare";
 import { usd } from "@/lib/format";
 import { formatRank, type AdmissionChance, type MatchEntry } from "@/lib/matching";
@@ -24,6 +25,10 @@ type Row = {
 const muted = (text: string) => <span className="text-muted-foreground">{text}</span>;
 
 const ROWS: Row[] = [
+  {
+    label: "Data source",
+    render: ({ university }) => <SourceBadge university={university} />,
+  },
   {
     label: "Country",
     render: ({ university }) => (
@@ -239,7 +244,8 @@ export function CompareTable({
       <p className="text-xs text-muted-foreground">
         Green cells are the best value in their row (lowest cost, highest
         score, and so on). Rankings are only compared when every school is
-        ranked the same way. Figures are illustrative approximations.
+        ranked the same way. The first row says where each school&apos;s figures
+        come from; rankings are illustrative for every school.
       </p>
     </div>
   );

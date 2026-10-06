@@ -31,6 +31,7 @@ const ECHOED_FIELDS = [
   "min_ielts",
   "living_cost_per_year",
   "description",
+  "source_url",
 ];
 
 function submittedValues(formData: FormData): Record<string, string> {
@@ -69,7 +70,9 @@ export async function createUniversity(
   // where it isn't their own id, so this can't be faked from the browser.
   const { data, error } = await supabase
     .from("universities")
-    .insert({ ...result.data, created_by: user.id })
+    // source must be 'user-entered' for a student's own row — the database
+    // check in migration_007 refuses anything else.
+    .insert({ ...result.data, created_by: user.id, source: "user-entered" })
     .select("id")
     .single();
 

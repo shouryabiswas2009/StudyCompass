@@ -15,7 +15,7 @@ export function AdmissionEstimate({
       <p className="text-sm text-muted-foreground">
         {degreeLevel !== "Undergraduate"
           ? "The admission estimate is only shown for undergraduate profiles: the demo model was trained on simulated undergraduate applicants."
-          : "No admission estimate: this school has no typical admitted GPA to compare against."}
+          : "The admission estimate is only shown for schools with official College Scorecard figures: the demo model was simulated around those schools' real admission rates and SAT ranges, not illustrative or self-entered ones."}
       </p>
     );
   }
@@ -67,9 +67,10 @@ export function AdmissionEstimate({
       <p className="text-xs text-muted-foreground">
         Points compare you with an average applicant in the training data.
         This is a <strong>demo estimate</strong>{" "}from a logistic regression
-        trained on <strong>simulated</strong>{" "}applicants built around this
-        site&apos;s illustrative figures — not real admissions data, so
-        don&apos;t rely on it. On held-out simulated data it scored ROC-AUC{" "}
+        trained on <strong>simulated</strong>{" "}applicants built around real
+        College Scorecard admission rates and SAT ranges. The applicants and
+        how they were admitted are invented, so this isn&apos;t a real
+        prediction — don&apos;t rely on it. On held-out simulated data it scored ROC-AUC{" "}
         {testMetrics.roc_auc.toFixed(3)} vs. {baselineTestMetrics.roc_auc.toFixed(3)} for
         the old rule of thumb.
       </p>

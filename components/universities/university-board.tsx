@@ -295,10 +295,12 @@ export function UniversityBoard({
       )}
 
       <p className="text-xs text-muted-foreground">
-        Tuition, rankings and admission figures are illustrative approximations
-        for this demo, not official statistics. Reach / Match / Safety (and the
-        ~% next to it for undergraduate profiles) comes from a model trained on
-        simulated applicants — a demo of the method, not a real prediction.
+        Each card says where its figures come from: &ldquo;College Scorecard&rdquo;
+        is official US Department of Education data; &ldquo;Illustrative&rdquo; is
+        sample data, not official statistics. QS and subject rankings are
+        illustrative for every school. Reach / Match / Safety (and the ~% next to
+        it) comes from a model trained on simulated applicants — a demo of the
+        method, not a real prediction.
       </p>
     </div>
   );

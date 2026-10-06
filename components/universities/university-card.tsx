@@ -21,7 +21,7 @@ import {
   type MatchExplanation,
   type MatchResult,
 } from "@/lib/matching";
-import { Badge } from "@/components/ui/badge";
+import { SourceBadge } from "@/components/universities/source-badge";
 import { ApplicationStatusControl } from "@/components/applications/application-status-control";
 import type { ApplicationStatus } from "@/lib/types";
 import type { AdmissionPrediction } from "@/lib/admission-model";
@@ -88,12 +88,11 @@ export function UniversityCard({
             </div>
             <CardDescription className="flex items-center gap-1.5">
               <Flag country={university.country} />
-              {university.country}
-              {university.created_by && (
-                <Badge variant="secondary" className="ml-1">
-                  Added by you
-                </Badge>
-              )}
+              {/* City and state tell apart US colleges with the same name
+                  (there are several "Bethel University"s). */}
+              {university.city && university.state
+                ? `${university.city}, ${university.state}`
+                : university.country}
               <span className="ml-auto">
                 <ChanceBadge
                   chance={match.chance}
@@ -104,6 +103,10 @@ export function UniversityCard({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Data</span>
+              <SourceBadge university={university} />
+            </div>
             <div className="flex items-baseline justify-between text-sm">
               <span className="text-muted-foreground">Tuition</span>
               <span className="font-medium">

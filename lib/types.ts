@@ -51,7 +51,27 @@ export type University = {
   // means "added by the current student".
   created_by: string | null;
   created_at: string;
+
+  // Where the figures come from (migration_007).
+  source: UniversitySource;
+  data_year: string | null; // Scorecard's own year label, e.g. "2024"
+  fetched_at: string | null;
+  source_url: string | null; // optional link for user-entered figures
+
+  // Official College Scorecard fields; null for schools without them.
+  scorecard_id: number | null;
+  city: string | null;
+  state: string | null;
+  ownership: "public" | "private nonprofit" | "private for-profit" | null;
+  us_region: string | null;
+  tuition_in_state: number | null;
+  avg_net_price: number | null;
+  student_size: number | null;
+  completion_rate: number | null; // % finishing within 150% of normal time
+  median_earnings_10yr: number | null;
 };
+
+export type UniversitySource = "College Scorecard" | "illustrative" | "user-entered";
 
 // Fields the "add a university" form fills in.
 export type UniversityInput = Pick<
@@ -69,6 +89,7 @@ export type UniversityInput = Pick<
   | "popular_programs"
   | "degree_levels"
   | "description"
+  | "source_url"
 >;
 
 // Application tracker (migration_006). An "admitted" application doubles as

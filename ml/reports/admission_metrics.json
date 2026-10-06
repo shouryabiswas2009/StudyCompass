@@ -1,59 +1,59 @@
 {
   "data": "synthetic (ml/generate_synthetic.py)",
   "split": {
-    "train": 10980,
-    "validation": 3660,
-    "test": 3660
+    "train": 47310,
+    "validation": 15770,
+    "test": 15770
   },
   "chosen_C": 1.0,
   "results": [
     {
       "model": "Baseline rule",
-      "roc_auc": 0.7297,
-      "log_loss": 0.4999,
-      "brier": 0.1647,
-      "threshold": 0.12,
+      "roc_auc": 0.627,
+      "log_loss": 0.5642,
+      "brier": 0.1897,
+      "threshold": 0.05,
       "confusion_matrix": {
-        "tn": 1753,
-        "fp": 910,
-        "fn": 221,
-        "tp": 776
+        "tn": 0,
+        "fp": 4434,
+        "fn": 0,
+        "tp": 11336
       },
-      "precision": 0.4603,
-      "recall": 0.7783,
-      "accuracy": 0.691
+      "precision": 0.7188,
+      "recall": 1.0,
+      "accuracy": 0.7188
     },
     {
       "model": "Logistic regression",
-      "roc_auc": 0.874,
-      "log_loss": 0.3864,
-      "brier": 0.1239,
-      "threshold": 0.38,
+      "roc_auc": 0.8949,
+      "log_loss": 0.3552,
+      "brier": 0.1119,
+      "threshold": 0.48,
       "confusion_matrix": {
-        "tn": 2294,
-        "fp": 369,
-        "fn": 303,
-        "tp": 694
+        "tn": 2764,
+        "fp": 1670,
+        "fn": 835,
+        "tp": 10501
       },
-      "precision": 0.6529,
-      "recall": 0.6961,
-      "accuracy": 0.8164
+      "precision": 0.8628,
+      "recall": 0.9263,
+      "accuracy": 0.8412
     },
     {
       "model": "Gradient boosting",
-      "roc_auc": 0.885,
-      "log_loss": 0.3708,
-      "brier": 0.118,
-      "threshold": 0.38,
+      "roc_auc": 0.8947,
+      "log_loss": 0.3554,
+      "brier": 0.1125,
+      "threshold": 0.41,
       "confusion_matrix": {
-        "tn": 2310,
-        "fp": 353,
-        "fn": 278,
-        "tp": 719
+        "tn": 2507,
+        "fp": 1927,
+        "fn": 632,
+        "tp": 10704
       },
-      "precision": 0.6707,
-      "recall": 0.7212,
-      "accuracy": 0.8276
+      "precision": 0.8474,
+      "recall": 0.9442,
+      "accuracy": 0.8377
     }
   ],
   "logistic_regression_beats_baseline": true

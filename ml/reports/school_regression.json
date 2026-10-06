@@ -1,0 +1,98 @@
+{
+  "data": "US Department of Education College Scorecard",
+  "data_year": "2024",
+  "fetched_at": "2026-10-06T06:55:42.188Z",
+  "level": "school (ecological) \u2014 not individual students",
+  "results": {
+    "acceptance_rate": {
+      "rows_used": 918,
+      "train": 734,
+      "test": 184,
+      "test_r2": 0.416,
+      "test_rmse": 16.441,
+      "baseline_rmse_predict_mean": 21.5893,
+      "cv_r2_mean": 0.3281,
+      "cv_r2_std": 0.1224,
+      "reference_categories": {
+        "ownership": "private nonprofit",
+        "us_region": "Southeast"
+      },
+      "left_out_small_groups": {
+        "ownership": {
+          "private for-profit": 2
+        },
+        "us_region": {
+          "Outlying Areas": 4,
+          "US Service Schools": 1
+        }
+      },
+      "feature_sd": {
+        "sat_midpoint": 137.9354,
+        "log10_size": 0.5113,
+        "tuition_k": 15.7801
+      },
+      "coefficients": {
+        "sat_midpoint": -12.4308,
+        "log10_size": 2.9875,
+        "tuition_k": -3.5267,
+        "ownership_public": 0.2441,
+        "us_region_Far West": 15.426,
+        "us_region_Great Lakes": 8.3271,
+        "us_region_Mid East": 9.9414,
+        "us_region_New England": 6.6162,
+        "us_region_Plains": 8.4856,
+        "us_region_Rocky Mountains": 12.9626,
+        "us_region_Southwest": 2.6343
+      },
+      "interpretation": [
+        "Holding the other features fixed, schools one standard deviation higher in SAT midpoint have an admission rate about 12.4 percentage points lower on average, the largest effect among the numeric features; for tuition it is about 3.5 percentage points lower.",
+        "Compared with private nonprofit schools with the same SAT midpoint, size, tuition and region, public schools differ by about 0.2 percentage points (higher)."
+      ]
+    },
+    "median_earnings_10yr": {
+      "rows_used": 910,
+      "train": 728,
+      "test": 182,
+      "test_r2": 0.639,
+      "test_rmse": 9484.3973,
+      "baseline_rmse_predict_mean": 15834.4256,
+      "cv_r2_mean": 0.6274,
+      "cv_r2_std": 0.0878,
+      "reference_categories": {
+        "ownership": "private nonprofit",
+        "us_region": "Southeast"
+      },
+      "left_out_small_groups": {
+        "ownership": {
+          "private for-profit": 2
+        },
+        "us_region": {
+          "Outlying Areas": 4,
+          "US Service Schools": 1
+        }
+      },
+      "feature_sd": {
+        "sat_midpoint": 137.5667,
+        "log10_size": 0.5085,
+        "tuition_k": 15.7713
+      },
+      "coefficients": {
+        "sat_midpoint": 6550.9075,
+        "log10_size": 1702.0357,
+        "tuition_k": 4656.6184,
+        "ownership_public": 1156.7846,
+        "us_region_Far West": 6576.8589,
+        "us_region_Great Lakes": 3420.6051,
+        "us_region_Mid East": 8232.9528,
+        "us_region_New England": 10153.9655,
+        "us_region_Plains": 5320.3221,
+        "us_region_Rocky Mountains": 2893.3599,
+        "us_region_Southwest": 3631.8781
+      },
+      "interpretation": [
+        "Holding the other features fixed, schools one standard deviation higher in SAT midpoint have median earnings (10 years after entry) about $6,551 higher on average, the largest effect among the numeric features; for tuition it is about $4,657 higher.",
+        "Compared with private nonprofit schools with the same SAT midpoint, size, tuition and region, public schools differ by about $1,157 (higher)."
+      ]
+    }
+  }
+}

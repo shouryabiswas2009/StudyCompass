@@ -48,6 +48,20 @@ function makeUniversity(overrides: Partial<University> = {}): University {
     description: "",
     created_by: null,
     created_at: "",
+    source: "illustrative",
+    data_year: null,
+    fetched_at: null,
+    source_url: null,
+    scorecard_id: null,
+    city: null,
+    state: null,
+    ownership: null,
+    us_region: null,
+    tuition_in_state: null,
+    avg_net_price: null,
+    student_size: null,
+    completion_rate: null,
+    median_earnings_10yr: null,
     ...overrides,
   };
 }
@@ -197,6 +211,18 @@ describe("getDisplayRanking", () => {
     const ranking = getDisplayRanking(university, makeProfile());
 
     expect(ranking).toEqual({ rank: null, label: "Overall" });
-    expect(formatRank(ranking.rank)).toBe("Unranked");
+    expect(formatRank(ranking.rank)).toBe("Ranking not available");
+  });
+});
+
+describe("missing program data", () => {
+  it("treats a school with no program list as unknown, not as a mismatch", () => {
+    const university = makeUniversity({ popular_programs: [] });
+    const result = computeMatchScore(makeProfile(), university);
+    const { concerns } = explainMatch(makeProfile(), university);
+
+    expect(result.factors.find((f) => f.key === "major")?.points).toBeNull();
+    expect(result.score).toBe(100); // everything known is a perfect fit
+    expect(concerns.some((c) => c.startsWith("None of your intended majors"))).toBe(false);
   });
 });

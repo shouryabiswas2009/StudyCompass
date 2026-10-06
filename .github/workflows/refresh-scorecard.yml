@@ -1,0 +1,60 @@
+name: Refresh College Scorecard data
+
+# Re-downloads the official College Scorecard figures and opens a pull
+# request with the changes, so you can review the diff before anything
+# lands. It never pushes to main, and it doesn't touch the database: after
+# merging, run the files in supabase/seed_scorecard/ in the SQL Editor.
+#
+# Needs the repository secret SCORECARD_API_KEY, and "Allow GitHub Actions
+# to create and approve pull requests" turned on (Settings → Actions →
+# General → Workflow permissions).
+on:
+  workflow_dispatch: # run it by hand from the Actions tab
+  schedule:
+    # Once a year (1 July). Scorecard publishes updates a few times a year,
+    # but a yearly refresh is enough for this app; run it by hand any time.
+    - cron: "0 9 1 7 *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Download, normalize and regenerate the SQL
+        env:
+          SCORECARD_API_KEY: ${{ secrets.SCORECARD_API_KEY }}
+        run: npm run data:refresh-scorecard
+
+      - name: Check every SQL file still applies (twice) on a scratch database
+        run: npm run db:check
+
+      - name: Open a pull request with the changes
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: data/scorecard-refresh
+          delete-branch: true
+          add-paths: |
+            data/scorecard/**
+            supabase/seed_scorecard/**
+          commit-message: Refresh College Scorecard data
+          title: Refresh College Scorecard data
+          body: |
+            Automated refresh from the US Department of Education College Scorecard API.
+
+            Before merging: check the diff (and the coverage numbers in
+            `data/scorecard/universities.json`). After merging: run
+            `supabase/seed_scorecard/*.sql` in order in the Supabase SQL Editor,
+            then retrain the demo model (`ml/README.md`) if you want it to use
+            the new figures.

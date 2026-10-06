@@ -84,6 +84,21 @@ export function validateUniversityForm(formData: FormData): UniversityValidation
     errors.description = "Description is too long (1000 characters max).";
   }
 
+  // Optional link to where the student got their figures (e.g. the
+  // university's admissions page). Only http(s) links, so it's always a safe
+  // thing to render as a link.
+  const sourceUrlRaw = readText(formData, "source_url");
+  let source_url: string | null = null;
+  if (sourceUrlRaw) {
+    try {
+      const url = new URL(sourceUrlRaw);
+      if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error();
+      source_url = url.toString();
+    } catch {
+      errors.source_url = "Enter a full web address starting with https:// (or leave it blank).";
+    }
+  }
+
   if (Object.keys(errors).length > 0) {
     return { ok: false, errors };
   }
@@ -105,6 +120,7 @@ export function validateUniversityForm(formData: FormData): UniversityValidation
       popular_programs,
       degree_levels: degree_levels as DegreeLevel[],
       description,
+      source_url,
     },
   };
 }

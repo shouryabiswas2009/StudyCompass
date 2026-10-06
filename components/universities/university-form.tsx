@@ -249,6 +249,24 @@ export function UniversityForm({
         <FieldError message={errors.description} />
       </div>
 
+      <div className="space-y-2">
+        <Label htmlFor="source_url">Where did these figures come from? (optional)</Label>
+        <Input
+          id="source_url"
+          name="source_url"
+          type="url"
+          defaultValue={initial("source_url")}
+          placeholder="https://www.university.edu/admissions"
+          aria-invalid={!!errors.source_url}
+        />
+        <p className="text-xs text-muted-foreground">
+          A link to the university&apos;s own page lets you (and anyone you
+          show this to) check the numbers later. It&apos;s shown next to the
+          figures.
+        </p>
+        <FieldError message={errors.source_url} />
+      </div>
+
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
 
       <Button type="submit" disabled={pending} className="w-full sm:w-auto">

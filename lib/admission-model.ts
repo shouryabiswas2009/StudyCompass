@@ -6,25 +6,16 @@ import type { Profile, University } from "@/lib/types";
 // TypeScript: the exported coefficients, a dot product and a sigmoid. No
 // Python server needed.
 //
-// The model was trained on SYNTHETIC undergraduate applicants
+// The model was trained on SYNTHETIC undergraduate applicants simulated
+// around real College Scorecard admission rates and SAT ranges
 // (ml/generate_synthetic.py), so its output is a demo estimate, not a real
 // admissions prediction — the UI says so wherever it's shown.
 
-export type ModelProfile = Pick<Profile, "gpa_percentage" | "sat_score" | "ielts_score">;
-export type ModelUniversity = Pick<
-  University,
-  "avg_admitted_gpa" | "sat_25" | "sat_75" | "min_ielts" | "acceptance_rate"
->;
+export type ModelProfile = Pick<Profile, "gpa_percentage" | "sat_score">;
+export type ModelUniversity = Pick<University, "sat_25" | "sat_75" | "acceptance_rate">;
 
 // Must match FEATURES in ml/features.py, in the same order.
-const FEATURE_NAMES = [
-  "gpa_gap",
-  "sat_z",
-  "sat_known",
-  "ielts_margin",
-  "ielts_known",
-  "acceptance_logit",
-] as const;
+const FEATURE_NAMES = ["gpa", "sat_z", "sat_known", "acceptance_logit"] as const;
 
 // Fail loudly if the exported model and this file ever disagree, instead of
 // silently multiplying the wrong numbers together.
@@ -44,16 +35,8 @@ const isKnown = (v: number | null | undefined): v is number =>
 
 // Mirrors build_features() in ml/features.py line for line. The parity test
 // (lib/admission-model.test.ts) checks the two give the same predictions.
-export function admissionFeatures(
-  profile: ModelProfile,
-  university: ModelUniversity
-): number[] | null {
-  // Without a typical admitted GPA there's nothing to compare against.
-  if (!isKnown(university.avg_admitted_gpa)) return null;
-
-  const gpaGap = (profile.gpa_percentage - university.avg_admitted_gpa) / 10;
-
-  const { sat_25, sat_75, min_ielts } = university;
+export function admissionFeatures(profile: ModelProfile, university: ModelUniversity): number[] {
+  const { sat_25, sat_75 } = university;
   const sat = profile.sat_score;
   const satKnown = isKnown(sat) && isKnown(sat_25) && isKnown(sat_75);
   let satZ = 0;
@@ -62,14 +45,10 @@ export function admissionFeatures(
     satZ = (sat - (sat_25 + sat_75) / 2) / sd;
   }
 
-  const ielts = profile.ielts_score;
-  const ieltsKnown = isKnown(ielts) && isKnown(min_ielts);
-  const ieltsMargin = ieltsKnown ? ielts - min_ielts : 0;
-
   const p = Math.min(0.99, Math.max(0.01, university.acceptance_rate / 100));
   const acceptanceLogit = Math.log(p / (1 - p));
 
-  return [gpaGap, satZ, satKnown ? 1 : 0, ieltsMargin, ieltsKnown ? 1 : 0, acceptanceLogit];
+  return [profile.gpa_percentage, satZ, satKnown ? 1 : 0, acceptanceLogit];
 }
 
 const sigmoid = (z: number) => 1 / (1 + Math.exp(-z));
@@ -89,10 +68,9 @@ function probability(features: number[], ignore: number[] = []): number {
 
 // Features grouped the way a student thinks about them.
 const GROUPS: { label: string; features: number[] }[] = [
-  { label: "GPA vs. typical admit", features: [0] },
+  { label: "Your GPA", features: [0] },
   { label: "SAT", features: [1, 2] },
-  { label: "IELTS", features: [3, 4] },
-  { label: "School's selectivity", features: [5] },
+  { label: "School's selectivity", features: [3] },
 ];
 
 export type AdmissionPrediction = {
@@ -101,26 +79,22 @@ export type AdmissionPrediction = {
   // an average applicant from the training data (e.g. "SAT: +9 points").
   // `known` is false when there's no data for that factor (e.g. a school
   // with no SAT range), so the UI can say "no data" instead of showing the
-  // model's tiny adjustment for missingness as if it were a real effect.
+  // model's small adjustment for missingness as if it were a real effect.
   contributions: { label: string; points: number; known: boolean }[];
 };
 
 export function predictAdmission(
   profile: ModelProfile,
   university: ModelUniversity
-): AdmissionPrediction | null {
+): AdmissionPrediction {
   const features = admissionFeatures(profile, university);
-  if (!features) return null;
-
   const p = probability(features);
-  const known: Record<string, boolean> = {
-    SAT: features[2] === 1,
-    IELTS: features[4] === 1,
-  };
+  const satKnown = features[2] === 1;
+
   const contributions = GROUPS.map(({ label, features: idx }) => ({
     label,
     points: Math.round((p - probability(features, idx)) * 100),
-    known: known[label] ?? true,
+    known: label === "SAT" ? satKnown : true,
   }));
 
   return { probability: p, contributions };

@@ -182,7 +182,10 @@ export function admissionChance(
 export function computeMatchScore(profile: Profile, university: University): MatchResult {
   const fits: Record<FactorKey, number | null> = {
     budget: budgetFit(profile, university),
-    major: findMatchingProgram(profile, university) ? 1 : 0,
+    // No program list at all means we don't know, not that none match.
+    major: (university.popular_programs ?? []).length === 0
+      ? null
+      : findMatchingProgram(profile, university) ? 1 : 0,
     academic: academicFit(profile, university),
     country: countryMatches(profile, university) ? 1 : 0,
     english: englishFit(profile, university),
@@ -268,7 +271,9 @@ export function explainMatch(profile: Profile, university: University): MatchExp
         : `Offers ${match.program}.`
     );
   } else {
-    concerns.push("None of your intended majors are among its popular programs.");
+    if ((university.popular_programs ?? []).length > 0) {
+      concerns.push("None of your intended majors are among its popular programs.");
+    }
   }
 
   // GPA
@@ -349,7 +354,10 @@ export function getDisplayRanking(
 }
 
 export function formatRank(rank: number | null): string {
-  return rank === null ? "Unranked" : `#${rank}`;
+  // "Not available" rather than "Unranked": most official (Scorecard) schools
+  // simply have no QS ranking in this dataset, which isn't the same as being
+  // unranked.
+  return rank === null ? "Ranking not available" : `#${rank}`;
 }
 
 // Everything a university card needs, computed in one place so every page
@@ -365,13 +373,15 @@ export type MatchEntry = {
 };
 
 // The trained model only replaces the rule-based Reach/Match/Safety label
-// when (1) training showed it beats the rule on held-out data, and (2) the
-// student is applying for undergraduate study, because that's the only
-// kind of applicant the synthetic training data simulates.
+// when (1) training showed it beats the rule on held-out data, (2) the
+// student is applying for undergraduate study, and (3) the school has
+// official College Scorecard figures — the synthetic training data was
+// built around those schools' real admission rates and SAT ranges, so
+// using it on illustrative or student-entered figures would be guesswork.
 export function scoreUniversity(profile: Profile, university: University): MatchEntry {
   const match = computeMatchScore(profile, university);
   const prediction =
-    profile.preferred_degree_level === "Undergraduate"
+    profile.preferred_degree_level === "Undergraduate" && university.source === "College Scorecard"
       ? predictAdmission(profile, university)
       : null;
 

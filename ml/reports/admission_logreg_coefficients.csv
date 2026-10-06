@@ -1,7 +1,5 @@
 feature,coefficient_per_sd,odds_ratio_per_sd
-acceptance_logit,1.3597,3.895
-gpa_gap,1.3005,3.671
-ielts_margin,0.8116,2.2516
-sat_z,0.3491,1.4178
-ielts_known,-0.2369,0.7891
-sat_known,0.0328,1.0333
+acceptance_logit,2.7634,15.8529
+gpa,1.5603,4.7601
+sat_z,0.5655,1.7604
+sat_known,0.1483,1.1598

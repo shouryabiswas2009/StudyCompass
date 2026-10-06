@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "ml:export-universities": "node scripts/export-universities.mjs"
+    "db:check": "node scripts/check-sql.mjs",
+    "data:fetch-scorecard": "node --env-file-if-exists=.env.local scripts/scorecard/fetch.mjs",
+    "data:normalize-scorecard": "node scripts/scorecard/normalize.mjs",
+    "data:build-scorecard-sql": "node scripts/scorecard/build-seed-sql.mjs",
+    "data:refresh-scorecard": "npm run data:fetch-scorecard -- --refresh && npm run data:normalize-scorecard && npm run data:build-scorecard-sql"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
