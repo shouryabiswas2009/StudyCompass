@@ -17,7 +17,13 @@ single focus shows up in the new list. Steps 6 and 7 were run the same
 day and verified: `is_featured` exists, 371 of 1,577 College Scorecard
 schools and all 47 illustrative schools are featured (matching
 `npm run db:check`), and recommendations show "Featured schools only
-(418). Include all 1,624 schools". **Steps 8–10 are pending.**
+(418). Include all 1,624 schools". Steps 8–10 were run the same day and
+verified: the migration_011 columns exist (search_text included); all
+1,577 Scorecard schools link to their Scorecard page and 1,572 have degree
+levels; sources are College Scorecard 1,577, curated 42, illustrative 29
+(442 featured); Oxford was upgraded in place (£39,620 stored with its
+currency, illustrative ranking removed) and a search for "lse" finds the
+London School of Economics by its alias. **Nothing pending.**
 
 New migrations will be added to this table when they're written.
 
@@ -34,9 +40,9 @@ this order: the seed files need both migrations first.
 | 5 | `supabase/migration_009_multi_focus_and_coop.sql` | Done, verified 2026-10-06 |
 | 6 | `supabase/migration_010_featured.sql` | Done, verified 2026-10-06 |
 | 7 | `supabase/featured/featured.sql` (right after step 6) | Done, verified 2026-10-06 (371 + 47 featured) |
-| 8 | `supabase/migration_011_international.sql` | **Not run yet** |
-| 9 | `supabase/seed_scorecard/00_link_existing.sql` … `06_universities.sql` again (regenerated) | **Not run yet** |
-| 10 | `supabase/seed_international/00_link_existing.sql`, `01_universities.sql`, `90_coop.sql`, `91_rankings.sql` | **Not run yet** |
+| 8 | `supabase/migration_011_international.sql` | Done, verified 2026-10-06 |
+| 9 | `supabase/seed_scorecard/00_link_existing.sql` … `06_universities.sql` again (regenerated) | Done, verified 2026-10-06 (1,577 linked, 1,572 levels) |
+| 10 | `supabase/seed_international/00_link_existing.sql`, `01_universities.sql`, `90_coop.sql`, `91_rankings.sql` | Done, verified 2026-10-06 (42 curated) |
 
 All of them are safe to run again if you're not sure whether one went
 through.
