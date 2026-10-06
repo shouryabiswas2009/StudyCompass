@@ -253,6 +253,15 @@ Recommendations also show **top picks by country**: the best three
 matches in each of the student's preferred countries, above the full
 ranked list, so one country can't crowd out the others.
 
+## Continuous integration
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push
+and pull request: lint, `tsc --noEmit`, `npm test`, `npm run db:check`
+(every SQL file on a throwaway Postgres), the curated-data validators and
+`npm run build`. The build gets dummy Supabase values (no page fetches data
+while building), so no secrets are needed and the real database is never
+touched. Results are in the GitHub **Actions** tab.
+
 ## Keeping the Supabase project awake
 
 Supabase pauses free-tier projects after about a week with no activity, and

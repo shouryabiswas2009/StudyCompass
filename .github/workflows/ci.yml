@@ -1,0 +1,56 @@
+name: CI
+
+# Checks every push and pull request: lint, type check, tests, the SQL
+# files (on a throwaway in-memory Postgres) and a production build.
+# It never talks to the real Supabase project: the build gets dummy
+# values, which is enough because no page fetches data while building.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch cancels the older, still-running check.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      # Dummy values, not secrets: the app only needs them to exist at build time.
+      NEXT_PUBLIC_SUPABASE_URL: https://dummy-project.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key-for-ci
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Tests
+        run: npm test
+
+      - name: SQL files apply (twice) on a scratch database
+        run: npm run db:check
+
+      - name: Curated data passes its checks
+        run: |
+          npm run data:validate-international
+          npm run data:validate-country-info
+
+      - name: Production build
+        run: npm run build
