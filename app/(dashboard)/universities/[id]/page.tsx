@@ -125,6 +125,22 @@ export default async function UniversityDetailsPage({
         </div>
       </div>
 
+      {(university.degree_levels ?? []).length > 0 && (
+        <div className="mt-8 space-y-2">
+          <h2 className="font-medium">Degree levels offered</h2>
+          <div className="flex flex-wrap gap-2">
+            {university.degree_levels.map((level) => (
+              <Badge
+                key={level}
+                variant={level === profile?.preferred_degree_level ? "default" : "secondary"}
+              >
+                {level}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mt-10 flex gap-3">
         <Button asChild>
           <Link href={`/compare?a=${university.id}`}>Compare</Link>

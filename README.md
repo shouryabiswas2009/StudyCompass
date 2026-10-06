@@ -27,6 +27,10 @@ Supabase (Auth + Database), and Framer Motion.
      countries/majors and a budget range, and adds a `program_rankings`
      column to `universities` with sample per-subject rankings (illustrative,
      like the rest of the seed data — not real QS subject rankings).
+   - Then run [`supabase/migration_003_scores_and_degree_levels.sql`](supabase/migration_003_scores_and_degree_levels.sql).
+     It adds an optional SAT score to profiles, database checks that match
+     the profile form's validation, and a `degree_levels` column on
+     `universities`.
    - Copy `.env.local.example` to `.env.local` and fill in your project's
      URL and anon/publishable key (Project Settings → API in the dashboard).
 
@@ -118,6 +122,7 @@ proxy.ts      # Next.js 16's "Proxy" (renamed Middleware) — refreshes the
 supabase/
   seed.sql                          # Schema, RLS policies, and sample university data
   migration_002_richer_profiles.sql # Multi-select fields, budget range, subject rankings
+  migration_003_scores_and_degree_levels.sql # SAT score, input checks, degree levels
 ```
 
 ## How matching works
@@ -129,6 +134,16 @@ and whether it offers one of their intended majors (25 points). The
 explanation shown alongside each score is generated from the same factors
 with plain string templates — no external AI API is called, so there's no
 added cost or latency.
+
+Two rules sit on top of the score:
+
+- **Degree level is a hard requirement.** A school that doesn't offer the
+  student's degree level scores 0 and is left out of recommendations. An
+  empty `degree_levels` list means "unknown", so the school isn't ruled out.
+- **`budget_min` adds information, not a penalty.** If tuition is below half
+  the student's minimum budget, the explanation calls it "much cheaper than
+  your range" and suggests checking what the fee covers. It doesn't lower
+  the score, because paying less isn't a worse fit.
 
 `getDisplayRanking()` shows the QS ranking for the specific program that
 matched the student's major when we have that data (`program_rankings` on

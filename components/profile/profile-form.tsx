@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { COUNTRY_OPTIONS } from "@/lib/countries";
-import type { Profile } from "@/lib/types";
+import { DEGREE_LEVELS, type Profile } from "@/lib/types";
 
 // Common majors offered by the sample universities — just autocomplete
 // hints, students can still type anything.
@@ -31,6 +31,11 @@ const MAJOR_SUGGESTIONS = [
   "Architecture",
 ];
 
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return <p className="text-sm text-destructive">{message}</p>;
+}
+
 // `existingProfile` is null the first time a student fills this out,
 // and populated when they come back to edit it later.
 export function ProfileForm({
@@ -39,18 +44,31 @@ export function ProfileForm({
   existingProfile: Profile | null;
 }) {
   const [state, formAction, pending] = useActionState(saveProfile, undefined);
+  const errors = state?.fieldErrors ?? {};
+
+  // After a failed save, show what the student just typed; otherwise show
+  // their saved profile (or nothing, for a brand-new profile).
+  function initial(name: keyof Profile): string | undefined {
+    const submitted = state?.values?.[name];
+    if (submitted !== undefined) return submitted;
+    const saved = existingProfile?.[name];
+    return saved === null || saved === undefined ? undefined : String(saved);
+  }
 
   return (
-    <form action={formAction} className="space-y-6">
+    // noValidate: let the server's messages (lib/profile-validation.ts) be
+    // the single source of error text, instead of mixing in the browser's.
+    <form action={formAction} noValidate className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="full_name">Full name</Label>
           <Input
             id="full_name"
             name="full_name"
-            defaultValue={existingProfile?.full_name}
-            required
+            defaultValue={initial("full_name")}
+            aria-invalid={!!errors.full_name}
           />
+          <FieldError message={errors.full_name} />
         </div>
 
         <div className="space-y-2">
@@ -58,10 +76,11 @@ export function ProfileForm({
           <Input
             id="country"
             name="country"
-            defaultValue={existingProfile?.country}
+            defaultValue={initial("country")}
             placeholder="e.g. India"
-            required
+            aria-invalid={!!errors.country}
           />
+          <FieldError message={errors.country} />
         </div>
 
         <div className="space-y-2">
@@ -73,10 +92,11 @@ export function ProfileForm({
             step="0.01"
             min={0}
             max={100}
-            defaultValue={existingProfile?.gpa_percentage}
+            defaultValue={initial("gpa_percentage")}
             placeholder="e.g. 88.5"
-            required
+            aria-invalid={!!errors.gpa_percentage}
           />
+          <FieldError message={errors.gpa_percentage} />
         </div>
 
         <div className="space-y-2 sm:col-span-2">
@@ -88,6 +108,7 @@ export function ProfileForm({
             suggestions={MAJOR_SUGGESTIONS}
             placeholder="Type a major and press Enter"
           />
+          <FieldError message={errors.intended_majors} />
         </div>
 
         <div className="space-y-2 sm:col-span-2">
@@ -99,6 +120,7 @@ export function ProfileForm({
             suggestions={COUNTRY_OPTIONS}
             placeholder="Type a country and press Enter"
           />
+          <FieldError message={errors.preferred_countries} />
         </div>
 
         <div className="space-y-2">
@@ -110,9 +132,27 @@ export function ProfileForm({
             step="0.5"
             min={0}
             max={9}
-            defaultValue={existingProfile?.ielts_score ?? undefined}
+            defaultValue={initial("ielts_score")}
             placeholder="e.g. 7.0"
+            aria-invalid={!!errors.ielts_score}
           />
+          <FieldError message={errors.ielts_score} />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="sat_score">SAT score (optional)</Label>
+          <Input
+            id="sat_score"
+            name="sat_score"
+            type="number"
+            step="10"
+            min={400}
+            max={1600}
+            defaultValue={initial("sat_score")}
+            placeholder="e.g. 1350"
+            aria-invalid={!!errors.sat_score}
+          />
+          <FieldError message={errors.sat_score} />
         </div>
 
         <div className="space-y-2 sm:col-span-2">
@@ -123,21 +163,23 @@ export function ProfileForm({
               type="number"
               min={0}
               step="100"
-              defaultValue={existingProfile?.budget_min ?? 0}
+              defaultValue={initial("budget_min") ?? "0"}
               placeholder="Min (optional)"
               aria-label="Minimum budget"
+              aria-invalid={!!errors.budget_min}
             />
             <Input
               name="budget_max"
               type="number"
               min={0}
               step="100"
-              defaultValue={existingProfile?.budget_max}
+              defaultValue={initial("budget_max")}
               placeholder="Max"
               aria-label="Maximum budget"
-              required
+              aria-invalid={!!errors.budget_max}
             />
           </div>
+          <FieldError message={errors.budget_min ?? errors.budget_max} />
         </div>
 
         <div className="space-y-2 sm:col-span-2">
@@ -147,17 +189,19 @@ export function ProfileForm({
           <Select
             name="preferred_degree_level"
             defaultValue={existingProfile?.preferred_degree_level ?? "Undergraduate"}
-            required
           >
             <SelectTrigger id="preferred_degree_level" className="w-full">
               <SelectValue placeholder="Select a degree level" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Undergraduate">Undergraduate</SelectItem>
-              <SelectItem value="Masters">Masters</SelectItem>
-              <SelectItem value="PhD">PhD</SelectItem>
+              {DEGREE_LEVELS.map((level) => (
+                <SelectItem key={level} value={level}>
+                  {level}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
+          <FieldError message={errors.preferred_degree_level} />
         </div>
       </div>
 

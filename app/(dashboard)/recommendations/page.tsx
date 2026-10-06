@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { computeMatchScore, explainMatch, getDisplayRanking } from "@/lib/matching";
+import {
+  computeMatchScore,
+  explainMatch,
+  getDisplayRanking,
+  offersDegreeLevel,
+} from "@/lib/matching";
 import { UniversityBoard } from "@/components/universities/university-board";
 import { Button } from "@/components/ui/button";
 import type { Profile, University } from "@/lib/types";
@@ -34,6 +39,9 @@ export default async function RecommendationsPage() {
   const savedIds = new Set((saved ?? []).map((row) => row.university_id));
 
   const matches = (universities ?? [])
+    // Schools without the student's degree level aren't recommendations at
+    // all, so leave them out rather than showing them with a 0% score.
+    .filter((university) => offersDegreeLevel(profile, university))
     .map((university) => ({
       university,
       score: computeMatchScore(profile, university),
@@ -59,7 +67,7 @@ export default async function RecommendationsPage() {
       <UniversityBoard
         matches={matches}
         savedIds={savedIds}
-        emptyMessage="No universities found yet. Check back soon!"
+        emptyMessage={`No universities offering ${profile.preferred_degree_level} programs yet. Try a different degree level on your profile.`}
       />
     </div>
   );

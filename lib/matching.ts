@@ -4,14 +4,31 @@ const BUDGET_WEIGHT = 50;
 const COUNTRY_WEIGHT = 25;
 const MAJOR_WEIGHT = 25;
 
+// Tuition below this fraction of the student's minimum budget gets a
+// "much cheaper than your range" note. A gap that big usually means a
+// different system (e.g. tuition-free public universities) or a fee that
+// leaves out costs, so it's worth a closer look. It never lowers the score:
+// paying less isn't a worse fit.
+const MUCH_CHEAPER_RATIO = 0.5;
+
 function budgetScore(profile: Profile, university: University): number {
   if (university.tuition <= profile.budget_max) return BUDGET_WEIGHT;
 
   // Tuition is over budget — lose points proportionally to how far over.
-  // budget_min doesn't penalize here; it's a display/filter preference, not
-  // a sign of a worse fit.
   const overBy = (university.tuition - profile.budget_max) / profile.budget_max;
   return Math.max(0, Math.round(BUDGET_WEIGHT * (1 - overBy)));
+}
+
+// A school that doesn't offer the student's degree level can't be a match,
+// however well it scores otherwise. An empty list means we don't know the
+// school's levels, so we don't rule it out.
+export function offersDegreeLevel(profile: Profile, university: University): boolean {
+  const levels = university.degree_levels ?? [];
+  return levels.length === 0 || levels.includes(profile.preferred_degree_level);
+}
+
+function isMuchCheaperThanRange(profile: Profile, university: University): boolean {
+  return university.tuition < profile.budget_min * MUCH_CHEAPER_RATIO;
 }
 
 function countryMatches(profile: Profile, university: University): boolean {
@@ -45,6 +62,8 @@ export function computeMatchScore(
   profile: Profile,
   university: University
 ): number {
+  if (!offersDegreeLevel(profile, university)) return 0;
+
   const score =
     budgetScore(profile, university) +
     (countryMatches(profile, university) ? COUNTRY_WEIGHT : 0) +
@@ -57,9 +76,17 @@ export function computeMatchScore(
 // no external API calls, just plain template logic over the same factors
 // used in computeMatchScore.
 export function explainMatch(profile: Profile, university: University): string {
+  if (!offersDegreeLevel(profile, university)) {
+    return `This university doesn't offer ${profile.preferred_degree_level} programs, so it isn't a match for you.`;
+  }
+
   const reasons: string[] = [];
 
-  if (university.tuition <= profile.budget_max) {
+  if (isMuchCheaperThanRange(profile, university)) {
+    reasons.push(
+      `is much cheaper than your range ($${university.tuition.toLocaleString()} vs. your minimum of $${profile.budget_min.toLocaleString()}) — worth checking what the fee covers`
+    );
+  } else if (university.tuition <= profile.budget_max) {
     reasons.push(`fits within your budget of $${profile.budget_max.toLocaleString()}`);
   } else {
     reasons.push("is a bit above your budget but still worth considering");

@@ -27,6 +27,11 @@ const rows: {
   },
   { label: "Acceptance rate", render: (u) => `${u.acceptance_rate}%` },
   {
+    label: "Degree levels",
+    render: (u) =>
+      (u.degree_levels ?? []).length > 0 ? u.degree_levels.join(", ") : "Unknown",
+  },
+  {
     label: "Popular programs",
     render: (u) => u.popular_programs.join(", "),
   },
