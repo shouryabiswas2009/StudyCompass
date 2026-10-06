@@ -90,6 +90,10 @@ export type University = {
   // own page, with that page's URL; "unknown" is left out of scoring.
   coop_program?: CoopProgram;
   internship_support_url?: string | null;
+
+  // Shown by default (migration_010; the rule is scripts/relevance-rule.mjs).
+  // Missing until that migration runs, which the app reads as "featured".
+  is_featured?: boolean;
 };
 
 export const COOP_PROGRAMS = ["mandatory", "optional", "none", "unknown"] as const;
@@ -110,6 +114,7 @@ export const DETAIL_ONLY_FIELDS = [
   "us_region",
   "scorecard_id",
   "created_at",
+  "median_earnings_10yr", // information only, on the details page
 ] as const;
 
 type DetailOnlyField = (typeof DETAIL_ONLY_FIELDS)[number];

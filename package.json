@@ -12,7 +12,8 @@
     "data:fetch-scorecard": "node --env-file-if-exists=.env.local scripts/scorecard/fetch.mjs",
     "data:normalize-scorecard": "node scripts/scorecard/normalize.mjs",
     "data:build-scorecard-sql": "node scripts/scorecard/build-seed-sql.mjs",
-    "data:refresh-scorecard": "npm run data:fetch-scorecard -- --refresh && npm run data:normalize-scorecard && npm run data:build-scorecard-sql"
+    "data:refresh-scorecard": "npm run data:fetch-scorecard -- --refresh && npm run data:normalize-scorecard && npm run data:build-scorecard-sql && npm run data:featured",
+    "data:featured": "node scripts/build-featured-sql.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

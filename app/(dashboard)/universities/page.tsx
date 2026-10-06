@@ -2,39 +2,39 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth";
+import { getVisibleUniversities } from "@/lib/data/universities";
 import { scoreUniversity } from "@/lib/matching";
+import { buildBoard, parseBoardParams } from "@/lib/university-filters";
 import { UniversityBoard } from "@/components/universities/university-board";
 import { Button } from "@/components/ui/button";
-import type { Profile, University } from "@/lib/types";
-import { getCurrentUser } from "@/lib/auth";
+import type { Profile } from "@/lib/types";
 
 // Every university the student can see: the shared list plus any they added
-// themselves (RLS decides which rows come back). Unlike recommendations,
-// nothing is hidden by degree level here — that's a filter they can choose.
-export default async function BrowseUniversitiesPage() {
+// themselves. Unlike recommendations, nothing is hidden by degree level here
+// — that's a filter they can choose. Filtering, sorting and paging happen
+// here on the server; only one page of cards goes to the browser.
+export default async function BrowseUniversitiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const state = parseBoardParams(await searchParams);
   const supabase = await createClient();
   const user = await getCurrentUser();
-
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle<Profile>();
+  const [{ data: profile }, universities, { data: saved }] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>(),
+    getVisibleUniversities(supabase, user.id),
+    supabase.from("saved_universities").select("university_id").eq("user_id", user.id),
+  ]);
 
   // Cards show a match score, which needs the profile.
   if (!profile) redirect("/profile");
 
-  const [{ data: universities }, { data: saved }] = await Promise.all([
-    supabase.from("universities").select("*").order("name").returns<University[]>(),
-    supabase.from("saved_universities").select("university_id").eq("user_id", user.id),
-  ]);
-
-  const savedIds = new Set((saved ?? []).map((row) => row.university_id));
-  const entries = (universities ?? [])
-    .map((university) => scoreUniversity(profile, university))
-    .sort((a, b) => b.match.score - a.match.score);
+  const scored = universities.map((university) => scoreUniversity(profile, university));
+  const board = buildBoard(scored, state, { withFeatured: true });
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
@@ -54,8 +54,13 @@ export default async function BrowseUniversitiesPage() {
       </div>
 
       <UniversityBoard
-        matches={entries}
-        savedIds={savedIds}
+        entries={board.entries}
+        state={{ ...state, page: board.page }}
+        totalPages={board.totalPages}
+        matchingCount={board.matchingCount}
+        countries={board.countries}
+        featured={board.featured}
+        savedIds={new Set((saved ?? []).map((row) => row.university_id))}
         showDegreeFilter
         emptyMessage="No universities yet."
       />

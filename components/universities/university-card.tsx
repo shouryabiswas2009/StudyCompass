@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   Card,
   CardHeader,
@@ -57,9 +57,14 @@ export function UniversityCard({
   // null if it isn't tracked yet.
   tracking?: { application: { id: string; status: ApplicationStatus } | null };
 }) {
+  const reduceMotion = useReducedMotion();
+
   return (
+    // Fade in, staggered by position but capped at the 8th card so a page
+    // never waits on its own animation; skipped entirely for students who
+    // turned on "reduce motion" in their operating system.
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.05 }}
       className="relative h-full"

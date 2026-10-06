@@ -1,0 +1,147 @@
+import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
+import { unstable_cache } from "next/cache";
+import { PENDING_COLUMNS } from "@/lib/pending-migrations";
+import type { UniversitySummary } from "@/lib/types";
+
+// Loading the university list for browse, recommendations and the compare
+// picker. Three problems this solves (measured in docs/PERFORMANCE.md):
+//
+// 1. Supabase's API returns at most 1,000 rows per request, so a plain
+//    select("*") silently dropped 624 of the 1,624 schools. fetchAllRows()
+//    asks for the rows in ranges until it has them all.
+// 2. Only the columns list pages need (LIST_COLUMNS), not every column.
+// 3. The shared list (everything not added by a student) only changes when
+//    the import is re-run, so it's cached on the server and reused across
+//    requests instead of being downloaded on every page load.
+
+// Every field of UniversitySummary. A test checks this list against the type.
+export const LIST_COLUMNS = [
+  "id", "name", "country", "city", "state", "tuition", "qs_ranking", "program_rankings",
+  "degree_levels", "acceptance_rate", "avg_admitted_gpa", "sat_25", "sat_75", "min_ielts",
+  "living_cost_per_year", "popular_programs", "created_by", "source", "data_year", "fetched_at",
+  "source_url", "completion_rate", "research_intensity", "retention_rate", "coop_program",
+  "internship_support_url", "is_featured",
+] as const;
+
+// Supabase's default limit on rows per API response.
+export const MAX_ROWS_PER_REQUEST = 1000;
+
+type RangeResult<T> = { data: T[] | null; error: { code?: string; message: string } | null };
+
+// Fetches rows `pageSize` at a time until a short page says there are no
+// more. `fetchRange(from, to)` must return rows in a stable order (e.g.
+// ordered by id), or rows could repeat or go missing between ranges.
+export async function fetchAllRows<T>(
+  fetchRange: (from: number, to: number) => PromiseLike<RangeResult<T>>,
+  pageSize = MAX_ROWS_PER_REQUEST
+): Promise<T[]> {
+  const rows: T[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await fetchRange(from, from + pageSize - 1);
+    if (error) throw new MissingColumnError(error);
+    rows.push(...(data ?? []));
+    if (!data || data.length < pageSize) return rows;
+  }
+}
+
+// PostgREST reports a selected column that doesn't exist (a migration not
+// run yet) as code 42703: "column universities.is_featured does not exist".
+class MissingColumnError extends Error {
+  column: string | null;
+  constructor(error: { code?: string; message: string }) {
+    super(error.message);
+    const match = error.code === "42703" ? /column \w+\.(\w+) does not exist/.exec(error.message) : null;
+    this.column = match ? match[1] : null;
+  }
+}
+
+// Selects LIST_COLUMNS; if the database is missing one of them because its
+// migration hasn't been run (see lib/pending-migrations.ts), selects
+// without it instead of failing the whole page.
+async function selectList(
+  query: (columns: string) => (from: number, to: number) => PromiseLike<RangeResult<UniversitySummary>>
+): Promise<{ rows: UniversitySummary[]; missing: string[] }> {
+  let columns: string[] = [...LIST_COLUMNS];
+  const missing: string[] = [];
+  for (;;) {
+    try {
+      return { rows: await fetchAllRows(query(columns.join(","))), missing };
+    } catch (e) {
+      const column = e instanceof MissingColumnError ? e.column : null;
+      if (!column || !(column in PENDING_COLUMNS) || !columns.includes(column)) throw e;
+      columns = columns.filter((c) => c !== column);
+      missing.push(column);
+    }
+  }
+}
+
+// A plain (cookie-less) client: the shared rows are readable by anyone (RLS
+// allows created_by is null), so they can be cached once for everyone.
+function anonClient(): SupabaseClient {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false } }
+  );
+}
+
+async function loadShared() {
+  const supabase = anonClient();
+  return selectList((columns) => (from, to) =>
+    supabase
+      .from("universities")
+      .select(columns)
+      .is("created_by", null)
+      .order("id")
+      .range(from, to)
+      .returns<UniversitySummary[]>()
+  );
+}
+
+// Cached for up to 15 minutes, or until revalidateTag("universities").
+const loadSharedCached = unstable_cache(
+  async () => {
+    const result = await loadShared();
+    // Don't cache a list that's missing a column: once the migration is run
+    // the next request should see it, not wait 15 minutes. Throwing skips
+    // the cache; the caller then loads it uncached.
+    if (result.missing.length > 0) throw new Error("pending migration");
+    return result.rows;
+  },
+  ["shared-universities", "v1"],
+  { revalidate: 900, tags: ["universities"] }
+);
+
+export async function getSharedUniversities(): Promise<UniversitySummary[]> {
+  try {
+    return await loadSharedCached();
+  } catch {
+    return (await loadShared()).rows;
+  }
+}
+
+// Schools the signed-in student added themselves. Never cached: they're
+// private (RLS) and change whenever the student edits one.
+export async function getOwnUniversities(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<UniversitySummary[]> {
+  const { rows } = await selectList((columns) => (from, to) =>
+    supabase
+      .from("universities")
+      .select(columns)
+      .eq("created_by", userId)
+      .order("id")
+      .range(from, to)
+      .returns<UniversitySummary[]>()
+  );
+  return rows;
+}
+
+export async function getVisibleUniversities(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<UniversitySummary[]> {
+  const [shared, own] = await Promise.all([getSharedUniversities(), getOwnUniversities(supabase, userId)]);
+  return [...shared, ...own];
+}

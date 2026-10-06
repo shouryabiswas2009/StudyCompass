@@ -52,7 +52,11 @@ Supabase (Auth + Database), and Framer Motion.
    - Then run every file in [`supabase/seed_scorecard/`](supabase/seed_scorecard/),
      in order (`00_…` first). They import ~1,600 US universities with
      official data and update the 14 sample US schools in place. They're
-     safe to re-run. (`npm run db:check` runs all of the SQL above on a
+     safe to re-run.
+   - Then run [`supabase/migration_010_featured.sql`](supabase/migration_010_featured.sql)
+     and [`supabase/featured/featured.sql`](supabase/featured/featured.sql),
+     which mark the schools shown by default (see "Which schools are
+     shown first" below). (`npm run db:check` runs all of the SQL above on a
      scratch database first, if you want to be sure.) Each file, what
      breaks until it's run and a one-line check are in
      [`docs/PENDING-DB-STEPS.md`](docs/PENDING-DB-STEPS.md).
@@ -100,10 +104,16 @@ labeled illustrative. To add verified figures for any school, use "Add a
 university" and paste the link you got them from.
 
 What Scorecard does and doesn't give the app:
-- **Official:** admission rate, SAT percentiles, tuition (out-of-state,
-  which international students pay at public universities), living costs,
+- **Official:** admission rate, SAT percentiles, tuition, living costs,
   net price, completion and first-year retention rates, median earnings,
   Carnegie research classification, size, type and location.
+- **Tuition is the out-of-state rate** (`latest.cost.tuition.out_of_state`),
+  which is what international students pay at public universities; for
+  private schools it's the same as in-state. Checked against the raw
+  download: none of the 529 public schools was missing it (so the in-state
+  fallback is never used), and 39 genuinely charge everyone the same. Some
+  public universities add an extra international-student fee on top, which
+  Scorecard doesn't publish.
 - **SAT range:** Scorecard reports Reading and Math separately. The app adds
   the two 25th (and 75th) percentiles, which only approximates the
   total-score range, and labels it that way.
@@ -129,15 +139,56 @@ What Scorecard does and doesn't give the app:
    This re-downloads the data politely (100 schools per request, waits
    between requests, retries on rate limits), caches the raw responses in
    `ml/data/raw/scorecard/` (not committed), and rewrites
-   `data/scorecard/universities.json` and `supabase/seed_scorecard/`.
+   `data/scorecard/universities.json`, `supabase/seed_scorecard/` and
+   `supabase/featured/featured.sql`.
 3. Run `npm run db:check`, review the diff, then run the new
-   `supabase/seed_scorecard/*.sql` files in the SQL Editor.
+   `supabase/seed_scorecard/*.sql` files and then `supabase/featured/featured.sql`
+   in the SQL Editor.
 
 [`.github/workflows/refresh-scorecard.yml`](.github/workflows/refresh-scorecard.yml)
 does steps 2–3 for you once a year, or whenever you run it from the Actions
 tab, and opens a pull request instead of pushing to `main`. It needs a
 `SCORECARD_API_KEY` repository secret and "Allow GitHub Actions to create
 and approve pull requests" turned on.
+
+### Which schools are shown first (the relevance rule)
+
+The Scorecard import takes every US school that mainly awards bachelor's
+degrees and publishes an admission rate, so it includes many small, local
+and open-admission colleges that few international students consider.
+Shown all at once, US schools crowd out every other country. So shared
+schools have an `is_featured` flag, and recommendations, browse and the
+compare picker show featured schools by default, with a visible
+"Include all N schools" toggle and the count. **Nothing is deleted.**
+
+A US school is featured if **any** of these is true:
+
+| Rule | Schools it covers |
+| --- | --- |
+| Carnegie research level R1 or R2 | 272 |
+| SAT 75th percentile (Reading + Math) ≥ 1400 | 194 |
+| Has a known ranking | the 14 original sample schools |
+| Listed in [`data/curated/featured_us.csv`](data/curated/featured_us.csv) | 0 so far (add your own) |
+| **Any of the above** | **371 of 1,577** (201 public, 170 private, every state + DC) |
+
+Every hand-picked non-US school is always featured, and students always see
+the schools they added. The thresholds live in one place,
+[`scripts/relevance-rule.mjs`](scripts/relevance-rule.mjs). How the SAT
+threshold changes the count (R1/R2 and ranked schools always included):
+
+| SAT 75th ≥ | 1300 | 1350 | **1400** | 1450 | 1500 |
+| --- | --- | --- | --- | --- | --- |
+| Featured US schools | 543 | 438 | **371** | 341 | 317 |
+
+1400 keeps about 100 selective non-research colleges (e.g. liberal arts
+colleges) on top of R1/R2 while cutting the US list by three quarters.
+After changing the rule: `npm run data:featured`, then run the regenerated
+`supabase/featured/featured.sql`. `npm run db:check` checks that the SQL
+and JavaScript versions of the rule agree.
+
+Recommendations also show **top picks by country**: the best three
+matches in each of the student's preferred countries, above the full
+ranked list, so one country can't crowd out the others.
 
 ## Keeping the Supabase project awake
 
@@ -209,6 +260,7 @@ components/
   ui/         # shadcn/ui components
 docs/PENDING-DB-STEPS.md # SQL files not yet run on the live database, with checks
 lib/
+  data/universities.ts # Loads every university (past the 1,000-row API limit), cached on the server
   supabase/   # Browser client, server client, session refresh helper
   actions/    # Server Actions (auth, profile, saved, universities)
   matching.ts # Match score, breakdown, Reach/Match/Safety, explanations
@@ -225,9 +277,12 @@ lib/
   *.test.ts   # Vitest unit tests
 ml/           # Python: synthetic data, model training, reports (see ml/README.md)
 data/scorecard/universities.json # Normalized official US data (what the seed SQL is built from)
+data/curated/featured_us.csv     # Hand-picked US schools to feature (edit freely)
 scripts/
   scorecard/  # fetch.mjs → normalize.mjs → build-seed-sql.mjs (College Scorecard import)
   check-sql.mjs   # npm run db:check: applies all SQL to an in-memory Postgres, twice
+  relevance-rule.mjs     # Which schools are featured: the thresholds live here
+  build-featured-sql.mjs # npm run data:featured → supabase/featured/featured.sql
   in-memory-db.mjs # PGlite helper used by check-sql.mjs
 proxy.ts      # Next.js 16's "Proxy" (renamed Middleware) — refreshes the
               # Supabase session and protects dashboard routes
@@ -241,7 +296,9 @@ supabase/
   migration_007_data_sources.sql   # Source label on every school + College Scorecard columns
   migration_008_primary_focus.sql  # Single focus + research/retention columns (superseded by 009)
   migration_009_multi_focus_and_coop.sql # Multi-select focuses + co-op program columns
+  migration_010_featured.sql       # is_featured flag (which schools are shown by default)
   seed_scorecard/00–06_*.sql       # Generated: official US schools (upsert, safe to re-run)
+  featured/featured.sql            # Generated: applies the relevance rule
 ```
 
 ## How matching works

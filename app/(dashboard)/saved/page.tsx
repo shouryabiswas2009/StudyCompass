@@ -3,11 +3,17 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { scoreUniversity } from "@/lib/matching";
 import { UniversityBoard } from "@/components/universities/university-board";
+import { buildBoard, parseBoardParams } from "@/lib/university-filters";
 import { Button } from "@/components/ui/button";
 import type { ApplicationStatus, Profile, University } from "@/lib/types";
 import { getCurrentUser } from "@/lib/auth";
 
-export default async function SavedPage() {
+export default async function SavedPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const state = parseBoardParams(await searchParams);
   const supabase = await createClient();
   const user = await getCurrentUser();
 
@@ -36,7 +42,9 @@ export default async function SavedPage() {
 
   const universities = (saved ?? []).map((row) => row.universities);
 
-  const matches = universities.map((university) => scoreUniversity(profile, university));
+  const scored = universities.map((university) => scoreUniversity(profile, university));
+  // Saved schools are always shown (no featured step); just filter and page.
+  const board = buildBoard(scored, state, { withFeatured: false });
 
   // Lets each card show its application status, keyed by university id.
   const applicationsByUniversity = Object.fromEntries(
@@ -58,7 +66,11 @@ export default async function SavedPage() {
       </div>
 
       <UniversityBoard
-        matches={matches}
+        entries={board.entries}
+        state={{ ...state, page: board.page }}
+        totalPages={board.totalPages}
+        matchingCount={board.matchingCount}
+        countries={board.countries}
         savedIds={new Set(universities.map((u) => u.id))}
         applications={applicationsByUniversity}
         emptyMessage={

@@ -20,12 +20,19 @@ type Option = { id: string; name: string };
 export function CompareControls({
   options,
   selectedIds,
+  selectedNames,
+  showAll,
+  featured,
 }: {
   options: Option[];
   selectedIds: string[];
+  selectedNames: Record<string, string>;
+  showAll: boolean;
+  // Counts for the "include all" toggle; null before the featured list exists.
+  featured: { shown: number; all: number } | null;
 }) {
   const router = useRouter();
-  const nameOf = (id: string) => options.find((o) => o.id === id)?.name ?? "Unknown";
+  const nameOf = (id: string) => selectedNames[id] ?? options.find((o) => o.id === id)?.name ?? "Unknown";
   const full = selectedIds.length >= MAX_COMPARE;
 
   return (
@@ -37,7 +44,7 @@ export function CompareControls({
             <button
               type="button"
               aria-label={`Remove ${nameOf(id)} from comparison`}
-              onClick={() => router.push(compareUrl(selectedIds.filter((x) => x !== id)))}
+              onClick={() => router.push(compareUrl(selectedIds.filter((x) => x !== id), showAll))}
               className="rounded-full p-0.5 hover:bg-muted-foreground/20"
             >
               <X className="size-3" />
@@ -50,7 +57,7 @@ export function CompareControls({
         // Reset after each pick, so the dropdown is always ready to add another.
         value=""
         disabled={full}
-        onValueChange={(id) => router.push(compareUrl([...selectedIds, id]))}
+        onValueChange={(id) => router.push(compareUrl([...selectedIds, id], showAll))}
       >
         <SelectTrigger className="w-full sm:w-80" aria-label="Add a university to compare">
           <SelectValue
@@ -67,6 +74,21 @@ export function CompareControls({
             ))}
         </SelectContent>
       </Select>
+
+      {featured && (
+        <p className="text-sm text-muted-foreground">
+          {showAll
+            ? `Picking from all ${featured.all.toLocaleString("en-US")} schools. `
+            : `Picking from ${featured.shown.toLocaleString("en-US")} featured schools. `}
+          <button
+            type="button"
+            className="underline"
+            onClick={() => router.replace(compareUrl(selectedIds, !showAll), { scroll: false })}
+          >
+            {showAll ? "Show featured only" : `Include all ${featured.all.toLocaleString("en-US")} schools`}
+          </button>
+        </p>
+      )}
     </div>
   );
 }

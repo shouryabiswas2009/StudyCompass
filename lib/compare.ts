@@ -15,8 +15,13 @@ export function parseCompareIds(params: { ids?: string; a?: string; b?: string }
   return Array.from(new Set(ids)).slice(0, MAX_COMPARE);
 }
 
-export function compareUrl(ids: string[]): string {
-  return ids.length > 0 ? `/compare?ids=${ids.join(",")}` : "/compare";
+// showAll keeps the picker's "include all schools" choice in the URL.
+export function compareUrl(ids: string[], showAll = false): string {
+  const params = new URLSearchParams();
+  if (ids.length > 0) params.set("ids", ids.join(","));
+  if (showAll) params.set("all", "1");
+  const query = params.toString().replace(/%2C/g, ",");
+  return query ? `/compare?${query}` : "/compare";
 }
 
 // Tuition plus living costs. Unknown (null) when we don't know the living

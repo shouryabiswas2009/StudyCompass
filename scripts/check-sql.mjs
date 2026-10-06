@@ -31,3 +31,23 @@ if (counts[0] !== counts[1]) {
   console.error("FAIL re-running the Scorecard files changed the row count — they should upsert.");
   process.exit(1);
 }
+
+// The featured rule exists twice (SQL for the database, JavaScript for counts
+// and tests). Run the SQL and check both agree on the Scorecard schools.
+const FEATURED_SQL = join(import.meta.dirname, "..", "supabase", "featured", "featured.sql");
+await db.exec(readFileSync(FEATURED_SQL, "utf8"));
+await db.exec(readFileSync(FEATURED_SQL, "utf8")); // safe to re-run
+const { rows: featuredRows } = await db.query(
+  "select count(*)::int as n from public.universities where is_featured and source = 'College Scorecard'"
+);
+const { rows: allRows } = await db.query(
+  "select count(*)::int as n from public.universities where is_featured"
+);
+const expected = Number(readFileSync(FEATURED_SQL, "utf8").match(/Expected: (\d+) of/)[1]);
+console.log(
+  `OK  featured.sql: ${featuredRows[0].n} College Scorecard schools featured (JavaScript rule: ${expected}), ${allRows[0].n} featured in total`
+);
+if (featuredRows[0].n !== expected) {
+  console.error("FAIL the SQL and JavaScript versions of the featured rule disagree.");
+  process.exit(1);
+}

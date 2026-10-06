@@ -6,13 +6,17 @@ import { MAX_COMPARE, parseCompareIds } from "@/lib/compare";
 import { scoreUniversity } from "@/lib/matching";
 import type { Profile, University } from "@/lib/types";
 import { getCurrentUser } from "@/lib/auth";
+import { getVisibleUniversities } from "@/lib/data/universities";
+import { featuredReady, isShownByDefault } from "@/lib/university-filters";
 
 export default async function ComparePage({
   searchParams,
 }: {
-  searchParams: Promise<{ ids?: string; a?: string; b?: string }>;
+  searchParams: Promise<{ ids?: string; a?: string; b?: string; all?: string }>;
 }) {
-  const ids = parseCompareIds(await searchParams);
+  const params = await searchParams;
+  const ids = parseCompareIds(params);
+  const showAll = params.all === "1";
   const supabase = await createClient();
 
   const user = await getCurrentUser();
@@ -27,16 +31,21 @@ export default async function ComparePage({
   // Most rows compare the schools against the student's own scores.
   if (!profile) redirect("/profile");
 
-  const [{ data: options }, { data: selected }] = await Promise.all([
-    supabase
-      .from("universities")
-      .select("id, name")
-      .order("name")
-      .returns<{ id: string; name: string }[]>(),
+  const [universities, { data: selected }] = await Promise.all([
+    // The cached list (every row, not just the first 1,000) for the picker.
+    getVisibleUniversities(supabase, user.id),
     ids.length > 0
       ? supabase.from("universities").select("*").in("id", ids).returns<University[]>()
       : Promise.resolve({ data: [] as University[] }),
   ]);
+
+  // The picker offers featured schools unless the student asks for all
+  // (same rule as browse; see lib/university-filters.ts).
+  const ready = featuredReady(universities);
+  const pickable = showAll || !ready ? universities : universities.filter(isShownByDefault);
+  const options = pickable
+    .map((u) => ({ id: u.id, name: u.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   // Keep the order from the URL (the database returns rows in any order).
   const entries = ids
@@ -55,8 +64,12 @@ export default async function ComparePage({
       </div>
 
       <CompareControls
-        options={options ?? []}
+        options={options}
         selectedIds={entries.map((e) => e.university.id)}
+        // Names of selected schools that aren't in the (featured) picker.
+        selectedNames={Object.fromEntries(entries.map((e) => [e.university.id, e.university.name]))}
+        showAll={showAll}
+        featured={ready ? { shown: options.length, all: universities.length } : null}
       />
 
       <div className="mt-8">

@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { compareUrl, MAX_COMPARE } from "@/lib/compare";
-import { Compass, Search, SlidersHorizontal, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Compass, Search, SlidersHorizontal, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -18,9 +19,10 @@ import { UniversityCard } from "@/components/universities/university-card";
 import { Flag } from "@/components/flag";
 import type { AdmissionChance, MatchEntry } from "@/lib/matching";
 import {
-  applyFilters,
+  boardQuery,
   hasActiveFilters,
   NO_FILTERS,
+  type BoardState,
   type SortKey,
   type UniversityFilters,
 } from "@/lib/university-filters";
@@ -38,24 +40,45 @@ const CHANCES: AdmissionChance[] = ["Reach", "Match", "Safety"];
 // Radix Select can't use "" as a value, so "any" stands for "no filter".
 const ANY = "any";
 
+// How long to wait after the last keystroke before searching, so typing
+// "toronto" makes one request, not seven.
+const TYPING_DELAY_MS = 300;
+
 // Blank input → no bound.
 function parseBound(value: string): number | null {
   const n = Number(value);
   return value.trim() === "" || Number.isNaN(n) ? null : n;
 }
 
-// Shared by the browse, recommendations and saved pages: search, filter and
-// sort controls over an already-scored list, plus the card grid. All state
-// is local — the `matches` array is fetched once on the server — and the
-// filtering rules themselves live in lib/university-filters.ts.
+export type FeaturedInfo = {
+  featuredCount: number; // schools shown by default
+  allCount: number; // every school you could see
+  ready: boolean; // false until supabase/featured/featured.sql has been run
+};
+
+// Shared by the browse, recommendations and saved pages. The server has
+// already filtered, sorted and paginated (lib/university-filters.ts), so
+// this component only gets one page of cards. Changing a control updates
+// the URL, and the server sends back the new page.
 export function UniversityBoard({
-  matches,
+  entries,
+  state,
+  totalPages,
+  matchingCount,
+  countries,
+  featured,
   savedIds,
   emptyMessage,
   showDegreeFilter = false,
   applications,
 }: {
-  matches: MatchEntry[];
+  entries: MatchEntry[]; // this page only
+  state: BoardState;
+  totalPages: number;
+  matchingCount: number; // how many match the filters, across all pages
+  countries: string[];
+  // Present on pages with the featured / "include all" toggle.
+  featured?: FeaturedInfo;
   savedIds: Set<string>;
   emptyMessage: React.ReactNode;
   // Recommendations are already limited to the student's degree level, so
@@ -65,29 +88,48 @@ export function UniversityBoard({
   // each card shows a status dropdown (or a "Track" button).
   applications?: Record<string, { id: string; status: ApplicationStatus }>;
 }) {
-  const [filters, setFilters] = useState<UniversityFilters>(NO_FILTERS);
-  // Raw text of the tuition boxes, so typing "1" on the way to "10000"
-  // doesn't get reformatted under the student's cursor.
-  const [tuitionMinText, setTuitionMinText] = useState("");
-  const [tuitionMaxText, setTuitionMaxText] = useState("");
-  // Schools ticked for comparison (kept in order of ticking).
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
+  const { filters } = state;
+
+  // Raw text of the search and tuition boxes, so typing isn't reformatted
+  // under the student's cursor while the request is on its way.
+  const [queryText, setQueryText] = useState(filters.query);
+  const [tuitionMinText, setTuitionMinText] = useState(filters.tuitionMin?.toString() ?? "");
+  const [tuitionMaxText, setTuitionMaxText] = useState(filters.tuitionMax?.toString() ?? "");
+  // Schools ticked for comparison (kept in order of ticking). This stays
+  // while paging, because the component isn't remounted.
   const [compareIds, setCompareIds] = useState<string[]>([]);
+
+  // The latest state, for the typing timer (which fires after a render).
+  const latestState = useRef(state);
+  useEffect(() => {
+    latestState.current = state;
+  });
+  const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function navigate(next: BoardState) {
+    startTransition(() => {
+      router.replace(`${pathname}${boardQuery(next)}`, { scroll: false });
+    });
+  }
+
+  // Any filter change goes back to page 1.
+  function update(changes: Partial<UniversityFilters>) {
+    const current = latestState.current;
+    navigate({ ...current, filters: { ...current.filters, ...changes }, page: 1 });
+  }
+
+  function updateAfterTyping(changes: Partial<UniversityFilters>) {
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => update(changes), TYPING_DELAY_MS);
+  }
 
   function toggleCompare(id: string) {
     setCompareIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id].slice(0, MAX_COMPARE)
     );
-  }
-
-  const countries = useMemo(
-    () => Array.from(new Set(matches.map((m) => m.university.country))).sort(),
-    [matches]
-  );
-
-  const visible = useMemo(() => applyFilters(matches, filters), [matches, filters]);
-
-  function update(changes: Partial<UniversityFilters>) {
-    setFilters((prev) => ({ ...prev, ...changes }));
   }
 
   function toggleChance(chance: AdmissionChance) {
@@ -99,12 +141,15 @@ export function UniversityBoard({
   }
 
   function clearFilters() {
-    setFilters({ ...NO_FILTERS, sortBy: filters.sortBy });
+    setQueryText("");
     setTuitionMinText("");
     setTuitionMaxText("");
+    update({ ...NO_FILTERS, sortBy: filters.sortBy });
   }
 
-  if (matches.length === 0) {
+  const pageHref = (page: number) => `${pathname}${boardQuery({ ...state, page })}`;
+
+  if (!featured && matchingCount === 0 && !hasActiveFilters(filters)) {
     return <EmptyState message={emptyMessage} />;
   }
 
@@ -115,17 +160,17 @@ export function UniversityBoard({
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              value={filters.query}
-              onChange={(e) => update({ query: e.target.value })}
+              value={queryText}
+              onChange={(e) => {
+                setQueryText(e.target.value);
+                updateAfterTyping({ query: e.target.value });
+              }}
               placeholder="Search universities by name"
               aria-label="Search universities by name"
               className="pl-8"
             />
           </div>
-          <Select
-            value={filters.sortBy}
-            onValueChange={(v) => update({ sortBy: v as SortKey })}
-          >
+          <Select value={filters.sortBy} onValueChange={(v) => update({ sortBy: v as SortKey })}>
             <SelectTrigger className="w-full sm:w-52" aria-label="Sort by">
               <SlidersHorizontal className="size-4" />
               <SelectValue />
@@ -161,9 +206,7 @@ export function UniversityBoard({
           {showDegreeFilter && (
             <Select
               value={filters.degreeLevel ?? ANY}
-              onValueChange={(v) =>
-                update({ degreeLevel: v === ANY ? null : (v as DegreeLevel) })
-              }
+              onValueChange={(v) => update({ degreeLevel: v === ANY ? null : (v as DegreeLevel) })}
             >
               <SelectTrigger className="w-full sm:w-44" aria-label="Degree level">
                 <SelectValue />
@@ -187,7 +230,7 @@ export function UniversityBoard({
               value={tuitionMinText}
               onChange={(e) => {
                 setTuitionMinText(e.target.value);
-                update({ tuitionMin: parseBound(e.target.value) });
+                updateAfterTyping({ tuitionMin: parseBound(e.target.value) });
               }}
               placeholder="Min tuition"
               aria-label="Minimum tuition (USD per year)"
@@ -201,7 +244,7 @@ export function UniversityBoard({
               value={tuitionMaxText}
               onChange={(e) => {
                 setTuitionMaxText(e.target.value);
-                update({ tuitionMax: parseBound(e.target.value) });
+                updateAfterTyping({ tuitionMax: parseBound(e.target.value) });
               }}
               placeholder="Max tuition"
               aria-label="Maximum tuition (USD per year)"
@@ -236,16 +279,25 @@ export function UniversityBoard({
           )}
         </div>
 
-        <p className="text-sm text-muted-foreground">
-          Showing {visible.length} of {matches.length}
-        </p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+          <span aria-live="polite">
+            {matchingCount.toLocaleString("en-US")}{" "}
+            {matchingCount === 1 ? "university" : "universities"}
+            {hasActiveFilters(filters) ? " match your filters" : ""}
+            {totalPages > 1 ? ` · page ${state.page} of ${totalPages}` : ""}
+          </span>
+          {featured && <FeaturedToggle featured={featured} state={state} onChange={navigate} />}
+        </div>
       </div>
 
-      {visible.length === 0 ? (
+      {entries.length === 0 ? (
         <EmptyState message="No universities match these filters — try clearing one." />
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map((entry, i) => (
+        <div
+          className={`grid gap-6 transition-opacity sm:grid-cols-2 lg:grid-cols-3 ${isPending ? "opacity-60" : ""}`}
+          aria-busy={isPending}
+        >
+          {entries.map((entry, i) => (
             <UniversityCard
               key={entry.university.id}
               university={entry.university}
@@ -269,6 +321,22 @@ export function UniversityBoard({
             />
           ))}
         </div>
+      )}
+
+      {totalPages > 1 && (
+        <nav className="flex items-center justify-center gap-3" aria-label="Pages">
+          <PageLink href={pageHref(state.page - 1)} disabled={state.page <= 1}>
+            <ChevronLeft className="size-4" />
+            Previous
+          </PageLink>
+          <span className="text-sm text-muted-foreground">
+            Page {state.page} of {totalPages}
+          </span>
+          <PageLink href={pageHref(state.page + 1)} disabled={state.page >= totalPages}>
+            Next
+            <ChevronRight className="size-4" />
+          </PageLink>
+        </nav>
       )}
 
       {/* Appears once something is ticked; stays visible while scrolling. */}
@@ -303,6 +371,65 @@ export function UniversityBoard({
         method, not a real prediction.
       </p>
     </div>
+  );
+}
+
+// "Showing 418 featured schools · Include all 1,624" — says what's hidden
+// and how many, so nothing disappears silently.
+function FeaturedToggle({
+  featured,
+  state,
+  onChange,
+}: {
+  featured: FeaturedInfo;
+  state: BoardState;
+  onChange: (next: BoardState) => void;
+}) {
+  if (!featured.ready) {
+    return <span>Showing all schools (the featured list hasn&apos;t been set up yet).</span>;
+  }
+  const all = featured.allCount.toLocaleString("en-US");
+  return state.showAll ? (
+    <span>
+      Including all {all} schools.{" "}
+      <button type="button" className="underline" onClick={() => onChange({ ...state, showAll: false, page: 1 })}>
+        Show featured only ({featured.featuredCount.toLocaleString("en-US")})
+      </button>
+    </span>
+  ) : (
+    <span>
+      Featured schools only ({featured.featuredCount.toLocaleString("en-US")}).{" "}
+      <button type="button" className="underline" onClick={() => onChange({ ...state, showAll: true, page: 1 })}>
+        Include all {all} schools
+      </button>
+    </span>
+  );
+}
+
+function PageLink({
+  href,
+  disabled,
+  children,
+}: {
+  href: string;
+  disabled: boolean;
+  children: React.ReactNode;
+}) {
+  if (disabled) {
+    return (
+      <Button variant="outline" size="sm" disabled>
+        {children}
+      </Button>
+    );
+  }
+  // prefetch={false}: each page is rendered on the server for this student,
+  // so prefetching every "Next" link would just add server work.
+  return (
+    <Button variant="outline" size="sm" asChild>
+      <Link href={href} prefetch={false}>
+        {children}
+      </Link>
+    </Button>
   );
 }
 

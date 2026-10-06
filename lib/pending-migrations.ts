@@ -14,6 +14,7 @@ export const PENDING_COLUMNS: Record<string, string> = {
   focuses: "migration_009_multi_focus_and_coop.sql",
   coop_program: "migration_009_multi_focus_and_coop.sql",
   internship_support_url: "migration_009_multi_focus_and_coop.sql",
+  is_featured: "migration_010_featured.sql",
 };
 
 type DbError = { code?: string; message?: string } | null;

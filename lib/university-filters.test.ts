@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { applyFilters, hasActiveFilters, NO_FILTERS } from "@/lib/university-filters";
+import {
+  PAGE_SIZE,
+  applyFilters,
+  boardQuery,
+  buildBoard,
+  hasActiveFilters,
+  NO_FILTERS,
+  paginate,
+  parseBoardParams,
+  searchable,
+  topPicksByCountry,
+} from "@/lib/university-filters";
 import type { AdmissionChance, MatchEntry } from "@/lib/matching";
 import type { University } from "@/lib/types";
 
@@ -97,5 +108,120 @@ describe("hasActiveFilters", () => {
   it("ignores the sort order and a blank search", () => {
     expect(hasActiveFilters({ ...NO_FILTERS, sortBy: "ranking", query: "  " })).toBe(false);
     expect(hasActiveFilters({ ...NO_FILTERS, country: "Japan" })).toBe(true);
+  });
+});
+
+describe("searchable", () => {
+  it("ignores accents and case", () => {
+    expect(searchable("Université de Montréal")).toBe("universite de montreal");
+    expect(searchable("Universität Zürich")).toContain("zurich");
+  });
+
+  it("finds accented names from unaccented searches", () => {
+    const list = [entry("Université de Montréal", { country: "Canada" })];
+    expect(names(applyFilters(list, { ...NO_FILTERS, query: "universite de montreal" }))).toEqual([
+      "Université de Montréal",
+    ]);
+  });
+});
+
+describe("board state in the URL", () => {
+  it("round-trips through the query string", () => {
+    const state = {
+      filters: {
+        ...NO_FILTERS,
+        query: "toronto",
+        country: "Canada",
+        tuitionMax: 40000,
+        chances: ["Match", "Safety"] as AdmissionChance[],
+        sortBy: "tuition-asc" as const,
+      },
+      page: 3,
+      showAll: true,
+    };
+    const query = boardQuery(state);
+    expect(parseBoardParams(Object.fromEntries(new URLSearchParams(query)))).toEqual(state);
+  });
+
+  it("keeps default URLs clean", () => {
+    expect(boardQuery({ filters: NO_FILTERS, page: 1, showAll: false })).toBe("");
+  });
+
+  it("falls back to defaults for edited or junk values instead of erroring", () => {
+    const state = parseBoardParams({ sort: "hack", degree: "Diploma", page: "-4", chance: "Maybe", min: "abc" });
+    expect(state).toEqual({ filters: NO_FILTERS, page: 1, showAll: false });
+  });
+});
+
+describe("paginate", () => {
+  const items = Array.from({ length: 50 }, (_, i) => i);
+
+  it("cuts out one page and counts the pages", () => {
+    expect(paginate(items, 1)).toMatchObject({ page: 1, totalPages: 3 });
+    expect(paginate(items, 3).items).toEqual([48, 49]);
+  });
+
+  it("shows the last page for a page number past the end", () => {
+    expect(paginate(items, 99)).toMatchObject({ page: 3 });
+    expect(paginate([], 2)).toMatchObject({ items: [], page: 1, totalPages: 1 });
+  });
+});
+
+describe("buildBoard", () => {
+  const featured = (name: string, extra: Partial<University> = {}) =>
+    entry(name, { is_featured: true, created_by: null, ...extra });
+  const notFeatured = (name: string, extra: Partial<University> = {}) =>
+    entry(name, { is_featured: false, created_by: null, ...extra });
+  const state = { filters: NO_FILTERS, page: 1, showAll: false };
+
+  it("never sends more than one page of cards to the browser", () => {
+    const many = Array.from({ length: 1624 }, (_, i) => featured(`School ${i}`));
+    const board = buildBoard(many, state, { withFeatured: true });
+    expect(board.entries.length).toBe(PAGE_SIZE);
+    expect(board.matchingCount).toBe(1624);
+    expect(board.totalPages).toBe(Math.ceil(1624 / PAGE_SIZE));
+  });
+
+  it("shows featured schools by default, and everything when asked", () => {
+    const list = [featured("A"), notFeatured("B"), notFeatured("Mine", { created_by: "me" })];
+    const byDefault = buildBoard(list, state, { withFeatured: true });
+    // A student's own schools are always shown.
+    expect(names(byDefault.entries).sort()).toEqual(["A", "Mine"]);
+    expect(byDefault.featured).toEqual({ featuredCount: 2, allCount: 3, ready: true });
+
+    const all = buildBoard(list, { ...state, showAll: true }, { withFeatured: true });
+    expect(all.entries).toHaveLength(3);
+  });
+
+  it("shows everything before the featured list has been set up", () => {
+    // Every is_featured still false (the column default): hiding all of them
+    // would leave an empty page.
+    const list = [notFeatured("A"), notFeatured("B")];
+    const board = buildBoard(list, state, { withFeatured: true });
+    expect(board.entries).toHaveLength(2);
+    expect(board.featured?.ready).toBe(false);
+  });
+
+  it("treats a missing is_featured (migration not run) as featured", () => {
+    const board = buildBoard([entry("Old row")], state, { withFeatured: true });
+    expect(board.entries).toHaveLength(1);
+  });
+});
+
+describe("topPicksByCountry", () => {
+  it("gives each preferred country its own top few, so one country can't crowd out the rest", () => {
+    const list = [
+      ...Array.from({ length: 10 }, (_, i) =>
+        entry(`US ${i}`, { country: "United States" }, { score: 90 - i })
+      ),
+      entry("Toronto", { country: "Canada" }, { score: 70 }),
+      entry("UBC", { country: "Canada" }, { score: 75 }),
+    ];
+    const picks = topPicksByCountry(list, ["Canada", "United States", "Germany"], 3);
+    expect(picks.map((g) => [g.country, names(g.picks)])).toEqual([
+      ["Canada", ["UBC", "Toronto"]],
+      ["United States", ["US 0", "US 1", "US 2"]],
+      ["Germany", []],
+    ]);
   });
 });

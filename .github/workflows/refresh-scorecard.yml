@@ -48,6 +48,7 @@ jobs:
           add-paths: |
             data/scorecard/**
             supabase/seed_scorecard/**
+            supabase/featured/**
           commit-message: Refresh College Scorecard data
           title: Refresh College Scorecard data
           body: |
@@ -55,6 +56,6 @@ jobs:
 
             Before merging: check the diff (and the coverage numbers in
             `data/scorecard/universities.json`). After merging: run
-            `supabase/seed_scorecard/*.sql` in order in the Supabase SQL Editor,
+            `supabase/seed_scorecard/*.sql` in order, then `supabase/featured/featured.sql`, in the Supabase SQL Editor,
             then retrain the demo model (`ml/README.md`) if you want it to use
             the new figures.

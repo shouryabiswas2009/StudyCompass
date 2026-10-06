@@ -89,9 +89,47 @@ rather than reading the absolute numbers as universal.
 - Server Actions (saving, deleting) still use `getUser()`: they're rare,
   and a fresh server-side check before a write is worth ~250 ms.
 
-**Not done yet** (planned next, after the data phases): load all rows
-instead of the capped 1,000, cache the shared list, and filter, sort and
-paginate on the server so only one page of cards is sent.
+### Step 2: every row, only the needed columns, cached
+
+`lib/data/universities.ts`:
+- `fetchAllRows()` asks for rows 1,000 at a time until a short page, so all
+  1,624 schools load instead of the first 1,000. A test with a fake
+  1,000-row-capped API guards this.
+- Only `LIST_COLUMNS` (what list pages use) are selected.
+- The shared list (rows no student added) is cached on the server with
+  `unstable_cache` (15 minutes, tag `universities`). It's readable by anyone
+  under RLS, so one cached copy serves every student; each student's own
+  schools are fetched separately and never cached. The cached list is about
+  1 MB for all 1,577 Scorecard schools, under Next.js's 2 MB data-cache
+  limit; a test fails if it grows past 1.5 MB.
+- If a column from a not-yet-run migration is missing, it selects without
+  it and **skips the cache**, so the next request after the migration
+  sees the new column instead of waiting 15 minutes.
+
+### Step 3: filter, sort and paginate on the server
+
+Filters, sort, page and "include all schools" live in the URL
+(`parseBoardParams` / `boardQuery` in `lib/university-filters.ts`). The
+page scores every school (about 9 ms), filters and sorts on the server, and
+sends **one page of 24 cards**. Typing in search waits 300 ms after the
+last keystroke before asking the server. `buildBoard()` has a test that it
+never returns more than one page.
+
+Why not filter in SQL? Sorting by match score needs every school scored,
+and the scoring lives in TypeScript (`lib/matching.ts`). Filtering in SQL
+would mean either duplicating the scoring in SQL or still fetching every
+row to sort. Scoring the cached list takes about 9 ms, so the database
+round trip is what to avoid, and the cache does that.
+
+### Step 4: loading state and animations
+
+- `app/(dashboard)/loading.tsx` shows a skeleton instantly while a page
+  renders. Next.js streams it first, so "to first byte" is now ~50 ms
+  everywhere and is no longer comparable with the before numbers; compare
+  **total** time instead.
+- Card animations were already capped (the stagger stops growing after
+  the 8th card); with 24 cards per page that's fine. They now also respect
+  the operating system's "reduce motion" setting.
 
 ## After
 
@@ -112,6 +150,37 @@ paginate on the server so only one page of cards is sent.
 auth round trips removed. Browse and recommendations are still slow and
 still 10 MB because steps 2–3 aren't done. A signed-out request to
 `/profile` still lands on `/login`, so protection works as before.
+
+### After steps 2–4, before migration 010 (interim, uncached)
+
+Measured the same way, after one warm-up request. **Migration 010 hadn't
+been run yet**, so `is_featured` was missing and the cache was skipped on
+purpose: every request re-read ~1.5 MB of rows (one failed attempt with
+`is_featured`, then two 1,000-row pages). These are the worst-case numbers.
+
+| Page | Total before | Total after step 1 | Total now (uncached) | Page size before → now |
+| --- | --- | --- | --- | --- |
+| `/universities` | 2,228 ms | ~1,730 ms | 2,406 ms | 10,369 KB → **287 KB** |
+| `/recommendations` | 2,220 ms | 1,721 ms | 2,318 ms | 10,360 KB → **299 KB** |
+| `/universities?q=state&sort=tuition-asc&page=3` | — | — | 2,339 ms | 289 KB |
+| `/compare` (3 schools) | 1,344 ms | 819 ms | 2,613 ms | 180 KB → 238 KB |
+| `/saved` | 1,074 ms | 570 ms | 620 ms | 70 KB → 74 KB |
+| `/profile` | 801 ms | 284 ms | 327 ms | 48 KB → 51 KB |
+
+(The "after step 1" browse total is approximate: that run recorded time
+to first byte, 1,627 ms, plus a similar download.)
+
+What changed and what didn't, honestly:
+- **Fixed:** browse and recommendations now include all **1,624** schools
+  (not 1,000), and send **~36× less** (287 KB instead of 10 MB, 24 cards
+  instead of 1,000).
+- **Not faster yet:** total server time is about the same as before,
+  because without the cache every visit downloads all 1,624 rows from
+  Supabase. Compare got slower: its picker now uses the full list instead
+  of a names-only query of the first 1,000.
+- **Expected after migration 010:** the shared list comes from the cache,
+  so these pages should only wait for the profile and saved-schools
+  queries. To be measured, not assumed; see the next section.
 
 ## Reproducing
 
