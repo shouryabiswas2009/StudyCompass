@@ -29,7 +29,8 @@ export type University = {
   name: string;
   country: string;
   tuition: number;
-  qs_ranking: number;
+  // Null for unranked schools a student added themselves.
+  qs_ranking: number | null;
   // Per-subject ranking, e.g. { "Computer Science": 5 }. Not every program
   // has an entry — fall back to qs_ranking when one is missing.
   program_rankings: Record<string, number>;
@@ -45,8 +46,30 @@ export type University = {
   living_cost_per_year: number | null;
   popular_programs: string[];
   description: string;
+  // Null for the shared seed data; the student's id for a school they added.
+  // RLS never returns another student's schools, so a non-null value always
+  // means "added by the current student".
+  created_by: string | null;
   created_at: string;
 };
+
+// Fields the "add a university" form fills in.
+export type UniversityInput = Pick<
+  University,
+  | "name"
+  | "country"
+  | "tuition"
+  | "qs_ranking"
+  | "acceptance_rate"
+  | "avg_admitted_gpa"
+  | "sat_25"
+  | "sat_75"
+  | "min_ielts"
+  | "living_cost_per_year"
+  | "popular_programs"
+  | "degree_levels"
+  | "description"
+>;
 
 export type SavedUniversity = {
   id: string;

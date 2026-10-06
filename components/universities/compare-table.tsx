@@ -1,4 +1,4 @@
-import { getDisplayRanking } from "@/lib/matching";
+import { formatRank, getDisplayRanking } from "@/lib/matching";
 import { Flag } from "@/components/flag";
 import type { Profile, University } from "@/lib/types";
 
@@ -22,7 +22,7 @@ const rows: {
       const ranking = profile
         ? getDisplayRanking(u, profile)
         : { rank: u.qs_ranking, label: "Overall" };
-      return `#${ranking.rank} (${ranking.label})`;
+      return `${formatRank(ranking.rank)} (${ranking.label})`;
     },
   },
   { label: "Acceptance rate", render: (u) => `${u.acceptance_rate}%` },

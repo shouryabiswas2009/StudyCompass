@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TagInput } from "@/components/tag-input";
+import { FieldError } from "@/components/field-error";
 import {
   Select,
   SelectContent,
@@ -30,11 +31,6 @@ const MAJOR_SUGGESTIONS = [
   "Mathematics",
   "Architecture",
 ];
-
-function FieldError({ message }: { message?: string }) {
-  if (!message) return null;
-  return <p className="text-sm text-destructive">{message}</p>;
-}
 
 // `existingProfile` is null the first time a student fills this out,
 // and populated when they come back to edit it later.

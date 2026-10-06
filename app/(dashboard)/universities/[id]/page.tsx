@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, TrendingUp, Percent, DollarSign } from "lucide-react";
+import { ArrowLeft, TrendingUp, Percent, DollarSign, Pencil } from "lucide-react";
+import { DeleteUniversityButton } from "@/components/universities/delete-university-button";
 import { createClient } from "@/lib/supabase/server";
-import { scoreUniversity } from "@/lib/matching";
+import { formatRank, scoreUniversity } from "@/lib/matching";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/universities/save-button";
@@ -92,7 +93,7 @@ export default async function UniversityDetailsPage({
     {
       icon: TrendingUp,
       label: `QS Ranking — ${ranking.label}`,
-      value: `#${ranking.rank}`,
+      value: formatRank(ranking.rank),
     },
     {
       icon: Percent,
@@ -118,10 +119,28 @@ export default async function UniversityDetailsPage({
           <p className="flex items-center gap-1.5 text-muted-foreground">
             <Flag country={university.country} />
             {university.country}
+            {university.created_by && (
+              <Badge variant="secondary" className="ml-1">
+                Added by you
+              </Badge>
+            )}
           </p>
         </div>
         <SaveButton universityId={university.id} initiallySaved={!!savedRow} />
       </div>
+
+      {/* Only schools a student added can be changed; RLS also enforces this. */}
+      {university.created_by && (
+        <div className="mt-4 flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href={`/universities/${university.id}/edit`}>
+              <Pencil className="size-4" />
+              Edit
+            </Link>
+          </Button>
+          <DeleteUniversityButton id={university.id} name={university.name} />
+        </div>
+      )}
 
       <div className="mt-8 grid grid-cols-3 gap-4">
         {stats.map((stat) => (

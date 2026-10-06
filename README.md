@@ -35,6 +35,10 @@ Supabase (Auth + Database), and Framer Motion.
      It adds illustrative admission figures (typical admitted GPA, SAT
      middle-50% range for US schools, minimum IELTS, living cost) used by
      the academic and English fit scores.
+   - Then run [`supabase/migration_005_browse_and_custom_universities.sql`](supabase/migration_005_browse_and_custom_universities.sql).
+     It lets students add their own universities (with row-level security
+     so only they can see and change them), makes the QS ranking optional,
+     and adds 34 more illustrative universities (61 in total).
    - Copy `.env.local.example` to `.env.local` and fill in your project's
      URL and anon/publishable key (Project Settings → API in the dashboard).
 
@@ -112,22 +116,27 @@ app/
   (auth)/login, (auth)/signup       # Auth pages
   (dashboard)/profile               # Student profile form
   (dashboard)/recommendations       # Matched universities
-  (dashboard)/universities/[id]     # University details
+  (dashboard)/universities          # Browse: search + filters over every school
+  (dashboard)/universities/new      # Add your own university
+  (dashboard)/universities/[id]     # University details (+ /edit for your own)
   (dashboard)/compare               # Side-by-side comparison
   (dashboard)/saved                 # Bookmarked universities
-  auth/callback                     # Supabase email confirmation redirect
+  auth/callback, auth/confirm       # Supabase email link handlers
 components/
   landing/    # Hero, feature cards, CTA
   layout/     # Navbar, footer, theme toggle
   auth/       # Login/signup forms
   profile/    # Profile form
-  universities/ # Cards, match badge, compare table, save button
+  universities/ # Cards, board (search/filter/sort), fit breakdown, forms
   ui/         # shadcn/ui components
 lib/
   supabase/   # Browser client, server client, session refresh helper
-  actions/    # Server Actions (auth, profile, saved universities)
-  matching.ts # Match score + explanation logic (no external API calls)
+  actions/    # Server Actions (auth, profile, saved, universities)
+  matching.ts # Match score, breakdown, Reach/Match/Safety, explanations
+  university-filters.ts # Search/filter/sort rules for the university board
+  *-validation.ts       # Form validation (profile, university)
   types.ts    # Shared TypeScript types
+  *.test.ts   # Vitest unit tests
 proxy.ts      # Next.js 16's "Proxy" (renamed Middleware) — refreshes the
               # Supabase session and protects dashboard routes
 supabase/
@@ -135,6 +144,7 @@ supabase/
   migration_002_richer_profiles.sql # Multi-select fields, budget range, subject rankings
   migration_003_scores_and_degree_levels.sql # SAT score, input checks, degree levels
   migration_004_admission_stats.sql # Illustrative admit GPA, SAT range, IELTS, living cost
+  migration_005_browse_and_custom_universities.sql # Student-added schools + RLS, 34 more schools
 ```
 
 ## How matching works
@@ -186,8 +196,14 @@ actually ranking.
 
 ## Notes
 
-- Row Level Security is enabled on all tables — profiles and saved
-  universities are only readable/writable by their owner; the universities
-  table is public read-only.
+- Row Level Security is enabled on all tables. Profiles and saved
+  universities are only readable/writable by their owner. A university row
+  is readable if it's shared seed data (`created_by is null`) or you added
+  it (`created_by = auth.uid()`), and only its creator can edit or delete
+  it. Because every page reads the same `universities` table, a school a
+  student adds shows up (and is scored) everywhere in their account
+  without any extra code.
+- Universities without a known ranking show as "Unranked" rather than a
+  made-up number, and sort last when sorting by ranking.
 - Auth uses `@supabase/ssr` with cookie-based sessions shared between the
   browser, Server Components, and Server Actions.

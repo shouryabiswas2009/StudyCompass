@@ -3,6 +3,7 @@ import {
   admissionChance,
   computeMatchScore,
   explainMatch,
+  formatRank,
   getDisplayRanking,
 } from "@/lib/matching";
 import type { Profile, University } from "@/lib/types";
@@ -45,6 +46,7 @@ function makeUniversity(overrides: Partial<University> = {}): University {
     living_cost_per_year: 15000,
     popular_programs: ["Computer Science", "Business"],
     description: "",
+    created_by: null,
     created_at: "",
     ...overrides,
   };
@@ -188,5 +190,13 @@ describe("getDisplayRanking", () => {
       rank: 50,
       label: "Overall",
     });
+  });
+
+  it("reports an unranked school as unranked instead of inventing a number", () => {
+    const university = makeUniversity({ qs_ranking: null, program_rankings: {} });
+    const ranking = getDisplayRanking(university, makeProfile());
+
+    expect(ranking).toEqual({ rank: null, label: "Overall" });
+    expect(formatRank(ranking.rank)).toBe("Unranked");
   });
 });

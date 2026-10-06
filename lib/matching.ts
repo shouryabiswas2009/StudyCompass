@@ -250,7 +250,7 @@ export function explainMatch(profile: Profile, university: University): MatchExp
   // Major, with the subject ranking when we have one
   const match = findMatchingProgram(profile, university);
   if (match) {
-    const subjectRank = university.program_rankings[match.program];
+    const subjectRank = university.program_rankings?.[match.program];
     strengths.push(
       subjectRank != null
         ? `Offers ${match.program} (subject ranking #${subjectRank}).`
@@ -316,22 +316,29 @@ export function explainMatch(profile: Profile, university: University): MatchExp
   return { strengths, concerns };
 }
 
+// rank is null for an unranked school (only possible for ones students add).
+export type DisplayRanking = { rank: number | null; label: string };
+
 // The ranking to show a given student for a given university: subject-specific
 // when their intended major lines up with a ranked program, otherwise the
 // university-wide ranking — always labeled so it's never misleading.
 export function getDisplayRanking(
   university: University,
   profile: Profile
-): { rank: number; label: string } {
+): DisplayRanking {
   const match = findMatchingProgram(profile, university);
   if (match) {
-    const subjectRank = university.program_rankings[match.program];
+    const subjectRank = university.program_rankings?.[match.program];
     if (subjectRank != null) {
       return { rank: subjectRank, label: match.program };
     }
   }
 
-  return { rank: university.qs_ranking, label: "Overall" };
+  return { rank: university.qs_ranking ?? null, label: "Overall" };
+}
+
+export function formatRank(rank: number | null): string {
+  return rank === null ? "Unranked" : `#${rank}`;
 }
 
 // Everything a university card needs, computed in one place so every page
@@ -340,7 +347,7 @@ export type MatchEntry = {
   university: University;
   match: MatchResult;
   explanation: MatchExplanation;
-  ranking: { rank: number; label: string };
+  ranking: DisplayRanking;
 };
 
 export function scoreUniversity(profile: Profile, university: University): MatchEntry {

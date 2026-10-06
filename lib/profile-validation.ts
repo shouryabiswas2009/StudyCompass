@@ -1,3 +1,4 @@
+import { readList, readNumber, readText } from "@/lib/form-data";
 import { DEGREE_LEVELS, type DegreeLevel, type ProfileInput } from "@/lib/types";
 
 export type ProfileFieldErrors = Partial<Record<keyof ProfileInput, string>>;
@@ -5,23 +6,6 @@ export type ProfileFieldErrors = Partial<Record<keyof ProfileInput, string>>;
 export type ProfileValidationResult =
   | { ok: true; data: ProfileInput }
   | { ok: false; errors: ProfileFieldErrors };
-
-function readText(formData: FormData, name: string): string {
-  return String(formData.get(name) ?? "").trim();
-}
-
-// Blank → null (optional field left empty), junk → NaN (caught below).
-function readNumber(formData: FormData, name: string): number | null {
-  const raw = readText(formData, name);
-  return raw === "" ? null : Number(raw);
-}
-
-function readList(formData: FormData, name: string): string[] {
-  return formData
-    .getAll(name)
-    .map((value) => String(value).trim())
-    .filter(Boolean);
-}
 
 // Kept as a plain function (no form library) so it can be unit-tested and
 // so every rule is visible in one place. The same limits are enforced again

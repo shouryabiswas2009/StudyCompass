@@ -7,6 +7,7 @@ import { MobileNavMenu } from "@/components/layout/mobile-nav-menu";
 
 const navLinks = [
   { href: "/recommendations", label: "Recommendations" },
+  { href: "/universities", label: "Browse" },
   { href: "/compare", label: "Compare" },
   { href: "/saved", label: "Saved" },
 ];

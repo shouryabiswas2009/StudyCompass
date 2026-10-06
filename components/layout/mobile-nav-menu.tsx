@@ -12,6 +12,7 @@ import {
 
 const navLinks = [
   { href: "/recommendations", label: "Recommendations" },
+  { href: "/universities", label: "Browse" },
   { href: "/compare", label: "Compare" },
   { href: "/saved", label: "Saved" },
   { href: "/profile", label: "Profile" },

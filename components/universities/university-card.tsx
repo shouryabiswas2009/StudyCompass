@@ -15,7 +15,13 @@ import { StrengthsConcerns } from "@/components/universities/strengths-concerns"
 import { SaveButton } from "@/components/universities/save-button";
 import { Flag } from "@/components/flag";
 import { cn } from "@/lib/utils";
-import type { MatchExplanation, MatchResult } from "@/lib/matching";
+import {
+  formatRank,
+  type DisplayRanking,
+  type MatchExplanation,
+  type MatchResult,
+} from "@/lib/matching";
+import { Badge } from "@/components/ui/badge";
 import type { University } from "@/lib/types";
 
 const TIER_BORDER = {
@@ -35,7 +41,7 @@ export function UniversityCard({
   university: University;
   match: MatchResult;
   explanation: MatchExplanation;
-  ranking?: { rank: number; label: string };
+  ranking?: DisplayRanking;
   isSaved?: boolean;
   index?: number;
 }) {
@@ -71,6 +77,11 @@ export function UniversityCard({
             <CardDescription className="flex items-center gap-1.5">
               <Flag country={university.country} />
               {university.country}
+              {university.created_by && (
+                <Badge variant="secondary" className="ml-1">
+                  Added by you
+                </Badge>
+              )}
               <span className="ml-auto">
                 <ChanceBadge chance={match.chance} />
               </span>
@@ -88,7 +99,7 @@ export function UniversityCard({
                 <span className="text-muted-foreground">
                   Ranking ({ranking.label})
                 </span>
-                <span className="font-medium">#{ranking.rank}</span>
+                <span className="font-medium">{formatRank(ranking.rank)}</span>
               </div>
             )}
             <StrengthsConcerns explanation={explanation} limit={2} />

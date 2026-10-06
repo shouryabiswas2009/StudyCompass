@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Compass, SlidersHorizontal } from "lucide-react";
+import { Compass, Search, SlidersHorizontal, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -10,11 +10,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { UniversityCard } from "@/components/universities/university-card";
 import { Flag } from "@/components/flag";
-import type { MatchEntry } from "@/lib/matching";
-
-type SortKey = "match" | "tuition-asc" | "tuition-desc" | "ranking";
+import type { AdmissionChance, MatchEntry } from "@/lib/matching";
+import {
+  applyFilters,
+  hasActiveFilters,
+  NO_FILTERS,
+  type SortKey,
+  type UniversityFilters,
+} from "@/lib/university-filters";
+import { DEGREE_LEVELS, type DegreeLevel } from "@/lib/types";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "match", label: "Best match" },
@@ -23,59 +31,64 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "ranking", label: "Best ranking" },
 ];
 
-// Shared by the recommendations and saved pages: sort/filter controls over
-// an already-scored list of universities, plus the resulting card grid.
-// All state is local — the `matches` array is fetched once server-side.
+const CHANCES: AdmissionChance[] = ["Reach", "Match", "Safety"];
+
+// Radix Select can't use "" as a value, so "any" stands for "no filter".
+const ANY = "any";
+
+// Blank input → no bound.
+function parseBound(value: string): number | null {
+  const n = Number(value);
+  return value.trim() === "" || Number.isNaN(n) ? null : n;
+}
+
+// Shared by the browse, recommendations and saved pages: search, filter and
+// sort controls over an already-scored list, plus the card grid. All state
+// is local — the `matches` array is fetched once on the server — and the
+// filtering rules themselves live in lib/university-filters.ts.
 export function UniversityBoard({
   matches,
   savedIds,
   emptyMessage,
+  showDegreeFilter = false,
 }: {
   matches: MatchEntry[];
   savedIds: Set<string>;
   emptyMessage: React.ReactNode;
+  // Recommendations are already limited to the student's degree level, so
+  // only the browse page needs this filter.
+  showDegreeFilter?: boolean;
 }) {
-  const [sortBy, setSortBy] = useState<SortKey>("match");
-  const [activeCountries, setActiveCountries] = useState<Set<string>>(
-    new Set()
-  );
+  const [filters, setFilters] = useState<UniversityFilters>(NO_FILTERS);
+  // Raw text of the tuition boxes, so typing "1" on the way to "10000"
+  // doesn't get reformatted under the student's cursor.
+  const [tuitionMinText, setTuitionMinText] = useState("");
+  const [tuitionMaxText, setTuitionMaxText] = useState("");
 
   const countries = useMemo(
     () => Array.from(new Set(matches.map((m) => m.university.country))).sort(),
     [matches]
   );
 
-  function toggleCountry(country: string) {
-    setActiveCountries((prev) => {
-      const next = new Set(prev);
-      if (next.has(country)) next.delete(country);
-      else next.add(country);
-      return next;
+  const visible = useMemo(() => applyFilters(matches, filters), [matches, filters]);
+
+  function update(changes: Partial<UniversityFilters>) {
+    setFilters((prev) => ({ ...prev, ...changes }));
+  }
+
+  function toggleChance(chance: AdmissionChance) {
+    update({
+      chances: filters.chances.includes(chance)
+        ? filters.chances.filter((c) => c !== chance)
+        : [...filters.chances, chance],
     });
   }
 
-  const visible = useMemo(() => {
-    const filtered =
-      activeCountries.size > 0
-        ? matches.filter((m) => activeCountries.has(m.university.country))
-        : matches;
-
-    const sorted = [...filtered];
-    switch (sortBy) {
-      case "tuition-asc":
-        sorted.sort((a, b) => a.university.tuition - b.university.tuition);
-        break;
-      case "tuition-desc":
-        sorted.sort((a, b) => b.university.tuition - a.university.tuition);
-        break;
-      case "ranking":
-        sorted.sort((a, b) => a.ranking.rank - b.ranking.rank);
-        break;
-      default:
-        sorted.sort((a, b) => b.match.score - a.match.score);
-    }
-    return sorted;
-  }, [matches, activeCountries, sortBy]);
+  function clearFilters() {
+    setFilters({ ...NO_FILTERS, sortBy: filters.sortBy });
+    setTuitionMinText("");
+    setTuitionMaxText("");
+  }
 
   if (matches.length === 0) {
     return <EmptyState message={emptyMessage} />;
@@ -83,35 +96,135 @@ export function UniversityBoard({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2">
-          {countries.map((country) => (
-            <Badge
-              key={country}
-              asChild
-              variant={activeCountries.has(country) ? "default" : "outline"}
-              className="cursor-pointer gap-1 select-none"
-            >
-              <button type="button" onClick={() => toggleCountry(country)}>
-                <Flag country={country} /> {country}
-              </button>
-            </Badge>
-          ))}
+      <div className="space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={filters.query}
+              onChange={(e) => update({ query: e.target.value })}
+              placeholder="Search universities by name"
+              aria-label="Search universities by name"
+              className="pl-8"
+            />
+          </div>
+          <Select
+            value={filters.sortBy}
+            onValueChange={(v) => update({ sortBy: v as SortKey })}
+          >
+            <SelectTrigger className="w-full sm:w-52" aria-label="Sort by">
+              <SlidersHorizontal className="size-4" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
-          <SelectTrigger className="w-full sm:w-56">
-            <SlidersHorizontal className="size-4" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SORT_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={filters.country ?? ANY}
+            onValueChange={(v) => update({ country: v === ANY ? null : v })}
+          >
+            <SelectTrigger className="w-full sm:w-48" aria-label="Country">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ANY}>All countries</SelectItem>
+              {countries.map((country) => (
+                <SelectItem key={country} value={country}>
+                  <Flag country={country} /> {country}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {showDegreeFilter && (
+            <Select
+              value={filters.degreeLevel ?? ANY}
+              onValueChange={(v) =>
+                update({ degreeLevel: v === ANY ? null : (v as DegreeLevel) })
+              }
+            >
+              <SelectTrigger className="w-full sm:w-44" aria-label="Degree level">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ANY}>Any degree level</SelectItem>
+                {DEGREE_LEVELS.map((level) => (
+                  <SelectItem key={level} value={level}>
+                    {level}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <Input
+              type="number"
+              min={0}
+              step={1000}
+              value={tuitionMinText}
+              onChange={(e) => {
+                setTuitionMinText(e.target.value);
+                update({ tuitionMin: parseBound(e.target.value) });
+              }}
+              placeholder="Min tuition"
+              aria-label="Minimum tuition (USD per year)"
+              className="sm:w-28"
+            />
+            <span className="text-muted-foreground">–</span>
+            <Input
+              type="number"
+              min={0}
+              step={1000}
+              value={tuitionMaxText}
+              onChange={(e) => {
+                setTuitionMaxText(e.target.value);
+                update({ tuitionMax: parseBound(e.target.value) });
+              }}
+              placeholder="Max tuition"
+              aria-label="Maximum tuition (USD per year)"
+              className="sm:w-28"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            {CHANCES.map((chance) => (
+              <Badge
+                key={chance}
+                asChild
+                variant={filters.chances.includes(chance) ? "default" : "outline"}
+                className="cursor-pointer select-none"
+              >
+                <button
+                  type="button"
+                  aria-pressed={filters.chances.includes(chance)}
+                  onClick={() => toggleChance(chance)}
+                >
+                  {chance}
+                </button>
+              </Badge>
             ))}
-          </SelectContent>
-        </Select>
+          </div>
+
+          {hasActiveFilters(filters) && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              <X className="size-4" />
+              Clear filters
+            </Button>
+          )}
+        </div>
+
+        <p className="text-sm text-muted-foreground">
+          Showing {visible.length} of {matches.length}
+        </p>
       </div>
 
       {visible.length === 0 ? (
