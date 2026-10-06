@@ -68,6 +68,7 @@ describe("normalizeSchool", () => {
       research_intensity: "very_high",
       source: "College Scorecard",
       data_year: "2024",
+      source_url: "https://collegescorecard.ed.gov/school/?243780",
     });
   });
 
@@ -122,9 +123,22 @@ describe("topPrograms", () => {
 });
 
 describe("degreeLevels", () => {
-  it("only claims what Scorecard actually says", () => {
-    expect(degreeLevels(3)).toEqual(["Undergraduate"]);
-    expect(degreeLevels(4)).toEqual([]); // "graduate" — Masters? PhD? unknown
+  const programs = (...levels) => levels.map((level) => ({ credential: { level } }));
+
+  it("reads the levels from the programs a school reports", () => {
+    // MIT-like: bachelor's, master's and doctoral programs.
+    expect(degreeLevels(4, programs(3, 5, 6, 5))).toEqual(["Undergraduate", "Masters", "PhD"]);
+    // Williams-like: bachelor's plus two master's programs, no doctorates.
+    expect(degreeLevels(4, programs(3, 3, 5))).toEqual(["Undergraduate", "Masters"]);
+  });
+
+  it("ignores certificates and other levels the app doesn't offer", () => {
+    expect(degreeLevels(4, programs(1, 2, 3, 8))).toEqual(["Undergraduate"]);
+  });
+
+  it("only claims what Scorecard says when no programs are reported", () => {
+    expect(degreeLevels(3, [])).toEqual(["Undergraduate"]);
+    expect(degreeLevels(4, undefined)).toEqual([]); // "graduate" — Masters? PhD? unknown
   });
 });
 

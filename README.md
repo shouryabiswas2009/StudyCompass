@@ -56,7 +56,10 @@ Supabase (Auth + Database), and Framer Motion.
    - Then run [`supabase/migration_010_featured.sql`](supabase/migration_010_featured.sql)
      and [`supabase/featured/featured.sql`](supabase/featured/featured.sql),
      which mark the schools shown by default (see "Which schools are
-     shown first" below). (`npm run db:check` runs all of the SQL above on a
+     shown first" below).
+   - Then run [`supabase/migration_011_international.sql`](supabase/migration_011_international.sql)
+     and the files in [`supabase/seed_international/`](supabase/seed_international/)
+     in order: the hand-checked international universities. (`npm run db:check` runs all of the SQL above on a
      scratch database first, if you want to be sure.) Each file, what
      breaks until it's run and a one-line check are in
      [`docs/PENDING-DB-STEPS.md`](docs/PENDING-DB-STEPS.md).
@@ -93,15 +96,47 @@ and in the compare table:
 | Label | What it means | Coverage |
 | --- | --- | --- |
 | **College Scorecard** | Official US Department of Education data, fetched from the [College Scorecard API](https://collegescorecard.ed.gov/data/api-documentation/) | 1,577 US schools (operating, mainly bachelor's-granting, with a published admission rate); data year 2024 in the current import |
-| **Illustrative** | Hand-written sample figures for this demo, **not** official statistics | 47 schools in 25 countries outside the US |
+| **Source: <university site>** (curated) | Checked by hand on the university's **own** website; every figure has its page linked on the details page. Never shown as "official" | 42 universities in the UK, Canada, Australia and Germany so far (see the coverage report below) |
+| **Illustrative** | Hand-written sample figures for this demo, **not** official statistics | 29 schools in 21 countries not curated yet |
 | **Added by you** | Figures a student entered themselves, optionally with a source link | Only visible to that student |
 
-**Only the US has official data here.** College Scorecard is the only free,
-official source that publishes admission statistics for each school in a
-structured form. For other countries I didn't scrape ranking sites (their
-terms don't allow it) and didn't invent statistics, so non-US schools stay
-labeled illustrative. To add verified figures for any school, use "Add a
-university" and paste the link you got them from.
+**The US has official data; other countries are curated by hand.** College
+Scorecard is the only free, official source that publishes figures for
+every school in a structured form. Elsewhere, figures are copied by hand
+from each university's own fees, co-op and program pages into
+[`data/curated/international_universities.csv`](data/curated/international_universities.csv),
+with the page URL, the year and exactly what the figure is
+(`tuition_basis`). Ranking sites aren't scraped (their terms don't allow
+it); if you want rankings, copy them by hand into
+[`data/curated/international_rankings.csv`](data/curated/international_rankings.csv).
+Anything that couldn't be verified is left empty and shows as "not
+available", and the CSV's `notes` column says why.
+
+### Curated data: how it gets in
+
+1. Edit the CSVs in `data/curated/` (a spreadsheet works).
+2. `npm run data:validate-international` checks them: required fields,
+   ranges, URL format, a source page for every figure, no duplicates.
+3. `npm run data:build-international` converts money to US dollars at the
+   European Central Bank rates in `lib/exchange-rates.ts` and writes
+   `supabase/seed_international/*.sql` (run them in order in the SQL
+   Editor). A curated row that replaces an illustrative one keeps the same
+   row (`match_existing_name`), so saved schools and applications keep
+   working, and every illustrative figure on it is replaced by a verified
+   one or "not available".
+4. `npm run data:report` prints coverage per country (below).
+
+**Tuition rule:** the **lowest published** international undergraduate fee,
+shown as "from …", with `tuition_basis` saying exactly what it is. When a
+university only publishes one programme's fee, or only per-course or
+per-credit fees, the row says so instead of a computed number (except
+German universities, where a year is always two semesters at a flat fee).
+
+**Currency:** money is stored in its own currency too. The US-dollar
+figure used for scoring is converted at the ECB reference rate of
+`fx_rate_date` (`npm run data:fx` updates the rates) and always labeled
+"≈ … approximate". A currency the ECB doesn't publish (e.g. TWD) isn't
+converted; the UAE dirham uses its official peg.
 
 What Scorecard does and doesn't give the app:
 - **Official:** admission rate, SAT percentiles, tuition, living costs,
@@ -282,6 +317,9 @@ scripts/
   scorecard/  # fetch.mjs → normalize.mjs → build-seed-sql.mjs (College Scorecard import)
   check-sql.mjs   # npm run db:check: applies all SQL to an in-memory Postgres, twice
   relevance-rule.mjs     # Which schools are featured: the thresholds live here
+  curated/               # CSV reader, validator and SQL generator for data/curated/
+  fx/fetch-ecb.mjs       # npm run data:fx → lib/exchange-rates.ts (ECB reference rates)
+  data-report.mjs        # npm run data:report: coverage per country
   build-featured-sql.mjs # npm run data:featured → supabase/featured/featured.sql
   in-memory-db.mjs # PGlite helper used by check-sql.mjs
 proxy.ts      # Next.js 16's "Proxy" (renamed Middleware) — refreshes the
@@ -299,6 +337,8 @@ supabase/
   migration_010_featured.sql       # is_featured flag (which schools are shown by default)
   seed_scorecard/00–06_*.sql       # Generated: official US schools (upsert, safe to re-run)
   featured/featured.sql            # Generated: applies the relevance rule
+  migration_011_international.sql  # Curated source, currencies, aliases, accent-free search
+  seed_international/*.sql         # Generated from data/curated/ (upsert, safe to re-run)
 ```
 
 ## How matching works
@@ -365,9 +405,30 @@ information available for this school." Each one says where its figure
 came from.
 
 **Unknown isn't failure.** If a factor can't be judged (no SAT on your
-profile, or a non-US school with no SAT range), it's left out and the score
-is scaled over the factors that are known. A missing IELTS scores higher
-than one below the minimum.
+profile, a non-US school with no SAT range, unknown tuition or admission
+rate, no program list), it's left out and the score is scaled over the
+factors that are known. A missing IELTS scores higher than one below the
+minimum.
+
+**"Not enough data" instead of a fake Match.** Without admission figures to
+compare the student with (most non-US schools publish none), the label is
+"Not enough data", not "Match". A school admitting under 15% is still a
+Reach; Safety needs a known admission rate.
+
+**Masters and PhD students** only see schools that say they offer that
+level, and the undergraduate admission figures (admission rate, GPA, SAT)
+aren't used to judge them; the details page says so. US degree levels come
+from the credential levels of the programs each school reports to
+Scorecard (bachelor's, master's, doctoral).
+
+**Country names** go through one canonical list with aliases
+(`lib/countries.ts`): "UK", "England" and "United Kingdom", or "USA" and
+"United States", all match, and names are stored canonically.
+
+**Search** matches names and aliases (MIT, UCL, LSE, ETH, …) without
+accents ("universite de montreal" finds "Université de Montréal") in
+Postgres: a generated `search_text` column (unaccent + lower-case) with a
+trigram index (`migration_011`).
 
 `computeMatchScore()` returns the per-factor points, not just the total, so
 the details page can show where a score comes from. It also gives a

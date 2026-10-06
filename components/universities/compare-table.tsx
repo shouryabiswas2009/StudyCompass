@@ -5,11 +5,18 @@ import { StrengthsConcerns } from "@/components/universities/strengths-concerns"
 import { SourceBadge } from "@/components/universities/source-badge";
 import { bestIndexes, totalYearlyCost } from "@/lib/compare";
 import { usd } from "@/lib/format";
+import { livingCostDisplay, tuitionDisplay, type MoneyDisplay } from "@/lib/money";
 import { formatRank, type AdmissionChance, type MatchEntry } from "@/lib/matching";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/lib/types";
 
-const CHANCE_ORDER: Record<AdmissionChance, number> = { Reach: 1, Match: 2, Safety: 3 };
+// "Not enough data" is null in value() below, so it's never "best".
+const CHANCE_ORDER: Record<AdmissionChance, number | null> = {
+  Reach: 1,
+  Match: 2,
+  Safety: 3,
+  "Not enough data": null,
+};
 
 type Row = {
   label: string;
@@ -73,16 +80,13 @@ const ROWS: Row[] = [
   },
   {
     label: "Tuition",
-    render: ({ university }) => `${usd(university.tuition)}/yr`,
+    render: ({ university }) => <Money display={tuitionDisplay(university)} />,
     value: ({ university }) => university.tuition,
     better: "lower",
   },
   {
     label: "Living cost",
-    render: ({ university }) =>
-      university.living_cost_per_year != null
-        ? `about ${usd(university.living_cost_per_year)}/yr`
-        : muted("Unknown"),
+    render: ({ university }) => <Money display={livingCostDisplay(university)} />,
     value: ({ university }) => university.living_cost_per_year,
     better: "lower",
   },
@@ -90,7 +94,9 @@ const ROWS: Row[] = [
     label: "Estimated total per year",
     render: ({ university }) => {
       const total = totalYearlyCost(university);
-      return total !== null ? `about ${usd(total)}/yr` : muted("Unknown (no living cost)");
+      return total !== null
+        ? `about ${usd(total)}/yr`
+        : muted("Not available (tuition or living cost missing)");
     },
     value: ({ university }) => totalYearlyCost(university),
     better: "lower",
@@ -107,7 +113,8 @@ const ROWS: Row[] = [
   },
   {
     label: "Acceptance rate",
-    render: ({ university }) => `${university.acceptance_rate}%`,
+    render: ({ university }) =>
+      university.acceptance_rate !== null ? `${university.acceptance_rate}%` : muted("Not available"),
     value: ({ university }) => university.acceptance_rate,
     better: "higher",
   },
@@ -248,5 +255,17 @@ export function CompareTable({
         come from; rankings are illustrative for every school.
       </p>
     </div>
+  );
+}
+
+// A money figure, with "approximate" and its basis shown underneath when it
+// was converted from another currency, so schools are compared fairly.
+function Money({ display }: { display: MoneyDisplay }) {
+  if (display.text === "Not available") return <span className="text-muted-foreground">Not available</span>;
+  return (
+    <span>
+      {display.text}
+      {display.note && <span className="block text-xs text-muted-foreground">{display.note}</span>}
+    </span>
   );
 }

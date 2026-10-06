@@ -13,7 +13,11 @@
     "data:normalize-scorecard": "node scripts/scorecard/normalize.mjs",
     "data:build-scorecard-sql": "node scripts/scorecard/build-seed-sql.mjs",
     "data:refresh-scorecard": "npm run data:fetch-scorecard -- --refresh && npm run data:normalize-scorecard && npm run data:build-scorecard-sql && npm run data:featured",
-    "data:featured": "node scripts/build-featured-sql.mjs"
+    "data:featured": "node scripts/build-featured-sql.mjs",
+    "data:fx": "node scripts/fx/fetch-ecb.mjs",
+    "data:validate-international": "node scripts/curated/build-international-sql.mjs --check",
+    "data:build-international": "node scripts/curated/build-international-sql.mjs",
+    "data:report": "node scripts/data-report.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

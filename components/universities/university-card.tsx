@@ -22,6 +22,7 @@ import {
   type MatchResult,
 } from "@/lib/matching";
 import { SourceBadge } from "@/components/universities/source-badge";
+import { tuitionDisplay } from "@/lib/money";
 import { ApplicationStatusControl } from "@/components/applications/application-status-control";
 import type { ApplicationStatus } from "@/lib/types";
 import type { AdmissionPrediction } from "@/lib/admission-model";
@@ -58,6 +59,7 @@ export function UniversityCard({
   tracking?: { application: { id: string; status: ApplicationStatus } | null };
 }) {
   const reduceMotion = useReducedMotion();
+  const tuition = tuitionDisplay(university);
 
   return (
     // Fade in, staggered by position but capped at the 8th card so a page
@@ -114,8 +116,8 @@ export function UniversityCard({
             </div>
             <div className="flex items-baseline justify-between text-sm">
               <span className="text-muted-foreground">Tuition</span>
-              <span className="font-medium">
-                ${university.tuition.toLocaleString("en-US")}/yr
+              <span className="font-medium" title={tuition.note ?? undefined}>
+                {tuition.text}
               </span>
             </div>
             {ranking && (

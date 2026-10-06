@@ -15,6 +15,7 @@ import { AdmissionEstimate } from "@/components/universities/admission-estimate"
 import { StrengthsConcerns } from "@/components/universities/strengths-concerns";
 import { Flag } from "@/components/flag";
 import { usd } from "@/lib/format";
+import { livingCostDisplay, tuitionDisplay } from "@/lib/money";
 import { COOP_LABELS, RESEARCH_LABELS, focusSummary, focusesOf } from "@/lib/focus";
 import { compareUrl } from "@/lib/compare";
 import type { Profile, University } from "@/lib/types";
@@ -62,6 +63,20 @@ export default async function UniversityDetailsPage({
   const ranking = entry?.ranking ?? { rank: university.qs_ranking, label: "Overall" };
 
   const official = university.source === "College Scorecard";
+  const curated = university.source === "curated";
+  const tuition = tuitionDisplay(university);
+  const living = livingCostDisplay(university);
+  // Masters / PhD students: say clearly that these are undergraduate figures.
+  const graduateStudent = profile !== null && profile.preferred_degree_level !== "Undergraduate";
+
+  // For curated rows: where each figure was checked, so it can be checked again.
+  const sourceLinks = [
+    { label: "Tuition", url: university.tuition_source_url },
+    { label: "Living costs", url: university.living_cost_source_url },
+    { label: "Admission rate", url: university.acceptance_source_url },
+    { label: "Programs", url: university.programs_source_url },
+    { label: "Co-op / internships", url: university.internship_support_url },
+  ].filter((l): l is { label: string; url: string } => Boolean(l.url));
 
   const admissionFigures = [
     {
@@ -83,10 +98,7 @@ export default async function UniversityDetailsPage({
     },
     {
       label: "Living cost",
-      value:
-        university.living_cost_per_year != null
-          ? `about ${usd(university.living_cost_per_year)}/yr`
-          : "Not available",
+      value: living.text,
     },
   ];
 
@@ -121,8 +133,8 @@ export default async function UniversityDetailsPage({
   const stats = [
     {
       icon: DollarSign,
-      label: "Tuition",
-      value: `${usd(university.tuition)}/yr`,
+      label: tuition.approximate ? "Tuition (approximate)" : "Tuition",
+      value: tuition.text,
     },
     {
       icon: TrendingUp,
@@ -132,7 +144,7 @@ export default async function UniversityDetailsPage({
     {
       icon: Percent,
       label: "Acceptance rate",
-      value: `${university.acceptance_rate}%`,
+      value: university.acceptance_rate !== null ? `${university.acceptance_rate}%` : "Not available",
     },
   ];
 
@@ -186,6 +198,19 @@ export default async function UniversityDetailsPage({
           </div>
         ))}
       </div>
+      {(tuition.note || living.note || graduateStudent) && (
+        <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+          {tuition.note && <p>Tuition: {tuition.note}</p>}
+          {living.note && <p>Living cost: {living.note}</p>}
+          {graduateStudent && (
+            <p>
+              Tuition, admission rate and test scores here are undergraduate
+              figures unless stated; {profile!.preferred_degree_level} fees and
+              admission differ, so check the program&apos;s own page.
+            </p>
+          )}
+        </div>
+      )}
 
       {entry && (
         <div className="mt-8 rounded-2xl border p-5">
@@ -242,6 +267,14 @@ export default async function UniversityDetailsPage({
               SAT range adds the Reading and Math percentiles, which only
               approximates the total-score range.
             </>
+          ) : curated ? (
+            <>
+              Checked by hand on the university&apos;s own website
+              {university.data_year ? ` (${university.data_year})` : ""}; each
+              figure&apos;s page is linked below. Most universities outside the US
+              don&apos;t publish an admission rate or test-score range, so those
+              show as not available.
+            </>
           ) : university.source === "user-entered" ? (
             <>Entered by you{university.source_url ? " — see the source link at the top" : ""}.</>
           ) : (
@@ -252,6 +285,22 @@ export default async function UniversityDetailsPage({
           )}
         </p>
       </div>
+
+      {sourceLinks.length > 0 && (
+        <div className="mt-8 space-y-2">
+          <h2 className="font-medium">Sources</h2>
+          <ul className="space-y-1 text-sm">
+            {sourceLinks.map(({ label, url }) => (
+              <li key={label}>
+                <span className="text-muted-foreground">{label}: </span>
+                <a href={url} target="_blank" rel="noopener noreferrer" className="break-all underline">
+                  {new URL(url).hostname}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {officialFigures.length > 0 && (
         <div className="mt-8 space-y-2">

@@ -12,7 +12,8 @@ import type { Profile, University } from "@/lib/types";
 // admissions prediction — the UI says so wherever it's shown.
 
 export type ModelProfile = Pick<Profile, "gpa_percentage" | "sat_score">;
-export type ModelUniversity = Pick<University, "sat_25" | "sat_75" | "acceptance_rate">;
+// The model needs a known admission rate (every College Scorecard row has one).
+export type ModelUniversity = Pick<University, "sat_25" | "sat_75"> & { acceptance_rate: number };
 
 // Must match FEATURES in ml/features.py, in the same order.
 const FEATURE_NAMES = ["gpa", "sat_z", "sat_known", "acceptance_logit"] as const;

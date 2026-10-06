@@ -4,7 +4,7 @@
 // re-running them is safe. Exits with an error if anything fails.
 //
 //   npm run db:check
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createInMemoryDb } from "./in-memory-db.mjs";
 
@@ -30,6 +30,25 @@ console.log("    by source:", bySource.map((r) => `${r.source} ${r.n}`).join(", 
 if (counts[0] !== counts[1]) {
   console.error("FAIL re-running the Scorecard files changed the row count — they should upsert.");
   process.exit(1);
+}
+
+// Curated international rows: run twice too. The second run must not add
+// rows (upsert by curated_id), and upgraded sample rows must keep their id.
+const INTL_DIR = join(import.meta.dirname, "..", "supabase", "seed_international");
+const intlFiles = existsSync(INTL_DIR) ? readdirSync(INTL_DIR).filter((f) => f.endsWith(".sql")).sort() : [];
+const intlCounts = [];
+for (let run = 0; run < 2; run++) {
+  for (const f of intlFiles) await db.exec(readFileSync(join(INTL_DIR, f), "utf8"));
+  const { rows } = await db.query("select count(*)::int as n from public.universities");
+  intlCounts.push(rows[0].n);
+}
+if (intlFiles.length) {
+  const { rows: curated } = await db.query("select count(*)::int as n from public.universities where source = 'curated'");
+  console.log(`OK  seed_international (${intlFiles.length} files) run twice: ${intlCounts.join(" → ")} universities, ${curated[0].n} curated`);
+  if (intlCounts[0] !== intlCounts[1]) {
+    console.error("FAIL re-running seed_international changed the row count — it should upsert.");
+    process.exit(1);
+  }
 }
 
 // The featured rule exists twice (SQL for the database, JavaScript for counts

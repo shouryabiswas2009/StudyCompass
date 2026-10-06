@@ -35,7 +35,7 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "ranking", label: "Best ranking" },
 ];
 
-const CHANCES: AdmissionChance[] = ["Reach", "Match", "Safety"];
+const CHANCES: AdmissionChance[] = ["Reach", "Match", "Safety", "Not enough data"];
 
 // Radix Select can't use "" as a value, so "any" stands for "no filter".
 const ANY = "any";

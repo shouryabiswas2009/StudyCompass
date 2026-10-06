@@ -193,8 +193,17 @@ describe("explainMatch extra notes", () => {
 });
 
 describe("admissionChance", () => {
-  it("returns Match when academic fit is unknown, instead of guessing Safety", () => {
-    expect(admissionChance(null, 90)).toBe("Match");
+  it("says 'Not enough data' when academic fit is unknown, instead of a fake Match", () => {
+    expect(admissionChance(null, 90)).toBe("Not enough data");
+    expect(admissionChance(null, null)).toBe("Not enough data");
+  });
+
+  it("still calls a very selective school a Reach without academic data", () => {
+    expect(admissionChance(null, 5)).toBe("Reach");
+  });
+
+  it("never says Safety without a known admission rate", () => {
+    expect(admissionChance(0.95, null)).toBe("Match");
   });
 });
 
@@ -396,5 +405,67 @@ describe("rankScore", () => {
     expect(rankScore(1)).toBe(1);
     expect(rankScore(1000)).toBe(0);
     expect(rankScore(5) - rankScore(10)).toBeGreaterThan(rankScore(205) - rankScore(210));
+  });
+});
+
+describe("data that isn't available (most non-US schools)", () => {
+  // Shaped like a curated non-US row: no admission rate, no GPA or SAT
+  // figures, no English minimum.
+  const noAdmissionData = makeUniversity({
+    country: "Germany",
+    acceptance_rate: null,
+    avg_admitted_gpa: null,
+    sat_25: null,
+    sat_75: null,
+    min_ielts: null,
+  });
+
+  it("labels the chance 'Not enough data' and leaves the admission factors out", () => {
+    const result = computeMatchScore(makeProfile({ preferred_countries: ["Germany"] }), noAdmissionData);
+    expect(result.chance).toBe("Not enough data");
+    expect(pointsFor(result, "acceptance")).toBeNull();
+    expect(pointsFor(result, "academic")).toBeNull();
+    expect(Number.isFinite(result.score)).toBe(true);
+  });
+
+  it("doesn't score unknown tuition as cheap or expensive, and says so", () => {
+    const university = makeUniversity({ tuition: null });
+    const result = computeMatchScore(makeProfile(), university);
+    expect(pointsFor(result, "budget")).toBeNull();
+    expect(explainMatch(makeProfile(), university).concerns).toContain(
+      "Tuition: not available for this school, so it isn't scored against your budget."
+    );
+  });
+});
+
+describe("graduate students", () => {
+  const masters = (overrides: Partial<Profile> = {}) =>
+    makeProfile({ preferred_degree_level: "Masters", ...overrides });
+
+  it("doesn't judge a Masters applicant on undergraduate admission figures", () => {
+    const result = computeMatchScore(masters(), makeUniversity({ acceptance_rate: 5 }));
+    expect(pointsFor(result, "academic")).toBeNull();
+    expect(pointsFor(result, "acceptance")).toBeNull();
+    expect(result.chance).toBe("Not enough data"); // not "Reach" from an undergraduate rate
+    const { concerns } = explainMatch(masters(), makeUniversity());
+    expect(concerns.some((c) => c.startsWith("Admission figures and tuition here are undergraduate figures"))).toBe(true);
+  });
+
+  it("only includes schools that say they offer the level", () => {
+    expect(computeMatchScore(masters(), makeUniversity({ degree_levels: [] })).eligible).toBe(false);
+    expect(computeMatchScore(masters(), makeUniversity({ degree_levels: ["Undergraduate", "Masters"] })).eligible).toBe(true);
+    // Undergraduates still see schools whose levels are unknown.
+    expect(computeMatchScore(makeProfile(), makeUniversity({ degree_levels: [] })).eligible).toBe(true);
+  });
+});
+
+describe("country names", () => {
+  it("matches aliases like UK / England / USA to the canonical name", () => {
+    const uk = makeUniversity({ country: "United Kingdom" });
+    for (const typed of ["UK", "england", " United Kingdom ", "Great Britain"]) {
+      expect(computeMatchScore(makeProfile({ preferred_countries: [typed] }), uk).factors.find((f) => f.key === "country")?.points).toBe(10);
+    }
+    const us = makeUniversity({ country: "United States" });
+    expect(computeMatchScore(makeProfile({ preferred_countries: ["USA"] }), us).factors.find((f) => f.key === "country")?.points).toBe(10);
   });
 });

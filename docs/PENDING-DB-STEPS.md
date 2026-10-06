@@ -17,7 +17,7 @@ single focus shows up in the new list. Steps 6 and 7 were run the same
 day and verified: `is_featured` exists, 371 of 1,577 College Scorecard
 schools and all 47 illustrative schools are featured (matching
 `npm run db:check`), and recommendations show "Featured schools only
-(418). Include all 1,624 schools". **Nothing pending.**
+(418). Include all 1,624 schools". **Steps 8–10 are pending.**
 
 New migrations will be added to this table when they're written.
 
@@ -34,6 +34,9 @@ this order: the seed files need both migrations first.
 | 5 | `supabase/migration_009_multi_focus_and_coop.sql` | Done, verified 2026-10-06 |
 | 6 | `supabase/migration_010_featured.sql` | Done, verified 2026-10-06 |
 | 7 | `supabase/featured/featured.sql` (right after step 6) | Done, verified 2026-10-06 (371 + 47 featured) |
+| 8 | `supabase/migration_011_international.sql` | **Not run yet** |
+| 9 | `supabase/seed_scorecard/00_link_existing.sql` … `06_universities.sql` again (regenerated) | **Not run yet** |
+| 10 | `supabase/seed_international/00_link_existing.sql`, `01_universities.sql`, `90_coop.sql`, `91_rankings.sql` | **Not run yet** |
 
 All of them are safe to run again if you're not sure whether one went
 through.
@@ -193,6 +196,65 @@ with "the featured list hasn't been set up yet" next to the count.
 select source, count(*) filter (where is_featured) as featured, count(*) as total from public.universities where created_by is null group by source order by source;
 ```
 Expect `College Scorecard 371 of 1577` and `illustrative 47 of 47`.
+
+
+## 8. `migration_011_international.sql`
+
+**What it does:** adds the `curated` source label (figures checked by hand
+on a university's own website), lets `tuition` and `acceptance_rate` be
+empty (null = not available), adds the local-currency columns
+(`tuition_local`, `tuition_currency`, `tuition_basis`, `tuition_year`,
+`fx_rate_date`, living cost and per-figure source URLs), `curated_id`,
+`aliases`, and an accent-insensitive `search_text` column with a trigram
+index (turns on the `unaccent` and `pg_trgm` extensions). Supabase may
+warn it's "destructive": it only drops and re-creates two check
+constraints; no data is removed.
+
+**What's affected until it runs:** nothing breaks. The app can't cache the
+university list (it notices the missing columns and reads without them),
+so browse and recommendations are slower again; search falls back to
+in-memory matching; no curated schools exist yet.
+
+**Check:**
+```sql
+select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'universities' and column_name in ('curated_id', 'aliases', 'tuition_currency', 'search_text');
+```
+Expect `4`.
+
+## 9. `seed_scorecard/00_link_existing.sql` … `06_universities.sql` (again)
+
+**What it does:** the same upsert as step 4, regenerated with two
+improvements: degree levels now come from the programs each school reports
+to Scorecard (1,572 of 1,577 known instead of ~240), and every US school
+links to its own College Scorecard page. Safe to re-run.
+
+**What's affected until it runs:** Masters and PhD students only see the
+~240 US schools whose levels were known before.
+
+**Check:**
+```sql
+select count(*) filter (where cardinality(degree_levels) > 0) as levels_known, count(*) filter (where source_url like 'https://collegescorecard.ed.gov/%') as linked from public.universities where source = 'College Scorecard';
+```
+Expect `1572` and `1577`.
+
+## 10. `seed_international/` (4 files, in order)
+
+**What it does:** `00` gives 18 of the sample (illustrative) schools a
+`curated_id` so they're upgraded **in place** (same id: saved schools and
+applications keep working); `01` inserts or updates the 42 curated
+universities (UK, Canada, Australia, Germany), replacing every
+illustrative figure with a verified one or "not available"; `90` sets
+co-op programs from `data/curated/coop_programs.csv`; `91` applies
+rankings you entered (none yet). Safe to re-run.
+
+**What's affected until it runs:** the 18 schools stay illustrative and the
+24 new ones don't exist.
+
+**Check:**
+```sql
+select source, count(*) from public.universities where created_by is null group by source order by source;
+```
+Expect `College Scorecard 1577`, `curated 42`, `illustrative 29`.
 
 ---
 

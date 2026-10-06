@@ -55,6 +55,9 @@ describe("LIST_COLUMNS", () => {
       tuition_in_state: null, avg_net_price: null, student_size: null, completion_rate: null,
       median_earnings_10yr: null, research_intensity: null, retention_rate: null,
       coop_program: "unknown", internship_support_url: null, is_featured: false,
+      curated_id: null, aliases: [], tuition_local: null, tuition_currency: null, tuition_basis: null,
+      tuition_year: null, tuition_source_url: null, living_cost_local: null, living_cost_currency: null,
+      living_cost_source_url: null, fx_rate_date: null, acceptance_source_url: null, programs_source_url: null,
     };
     const summaryFields = Object.keys(everyField).filter(
       (f) => !(DETAIL_ONLY_FIELDS as readonly string[]).includes(f)

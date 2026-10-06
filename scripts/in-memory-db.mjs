@@ -5,6 +5,8 @@
 // Used by scripts that need the same data the app has, without a network
 // connection or database credentials.
 import { PGlite } from "@electric-sql/pglite";
+import { pg_trgm } from "@electric-sql/pglite/contrib/pg_trgm";
+import { unaccent } from "@electric-sql/pglite/contrib/unaccent";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -13,11 +15,13 @@ const SUPABASE_DIR = join(import.meta.dirname, "..", "supabase");
 // `before`: stop before this migration number (e.g. 9 applies up to 008),
 // so a test can add old-style rows and then check a migration converts them.
 export async function createInMemoryDb({ before = Infinity } = {}) {
-  const db = new PGlite();
+  // The same extensions Supabase offers that migration_011 uses.
+  const db = new PGlite({ extensions: { pg_trgm, unaccent } });
 
   // Minimal stand-ins for the parts of Supabase the migrations reference.
   await db.exec(`
     create schema auth;
+    create schema extensions;
     create table auth.users (id uuid primary key);
     create function auth.uid() returns uuid language sql stable as
       $$ select nullif(current_setting('test.uid', true), '')::uuid $$;

@@ -30,7 +30,8 @@ export function totalYearlyCost(
   university: Pick<University, "tuition" | "living_cost_per_year">
 ): number | null {
   const living = university.living_cost_per_year;
-  return living === null || living === undefined ? null : university.tuition + living;
+  const { tuition } = university;
+  return living == null || tuition == null ? null : tuition + living;
 }
 
 // Which columns to highlight as "best" in a comparison row. Ties are all

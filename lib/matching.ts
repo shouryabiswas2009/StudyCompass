@@ -12,6 +12,7 @@ import {
   RESEARCH_SCORES,
   focusesOf,
 } from "@/lib/focus";
+import { canonicalCountry } from "@/lib/countries";
 import { FOCUSES, type Focus, type Profile, type UniversitySummary } from "@/lib/types";
 
 // ─── Scoring weights ─────────────────────────────────────────────────────
@@ -84,7 +85,9 @@ export type FactorScore = {
   note?: string;
 };
 
-export type AdmissionChance = "Reach" | "Match" | "Safety";
+// "Not enough data": we can't honestly place the school without its
+// admission figures (most non-US schools publish none) — never a fake Match.
+export type AdmissionChance = "Reach" | "Match" | "Safety" | "Not enough data";
 
 export type MatchResult = {
   score: number; // 0-100
@@ -121,12 +124,17 @@ function isKnown(value: number | null | undefined): value is number {
 }
 
 
+// Compared by canonical name, so "UK", "England" and "United Kingdom" (or
+// "USA" and "United States") all match (lib/countries.ts).
 export function countryMatches(profile: Profile, university: UniversitySummary): boolean {
-  const country = university.country.trim().toLowerCase();
-  return profile.preferred_countries.some(
-    (preferred) => preferred.trim().toLowerCase() === country
-  );
+  const country = canonicalCountry(university.country);
+  return profile.preferred_countries.some((preferred) => canonicalCountry(preferred) === country);
 }
+
+// Admission figures in the data (admission rate, typical GPA, SAT range) are
+// undergraduate figures unless a row says otherwise, so they only judge
+// undergraduate applicants. For Masters and PhD students they're unknown.
+const usesUndergradAdmissions = (profile: Profile) => profile.preferred_degree_level === "Undergraduate";
 
 // Finds the first of the student's intended majors that lines up with one
 // of the university's popular programs. Shared by the score, the
@@ -148,23 +156,28 @@ function findMatchingProgram(
 }
 
 // A school that doesn't offer the student's degree level can't be a match,
-// however well it scores otherwise. An empty list means we don't know the
-// school's levels, so we don't rule it out.
+// however well it scores otherwise. For undergraduates an empty list means
+// "unknown" and the school stays in. Masters and PhD students only see
+// schools that say they offer that level: almost every school in the data
+// teaches undergraduates, so "unknown" usually means "undergraduate only".
 export function offersDegreeLevel(profile: Profile, university: UniversitySummary): boolean {
   const levels = university.degree_levels ?? [];
-  return levels.length === 0 || levels.includes(profile.preferred_degree_level);
+  if (levels.length === 0) return profile.preferred_degree_level === "Undergraduate";
+  return levels.includes(profile.preferred_degree_level);
 }
 
 function isMuchCheaperThanRange(profile: Profile, university: UniversitySummary): boolean {
-  return university.tuition < profile.budget_min * MUCH_CHEAPER_RATIO;
+  return isKnown(university.tuition) && university.tuition < profile.budget_min * MUCH_CHEAPER_RATIO;
 }
 
 // ─── Factor fits: each returns 0..1, or null when unknown ────────────────
 
-function budgetFit(profile: Profile, university: UniversitySummary): number {
-  if (university.tuition <= profile.budget_max) return 1;
+function budgetFit(profile: Profile, university: UniversitySummary): number | null {
+  const { tuition } = university;
+  if (!isKnown(tuition)) return null; // tuition not available
+  if (tuition <= profile.budget_max) return 1;
   // Lose credit in proportion to how far over budget: 50% over → 0.5.
-  const overBy = (university.tuition - profile.budget_max) / profile.budget_max;
+  const overBy = (tuition - profile.budget_max) / profile.budget_max;
   return clamp01(1 - overBy);
 }
 
@@ -190,6 +203,7 @@ function satFit(profile: Profile, university: UniversitySummary): number | null 
 // Average of whichever academic signals we have. GPA is always on the
 // profile; SAT is optional and US-only, so it often drops out.
 function academicFit(profile: Profile, university: UniversitySummary): number | null {
+  if (!usesUndergradAdmissions(profile)) return null;
   const parts = [gpaFit(profile, university), satFit(profile, university)].filter(isKnown);
   if (parts.length === 0) return null;
   return parts.reduce((sum, x) => sum + x, 0) / parts.length;
@@ -201,7 +215,8 @@ function englishFit(profile: Profile, university: UniversitySummary): number | n
   return clamp01(1 + (profile.ielts_score - university.min_ielts));
 }
 
-function acceptanceFit(university: UniversitySummary): number {
+function acceptanceFit(profile: Profile, university: UniversitySummary): number | null {
+  if (!usesUndergradAdmissions(profile) || !isKnown(university.acceptance_rate)) return null;
   return clamp01(university.acceptance_rate / 100);
 }
 
@@ -224,8 +239,8 @@ const average = (parts: (number | null | undefined)[]): number | null => {
 // Tuition + living cost per year, or null when living cost is unknown —
 // tuition alone would make a school look cheaper than it is.
 function totalCostPerYear(university: UniversitySummary): number | null {
-  const living = university.living_cost_per_year;
-  return isKnown(living) ? university.tuition + living : null;
+  const { tuition, living_cost_per_year: living } = university;
+  return isKnown(tuition) && isKnown(living) ? tuition + living : null;
 }
 
 // Total cost vs. the student's maximum budget: half the budget or less → 1,
@@ -279,13 +294,21 @@ function focusFits(profile: Profile, university: UniversitySummary): Record<(typ
 
 export function admissionChance(
   academic: number | null,
-  acceptanceRate: number
+  acceptanceRate: number | null
 ): AdmissionChance {
-  if (acceptanceRate < REACH_IF_ACCEPTANCE_BELOW) return "Reach";
-  // Without academic data we can't honestly call a school a safety.
-  if (academic === null) return "Match";
+  // A very selective school is a reach for anyone, even without knowing
+  // how this student compares.
+  if (acceptanceRate !== null && acceptanceRate < REACH_IF_ACCEPTANCE_BELOW) return "Reach";
+  // Without knowing how the student compares with admitted students, any
+  // label would be a guess.
+  if (academic === null) return "Not enough data";
   if (academic < REACH_IF_ACADEMIC_FIT_BELOW) return "Reach";
-  if (academic >= SAFETY_ACADEMIC_FIT && acceptanceRate >= SAFETY_MIN_ACCEPTANCE) {
+  // Safety also needs a known, generous admission rate.
+  if (
+    academic >= SAFETY_ACADEMIC_FIT &&
+    acceptanceRate !== null &&
+    acceptanceRate >= SAFETY_MIN_ACCEPTANCE
+  ) {
     return "Safety";
   }
   return "Match";
@@ -304,7 +327,7 @@ export function computeMatchScore(profile: Profile, university: UniversitySummar
     academic: academicFit(profile, university),
     country: countryMatches(profile, university) ? 1 : 0,
     english: englishFit(profile, university),
-    acceptance: acceptanceFit(university),
+    acceptance: acceptanceFit(profile, university),
     ...focusFits(profile, university),
   };
 
@@ -335,9 +358,21 @@ export function computeMatchScore(profile: Profile, university: UniversitySummar
     score,
     eligible,
     factors,
-    chance: admissionChance(fits.academic, university.acceptance_rate),
+    chance: admissionChance(
+      fits.academic,
+      usesUndergradAdmissions(profile) ? university.acceptance_rate : null
+    ),
     chanceSource: "rule",
   };
+}
+
+// Rankings on curated rows come only from data/curated/international_rankings.csv
+// (copied by hand from the public ranking pages); everywhere else they're
+// the illustrative sample rankings, or the student's own.
+function rankingSource(university: UniversitySummary): string {
+  if (university.source === "curated") return "ranking entered from the public ranking page";
+  if (university.source === "user-entered") return "ranking entered by you";
+  return "illustrative ranking";
 }
 
 // Says where a figure came from, so an official number and one a student
@@ -362,15 +397,15 @@ function explainFocuses(
   const source = fromWhere(university);
   const fits = focusFits(profile, university);
 
-  // Rankings in this app are illustrative for every school (Scorecard has
-  // none), so ranking lines always say so. Academic reputation and research
-  // both use the subject ranking; say it once.
+  // Ranking lines always say where the ranking came from (see
+  // rankingSource). Academic reputation and research both use the subject
+  // ranking; say it once.
   let subjectSaid = false;
   const subjectLine = () => {
     const subject = subjectRanking(profile, university);
     if (!subject || subjectSaid) return;
     subjectSaid = true;
-    const text = `#${subject.rank} in ${subject.program} (illustrative ranking).`;
+    const text = `#${subject.rank} in ${subject.program} (${rankingSource(university)}).`;
     if (subject.rank <= 100) strengths.push(`Strong subject ranking: ${text}`);
     else concerns.push(`Subject ranking outside the top 100: ${text}`);
   };
@@ -380,8 +415,8 @@ function explainFocuses(
       case "academic": {
         subjectLine();
         const rank = university.qs_ranking;
-        if (isKnown(rank) && rank <= 100) strengths.push(`Ranked #${rank} overall (illustrative ranking).`);
-        else if (isKnown(rank) && rank > 200) concerns.push(`Ranked #${rank} overall (illustrative ranking).`);
+        if (isKnown(rank) && rank <= 100) strengths.push(`Ranked #${rank} overall (${rankingSource(university)}).`);
+        else if (isKnown(rank) && rank > 200) concerns.push(`Ranked #${rank} overall (${rankingSource(university)}).`);
 
         const completion = university.completion_rate;
         if (isKnown(completion) && completion >= 80) {
@@ -460,7 +495,9 @@ export function explainMatch(profile: Profile, university: UniversitySummary): M
 
   // Budget
   const { tuition, living_cost_per_year: living } = university;
-  if (tuition <= profile.budget_max) {
+  if (!isKnown(tuition)) {
+    concerns.push("Tuition: not available for this school, so it isn't scored against your budget.");
+  } else if (tuition <= profile.budget_max) {
     strengths.push(`Tuition (${usd(tuition)}/yr) fits your budget of ${usd(profile.budget_max)}.`);
     // The affordability focus already said this, with the total, above.
     if (!focuses.includes("affordability") && isKnown(living) && tuition + living > profile.budget_max) {
@@ -501,9 +538,9 @@ export function explainMatch(profile: Profile, university: UniversitySummary): M
     }
   }
 
-  // GPA
+  // GPA (undergraduate admit figures; see usesUndergradAdmissions)
   const avgGpa = university.avg_admitted_gpa;
-  if (isKnown(avgGpa)) {
+  if (usesUndergradAdmissions(profile) && isKnown(avgGpa)) {
     if (profile.gpa_percentage >= avgGpa) {
       strengths.push(
         `Your GPA (${profile.gpa_percentage}) is at or above the typical admitted average (${avgGpa}).`
@@ -515,9 +552,9 @@ export function explainMatch(profile: Profile, university: UniversitySummary): M
     }
   }
 
-  // SAT — only US schools in the sample data have a range
+  // SAT — only US schools have a range, and only for undergraduates
   const { sat_25, sat_75 } = university;
-  if (isKnown(sat_25) && isKnown(sat_75)) {
+  if (usesUndergradAdmissions(profile) && isKnown(sat_25) && isKnown(sat_75)) {
     const range = `${sat_25}–${sat_75}`;
     const sat = profile.sat_score;
     if (!isKnown(sat)) {
@@ -546,12 +583,19 @@ export function explainMatch(profile: Profile, university: UniversitySummary): M
     }
   }
 
-  // Selectivity
+  // Selectivity (an undergraduate figure; unknown for most non-US schools)
   const rate = university.acceptance_rate;
-  if (rate < REACH_IF_ACCEPTANCE_BELOW) {
-    concerns.push(`Very selective: only about ${rate}% of applicants are admitted.`);
-  } else if (rate >= SAFETY_MIN_ACCEPTANCE) {
-    strengths.push(`Admits about ${rate}% of applicants.`);
+  if (usesUndergradAdmissions(profile) && isKnown(rate)) {
+    if (rate < REACH_IF_ACCEPTANCE_BELOW) {
+      concerns.push(`Very selective: only about ${rate}% of applicants are admitted.`);
+    } else if (rate >= SAFETY_MIN_ACCEPTANCE) {
+      strengths.push(`Admits about ${rate}% of applicants.`);
+    }
+  }
+  if (!usesUndergradAdmissions(profile)) {
+    concerns.push(
+      `Admission figures and tuition here are undergraduate figures, so they aren't used to judge your ${profile.preferred_degree_level} application — check the program's own page.`
+    );
   }
 
   concerns.push(...focusLines.unavailable);
@@ -607,8 +651,10 @@ export type MatchEntry = {
 export function scoreUniversity(profile: Profile, university: UniversitySummary): MatchEntry {
   const match = computeMatchScore(profile, university);
   const prediction =
-    profile.preferred_degree_level === "Undergraduate" && university.source === "College Scorecard"
-      ? predictAdmission(profile, university)
+    profile.preferred_degree_level === "Undergraduate" &&
+    university.source === "College Scorecard" &&
+    university.acceptance_rate !== null
+      ? predictAdmission(profile, { ...university, acceptance_rate: university.acceptance_rate })
       : null;
 
   if (prediction && ADMISSION_MODEL_INFO.beatsBaseline) {

@@ -1,3 +1,4 @@
+import { canonicalCountry } from "@/lib/countries";
 import { readList, readNumber, readText } from "@/lib/form-data";
 import {
   COOP_PROGRAMS,
@@ -41,7 +42,7 @@ export function validateUniversityForm(formData: FormData): UniversityValidation
   if (!name) errors.name = "Please enter the university's name.";
   else if (name.length > 200) errors.name = "Name is too long (200 characters max).";
 
-  const country = readText(formData, "country");
+  const country = canonicalCountry(readText(formData, "country"));
   if (!country) errors.country = "Please enter the country.";
 
   const tuition = readNumber(formData, "tuition");

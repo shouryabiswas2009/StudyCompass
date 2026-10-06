@@ -54,3 +54,30 @@ describe("migration_009 (multi-select focus + co-op)", () => {
     ).rejects.toThrow(/universities_coop_check/);
   }, 30_000);
 });
+
+describe("migration_011 (curated international data)", () => {
+  it("is safe to re-run, and search ignores accents and finds aliases", async () => {
+    const { db } = await createInMemoryDb();
+    await db.exec(sql("migration_011_international.sql")); // second run
+    await db.query(`insert into public.universities (name, country, tuition, acceptance_rate, description, source, aliases, curated_id)
+      values ('Université de Montréal', 'Canada', null, null, '', 'curated', '{UdeM}', 'udem')`);
+    const find = async (term) =>
+      (await db.query("select name from public.universities where search_text like $1", [`%${term}%`])).rows.map((r) => r.name);
+    expect(await find("universite de montreal")).toEqual(["Université de Montréal"]);
+    expect(await find("udem")).toEqual(["Université de Montréal"]);
+  }, 30_000);
+
+  it("allows unknown tuition and admission rate, but still won't let a student label a row curated", async () => {
+    const { db } = await createInMemoryDb();
+    const student = "00000000-0000-0000-0000-000000000009";
+    await db.query("insert into auth.users (id) values ($1)", [student]);
+    await expect(
+      db.query(`insert into public.universities (name, country, tuition, acceptance_rate, description, source, created_by)
+        values ('Mine', 'Canada', null, null, '', 'curated', $1)`, [student])
+    ).rejects.toThrow(/universities_source_check/);
+    await expect(
+      db.query(`insert into public.universities (name, country, description, source, tuition_currency)
+        values ('Bad currency', 'Canada', '', 'curated', 'pounds')`)
+    ).rejects.toThrow(/universities_money_check/);
+  }, 30_000);
+});

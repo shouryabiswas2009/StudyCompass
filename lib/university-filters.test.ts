@@ -225,3 +225,28 @@ describe("topPicksByCountry", () => {
     ]);
   });
 });
+
+describe("unknown tuition", () => {
+  const list = [
+    entry("Known cheap", { tuition: 1000 }),
+    entry("Unknown", { tuition: null }),
+    entry("Known dear", { tuition: 50000 }),
+  ];
+
+  it("sorts schools with unknown tuition last in both directions, never as $0", () => {
+    expect(names(applyFilters(list, { ...NO_FILTERS, sortBy: "tuition-asc" }))).toEqual(["Known cheap", "Known dear", "Unknown"]);
+    expect(names(applyFilters(list, { ...NO_FILTERS, sortBy: "tuition-desc" }))).toEqual(["Known dear", "Known cheap", "Unknown"]);
+  });
+
+  it("leaves unknown tuition out of a tuition-filtered view", () => {
+    expect(names(applyFilters(list, { ...NO_FILTERS, tuitionMax: 60000 })).sort()).toEqual(["Known cheap", "Known dear"]);
+  });
+
+  it("can filter for 'Not enough data'", () => {
+    const withChances = [
+      entry("A", {}, { chance: "Not enough data" }),
+      entry("B", {}, { chance: "Match" }),
+    ];
+    expect(names(applyFilters(withChances, { ...NO_FILTERS, chances: ["Not enough data"] }))).toEqual(["A"]);
+  });
+});

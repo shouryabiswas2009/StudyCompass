@@ -39,6 +39,9 @@ export const FIELDS = [
   "latest.student.retention_rate.four_year.full_time",
   "latest.earnings.10_yrs_after_entry.median",
   "latest.academics.program_percentage",
+  // The credential level of every program the school reports (field-of-study
+  // data): which degree levels it actually awards.
+  "latest.programs.cip_4_digit.credential.level",
 ];
 
 // One school whose year-specific fields are compared with `latest` to find

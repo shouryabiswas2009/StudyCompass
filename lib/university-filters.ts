@@ -1,3 +1,4 @@
+import { canonicalCountry } from "@/lib/countries";
 import type { AdmissionChance, MatchEntry } from "@/lib/matching";
 import { DEGREE_LEVELS, type DegreeLevel, type UniversitySummary } from "@/lib/types";
 
@@ -26,15 +27,26 @@ export const NO_FILTERS: UniversityFilters = {
 
 // Kept as a plain function (not inside the React component) so the
 // filtering rules can be unit-tested without rendering anything.
+//
+// `searchIds`: when the server has already searched in Postgres (name and
+// aliases, accent-insensitive; see searchUniversityIds), the ids it found.
+// Without it, the same search runs here in memory.
 export function applyFilters(
   entries: MatchEntry[],
-  filters: UniversityFilters
+  filters: UniversityFilters,
+  searchIds?: Set<string>
 ): MatchEntry[] {
   const query = searchable(filters.query.trim());
+  const country = filters.country ? canonicalCountry(filters.country) : null;
 
   const filtered = entries.filter(({ university, match }) => {
-    if (query && !searchable(university.name).includes(query)) return false;
-    if (filters.country && university.country !== filters.country) return false;
+    if (query) {
+      const found = searchIds
+        ? searchIds.has(university.id)
+        : searchable([university.name, ...(university.aliases ?? [])].join(" ")).includes(query);
+      if (!found) return false;
+    }
+    if (country && canonicalCountry(university.country) !== country) return false;
 
     // Same rule as matching: a school with unknown degree levels stays visible.
     const levels = university.degree_levels ?? [];
@@ -42,8 +54,11 @@ export function applyFilters(
       return false;
     }
 
-    if (filters.tuitionMin !== null && university.tuition < filters.tuitionMin) return false;
-    if (filters.tuitionMax !== null && university.tuition > filters.tuitionMax) return false;
+    // With a tuition filter set, a school whose tuition isn't known can't
+    // be shown to fit it, so it's left out of that filtered view.
+    const { tuition } = university;
+    if (filters.tuitionMin !== null && (tuition === null || tuition < filters.tuitionMin)) return false;
+    if (filters.tuitionMax !== null && (tuition === null || tuition > filters.tuitionMax)) return false;
     if (filters.chances.length > 0 && !filters.chances.includes(match.chance)) return false;
     return true;
   });
@@ -54,10 +69,11 @@ export function applyFilters(
 function sortEntries(entries: MatchEntry[], sortBy: SortKey): MatchEntry[] {
   const sorted = [...entries];
   switch (sortBy) {
+    // Unknown tuition sorts last either way, never as if it were $0.
     case "tuition-asc":
-      return sorted.sort((a, b) => a.university.tuition - b.university.tuition);
+      return sorted.sort((a, b) => byKnown(a.university.tuition, b.university.tuition, 1));
     case "tuition-desc":
-      return sorted.sort((a, b) => b.university.tuition - a.university.tuition);
+      return sorted.sort((a, b) => byKnown(a.university.tuition, b.university.tuition, -1));
     case "ranking":
       // Unranked schools go last rather than being treated as #0.
       return sorted.sort((a, b) => {
@@ -68,6 +84,13 @@ function sortEntries(entries: MatchEntry[], sortBy: SortKey): MatchEntry[] {
     default:
       return sorted.sort((a, b) => b.match.score - a.match.score);
   }
+}
+
+// Compares two possibly-unknown numbers; unknowns always go last.
+function byKnown(a: number | null, b: number | null, direction: 1 | -1): number {
+  if (a === null) return b === null ? 0 : 1;
+  if (b === null) return -1;
+  return (a - b) * direction;
 }
 
 export function hasActiveFilters(filters: UniversityFilters): boolean {
@@ -104,7 +127,7 @@ export type BoardState = {
 type SearchParams = Record<string, string | string[] | undefined>;
 
 const SORT_KEYS: SortKey[] = ["match", "tuition-asc", "tuition-desc", "ranking"];
-const CHANCES: AdmissionChance[] = ["Reach", "Match", "Safety"];
+const CHANCES: AdmissionChance[] = ["Reach", "Match", "Safety", "Not enough data"];
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
 
@@ -198,13 +221,13 @@ export type BoardData = {
 export function buildBoard(
   scored: MatchEntry[],
   state: BoardState,
-  { withFeatured }: { withFeatured: boolean }
+  { withFeatured, searchIds }: { withFeatured: boolean; searchIds?: Set<string> }
 ): BoardData {
   const ready = featuredReady(scored.map((e) => e.university));
   const defaultPool = scored.filter((e) => isShownByDefault(e.university));
   const pool = !withFeatured || state.showAll || !ready ? scored : defaultPool;
 
-  const filtered = applyFilters(pool, state.filters);
+  const filtered = applyFilters(pool, state.filters, searchIds);
   const { items, page, totalPages } = paginate(filtered, state.page);
 
   return {
@@ -212,7 +235,7 @@ export function buildBoard(
     page,
     totalPages,
     matchingCount: filtered.length,
-    countries: Array.from(new Set(pool.map((e) => e.university.country))).sort(),
+    countries: Array.from(new Set(pool.map((e) => canonicalCountry(e.university.country)))).sort(),
     featured: withFeatured
       ? { featuredCount: defaultPool.length, allCount: scored.length, ready }
       : undefined,
@@ -228,10 +251,10 @@ export function topPicksByCountry(
   preferredCountries: string[],
   perCountry = 3
 ): { country: string; picks: MatchEntry[] }[] {
-  const key = (country: string) => country.trim().toLowerCase();
+  // Canonical names, so a student who typed "UK" still sees UK schools.
   const best = [...entries].sort((a, b) => b.match.score - a.match.score);
-  return preferredCountries.map((country) => ({
+  return [...new Set(preferredCountries.map(canonicalCountry))].map((country) => ({
     country,
-    picks: best.filter((e) => key(e.university.country) === key(country)).slice(0, perCountry),
+    picks: best.filter((e) => canonicalCountry(e.university.country) === country).slice(0, perCountry),
   }));
 }

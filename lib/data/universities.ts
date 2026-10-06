@@ -20,7 +20,8 @@ export const LIST_COLUMNS = [
   "degree_levels", "acceptance_rate", "avg_admitted_gpa", "sat_25", "sat_75", "min_ielts",
   "living_cost_per_year", "popular_programs", "created_by", "source", "data_year", "fetched_at",
   "source_url", "completion_rate", "research_intensity", "retention_rate", "coop_program",
-  "internship_support_url", "is_featured",
+  "internship_support_url", "is_featured", "aliases", "tuition_local", "tuition_currency",
+  "tuition_basis", "fx_rate_date",
 ] as const;
 
 // Supabase's default limit on rows per API response.
@@ -144,4 +145,43 @@ export async function getVisibleUniversities(
 ): Promise<UniversitySummary[]> {
   const [shared, own] = await Promise.all([getSharedUniversities(), getOwnUniversities(supabase, userId)]);
   return [...shared, ...own];
+}
+
+// Searches name and aliases in Postgres: search_text is the name plus aliases,
+// lower-case and without accents (migration_011), with a trigram index, so
+// "universite de montreal" finds "Université de Montréal" and "LSE" finds the
+// London School of Economics. Returns the matching ids, or null if the
+// search column doesn't exist yet (migration_011 not run), in which case the
+// caller searches in memory instead.
+export async function searchUniversityIds(
+  supabase: SupabaseClient,
+  query: string
+): Promise<Set<string> | null> {
+  // Same normalising as the database: accents off, lower-case. Characters
+  // that mean something in a LIKE pattern are escaped.
+  const term = query
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[\\%_]/g, (c) => `\\${c}`);
+  if (!term) return null;
+
+  const ids: string[] = [];
+  try {
+    const rows = await fetchAllRows((from, to) =>
+      supabase
+        .from("universities")
+        .select("id")
+        .ilike("search_text", `%${term}%`)
+        .order("id")
+        .range(from, to)
+        .returns<{ id: string }[]>()
+    );
+    ids.push(...rows.map((r) => r.id));
+  } catch (e) {
+    if (e instanceof MissingColumnError && e.column === "search_text") return null;
+    throw e;
+  }
+  return new Set(ids);
 }

@@ -1,3 +1,4 @@
+import { canonicalCountry } from "@/lib/countries";
 import { readList, readNumber, readText } from "@/lib/form-data";
 import {
   DEGREE_LEVELS,
@@ -22,7 +23,7 @@ export function validateProfileForm(formData: FormData): ProfileValidationResult
   const full_name = readText(formData, "full_name");
   if (!full_name) errors.full_name = "Please enter your name.";
 
-  const country = readText(formData, "country");
+  const country = canonicalCountry(readText(formData, "country"));
   if (!country) errors.country = "Please enter the country you live in.";
 
   const intended_majors = readList(formData, "intended_majors");
@@ -30,7 +31,8 @@ export function validateProfileForm(formData: FormData): ProfileValidationResult
     errors.intended_majors = "Add at least one major you're considering.";
   }
 
-  const preferred_countries = readList(formData, "preferred_countries");
+  // "UK" and "United Kingdom" are stored the same way (lib/countries.ts).
+  const preferred_countries = [...new Set(readList(formData, "preferred_countries").map(canonicalCountry))];
   if (preferred_countries.length === 0) {
     errors.preferred_countries = "Add at least one country you'd like to study in.";
   }

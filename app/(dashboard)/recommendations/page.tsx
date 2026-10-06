@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getVisibleUniversities } from "@/lib/data/universities";
+import { getVisibleUniversities, searchUniversityIds } from "@/lib/data/universities";
 import { offersDegreeLevel, scoreUniversity } from "@/lib/matching";
 import { focusesOf, joinFocuses } from "@/lib/focus";
 import { buildBoard, parseBoardParams, topPicksByCountry } from "@/lib/university-filters";
@@ -21,10 +21,12 @@ export default async function RecommendationsPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [{ data: profile }, universities, { data: saved }] = await Promise.all([
+  const [{ data: profile }, universities, { data: saved }, searchIds] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>(),
     getVisibleUniversities(supabase, user.id),
     supabase.from("saved_universities").select("university_id").eq("user_id", user.id),
+    // Only when searching: one indexed query in Postgres (name + aliases).
+    state.filters.query.trim() ? searchUniversityIds(supabase, state.filters.query) : null,
   ]);
 
   // No profile yet — we need it to compute matches, so send them there first.
@@ -35,7 +37,7 @@ export default async function RecommendationsPage({
     // all, so leave them out rather than showing them with a 0% score.
     .filter((university) => offersDegreeLevel(profile, university))
     .map((university) => scoreUniversity(profile, university));
-  const board = buildBoard(scored, state, { withFeatured: true });
+  const board = buildBoard(scored, state, { withFeatured: true, searchIds: searchIds ?? undefined });
   const focuses = focusesOf(profile);
 
   return (

@@ -40,7 +40,9 @@ export type University = {
   id: string;
   name: string;
   country: string;
-  tuition: number;
+  // US dollars per year; null when not available (migration_011). For a
+  // curated row it's converted from tuition_local (see below).
+  tuition: number | null;
   // Null for unranked schools a student added themselves.
   qs_ranking: number | null;
   // Per-subject ranking, e.g. { "Computer Science": 5 }. Not every program
@@ -48,7 +50,7 @@ export type University = {
   program_rankings: Record<string, number>;
   // Levels the school offers. Empty means unknown, not "offers nothing".
   degree_levels: DegreeLevel[];
-  acceptance_rate: number;
+  acceptance_rate: number | null; // null: not published (most non-US schools)
   // Illustrative admission stats (migration_004). Null means unknown, e.g.
   // non-US schools have no SAT range.
   avg_admitted_gpa: number | null;
@@ -94,6 +96,23 @@ export type University = {
   // Shown by default (migration_010; the rule is scripts/relevance-rule.mjs).
   // Missing until that migration runs, which the app reads as "featured".
   is_featured?: boolean;
+
+  // Curated international data (migration_011). Money is kept in its own
+  // currency too; tuition / living_cost_per_year above are the US-dollar
+  // conversions at the ECB rate of fx_rate_date.
+  curated_id?: string | null;
+  aliases?: string[];
+  tuition_local?: number | null;
+  tuition_currency?: string | null; // ISO code, e.g. "GBP"
+  tuition_basis?: string | null; // exactly what the figure is
+  tuition_year?: string | null; // e.g. "2025-26"
+  tuition_source_url?: string | null;
+  living_cost_local?: number | null;
+  living_cost_currency?: string | null;
+  living_cost_source_url?: string | null;
+  fx_rate_date?: string | null;
+  acceptance_source_url?: string | null;
+  programs_source_url?: string | null;
 };
 
 export const COOP_PROGRAMS = ["mandatory", "optional", "none", "unknown"] as const;
@@ -115,6 +134,14 @@ export const DETAIL_ONLY_FIELDS = [
   "scorecard_id",
   "created_at",
   "median_earnings_10yr", // information only, on the details page
+  "curated_id",
+  "tuition_year",
+  "tuition_source_url",
+  "living_cost_local",
+  "living_cost_currency",
+  "living_cost_source_url",
+  "acceptance_source_url",
+  "programs_source_url",
 ] as const;
 
 type DetailOnlyField = (typeof DETAIL_ONLY_FIELDS)[number];
@@ -130,7 +157,7 @@ export const RESEARCH_INTENSITIES = [
 
 export type ResearchIntensity = (typeof RESEARCH_INTENSITIES)[number];
 
-export type UniversitySource = "College Scorecard" | "illustrative" | "user-entered";
+export type UniversitySource = "College Scorecard" | "curated" | "illustrative" | "user-entered";
 
 // Fields the "add a university" form fills in.
 export type UniversityInput = Pick<

@@ -6,6 +6,7 @@ const STYLES: Record<AdmissionChance, string> = {
   Reach: "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
   Match: "border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-400",
   Safety: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  "Not enough data": "border-border text-muted-foreground",
 };
 
 // Shown wherever a school's admission chance appears. The tooltip says how
@@ -25,9 +26,11 @@ export function ChanceBadge({
       variant="outline"
       className={cn("font-medium", STYLES[chance])}
       title={
-        fromModel
-          ? "Estimate from a model trained on simulated (synthetic) applicants — a demo, not a real prediction"
-          : "Rough rule of thumb from your GPA/SAT vs. typical admits and the acceptance rate"
+        chance === "Not enough data"
+          ? "This school doesn't publish admission figures we can compare you with, so there's no Reach / Match / Safety label"
+          : fromModel
+            ? "Estimate from a model trained on simulated (synthetic) applicants — a demo, not a real prediction"
+            : "Rough rule of thumb from your GPA/SAT vs. typical admits and the acceptance rate"
       }
     >
       {chance}

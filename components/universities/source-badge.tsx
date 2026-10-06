@@ -30,6 +30,22 @@ export function SourceBadge({
     );
   }
 
+  // Checked by hand on the university's own website: says which site and
+  // which year, and deliberately never says "official".
+  if (source === "curated") {
+    const site = source_url ? new URL(source_url).hostname.replace(/^www\./, "") : "university website";
+    return (
+      <Badge
+        variant="outline"
+        className="border-sky-500/30 text-sky-700 dark:text-sky-400"
+        title="Figures checked by hand on the university's own pages (linked on the details page). Converted amounts are approximate."
+      >
+        Source: {site}
+        {data_year ? ` · ${data_year}` : ""}
+      </Badge>
+    );
+  }
+
   if (source === "user-entered") {
     return (
       <span className="inline-flex items-center gap-1.5">

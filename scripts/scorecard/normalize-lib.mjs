@@ -44,11 +44,21 @@ export function topPrograms(programPercentage, count = 4, minShare = 0.03) {
     .map(([key]) => PROGRAM_LABELS[key]);
 }
 
-// Scorecard only says a school's highest degree is "graduate", not whether
-// that means Masters, PhD or both. So bachelor's-only schools are known to
-// be undergraduate-only, and the rest stay "unknown" ([]) rather than the
-// app claiming degrees that might not exist.
-export function degreeLevels(highest) {
+// Scorecard credential levels (field-of-study data) → the app's levels.
+// 3 = bachelor's, 5 = master's, 6 = doctoral degree. Other levels
+// (certificates, associate degrees, first-professional degrees) don't map
+// to a level the app offers, so they're ignored.
+const CREDENTIAL_LEVELS = { 3: "Undergraduate", 5: "Masters", 6: "PhD" };
+
+// Which degree levels a school awards, from the programs it reports. If it
+// reports none, fall back to the summary field: a bachelor's-highest school
+// is undergraduate-only; otherwise the levels stay unknown ([]) rather than
+// the app claiming degrees that might not exist.
+export function degreeLevels(highest, programs) {
+  const levels = new Set(
+    (programs ?? []).map((p) => CREDENTIAL_LEVELS[get(p, "credential.level")]).filter(Boolean)
+  );
+  if (levels.size > 0) return ["Undergraduate", "Masters", "PhD"].filter((l) => levels.has(l));
   return highest === 3 ? ["Undergraduate"] : [];
 }
 
@@ -123,8 +133,13 @@ export function normalizeSchool(raw, { dataYear, fetchedAt }) {
     research_intensity: researchIntensity(get(raw, "school.carnegie_basic")),
     median_earnings_10yr: get(raw, "latest.earnings.10_yrs_after_entry.median") ?? null,
     popular_programs: topPrograms(get(raw, "latest.academics.program_percentage")),
-    degree_levels: degreeLevels(get(raw, "school.degrees_awarded.highest")),
+    degree_levels: degreeLevels(
+      get(raw, "school.degrees_awarded.highest"),
+      get(raw, "latest.programs.cip_4_digit")
+    ),
     description: describe(ownership, city, state),
+    // The school's own page on the official College Scorecard site.
+    source_url: `https://collegescorecard.ed.gov/school/?${raw.id}`,
     source: "College Scorecard",
     data_year: dataYear,
     fetched_at: fetchedAt,

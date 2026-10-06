@@ -35,7 +35,7 @@ const COLUMNS = [
   "avg_admitted_gpa", "min_ielts", "living_cost_per_year", "student_size",
   "completion_rate", "retention_rate", "research_intensity", "median_earnings_10yr",
   "popular_programs", "degree_levels",
-  "description", "source", "data_year", "fetched_at",
+  "description", "source", "data_year", "fetched_at", "source_url",
 ];
 
 // Columns refreshed when a school is already in the table. Not name or
