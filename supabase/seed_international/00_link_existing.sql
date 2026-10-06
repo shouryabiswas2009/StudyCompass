@@ -40,3 +40,61 @@ update public.universities set curated_id = 'lmu'
   where name = 'LMU Munich' and created_by is null and curated_id is null and source = 'illustrative';
 update public.universities set curated_id = 'tum'
   where name = 'Technical University of Munich' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'tudelft'
+  where name = 'Delft University of Technology' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'uva'
+  where name = 'University of Amsterdam' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'ethz'
+  where name = 'ETH Zurich' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'sorbonne'
+  where name = 'Sorbonne University' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'psl'
+  where name = 'Université PSL' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'helsinki'
+  where name = 'University of Helsinki' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'kth'
+  where name = 'KTH Royal Institute of Technology' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'ku-copenhagen'
+  where name = 'University of Copenhagen' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'uio'
+  where name = 'University of Oslo' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'nus'
+  where name = 'National University of Singapore' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'ntu-sg'
+  where name = 'Nanyang Technological University' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'utokyo'
+  where name = 'University of Tokyo' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'kyoto'
+  where name = 'Kyoto University' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'hku'
+  where name = 'The University of Hong Kong' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'hkust'
+  where name = 'Hong Kong University of Science and Technology' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'kaist'
+  where name = 'KAIST' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'snu'
+  where name = 'Seoul National University' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'tsinghua'
+  where name = 'Tsinghua University' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'pku'
+  where name = 'Peking University' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'iitb'
+  where name = 'Indian Institute of Technology Bombay' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'um'
+  where name = 'Universiti Malaya' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'unibo'
+  where name = 'University of Bologna' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'polimi'
+  where name = 'Politecnico di Milano' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'tcd'
+  where name = 'Trinity College Dublin' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'univie'
+  where name = 'University of Vienna' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'kuleuven'
+  where name = 'KU Leuven' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'ub'
+  where name = 'University of Barcelona' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'auckland'
+  where name = 'University of Auckland' and created_by is null and curated_id is null and source = 'illustrative';
+update public.universities set curated_id = 'khalifa'
+  where name = 'Khalifa University' and created_by is null and curated_id is null and source = 'illustrative';

@@ -23,7 +23,7 @@ verified: the migration_011 columns exist (search_text included); all
 levels; sources are College Scorecard 1,577, curated 42, illustrative 29
 (442 featured); Oxford was upgraded in place (£39,620 stored with its
 currency, illustrative ranking removed) and a search for "lse" finds the
-London School of Economics by its alias. **Nothing pending.**
+London School of Economics by its alias. **Step 11 is pending.**
 
 New migrations will be added to this table when they're written.
 
@@ -43,6 +43,7 @@ this order: the seed files need both migrations first.
 | 8 | `supabase/migration_011_international.sql` | Done, verified 2026-10-06 |
 | 9 | `supabase/seed_scorecard/00_link_existing.sql` … `06_universities.sql` again (regenerated) | Done, verified 2026-10-06 (1,577 linked, 1,572 levels) |
 | 10 | `supabase/seed_international/00_link_existing.sql`, `01_universities.sql`, `90_coop.sql`, `91_rankings.sql` | Done, verified 2026-10-06 (42 curated) |
+| 11 | `supabase/seed_international/00_link_existing.sql`, `01_universities.sql`, `02_universities.sql`, `90_coop.sql`, `91_rankings.sql` (regenerated, 111 universities) | **Not run yet** |
 
 All of them are safe to run again if you're not sure whether one went
 through.
@@ -261,6 +262,28 @@ rankings you entered (none yet). Safe to re-run.
 select source, count(*) from public.universities where created_by is null group by source order by source;
 ```
 Expect `College Scorecard 1577`, `curated 42`, `illustrative 29`.
+
+## 11. `seed_international/` again (5 files, in order)
+
+**What it does:** the same upsert as step 10, regenerated with the second
+and third batches: 111 curated universities in 27 countries (the
+Netherlands, Switzerland, France, the Nordics, East and South Asia,
+Italy, Ireland, Austria, Belgium, Spain, New Zealand and the UAE added).
+`00` now links all 47 sample schools so they're upgraded **in place**,
+which leaves no illustrative schools. `02_universities.sql` is new (the
+file is split to stay small enough for the SQL Editor). Program lists
+were added for Cambridge, UCL, Edinburgh, Warwick, Bristol and
+Southampton. Safe to re-run.
+
+**What's affected until it runs:** the 29 remaining sample schools stay
+illustrative, the 40 new universities don't exist, and the six UK program
+lists are missing (their major factor stays unknown).
+
+**Check:**
+```sql
+select source, count(*) from public.universities where created_by is null group by source order by source;
+```
+Expect `College Scorecard 1577` and `curated 111` (no `illustrative` row).
 
 ---
 

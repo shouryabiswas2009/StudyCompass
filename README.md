@@ -96,8 +96,8 @@ and in the compare table:
 | Label | What it means | Coverage |
 | --- | --- | --- |
 | **College Scorecard** | Official US Department of Education data, fetched from the [College Scorecard API](https://collegescorecard.ed.gov/data/api-documentation/) | 1,577 US schools (operating, mainly bachelor's-granting, with a published admission rate); data year 2024 in the current import |
-| **Source: <university site>** (curated) | Checked by hand on the university's **own** website; every figure has its page linked on the details page. Never shown as "official" | 42 universities in the UK, Canada, Australia and Germany so far (see the coverage report below) |
-| **Illustrative** | Hand-written sample figures for this demo, **not** official statistics | 29 schools in 21 countries not curated yet |
+| **Source: <university site>** (curated) | Checked by hand on the university's **own** website; every figure has its page linked on the details page. Never shown as "official" | 111 universities in 27 countries (see the coverage report below) |
+| **Illustrative** | Hand-written sample figures for this demo, **not** official statistics | None left: every sample school was replaced by a curated or Scorecard row. The label stays for anything added later |
 | **Added by you** | Figures a student entered themselves, optionally with a source link | Only visible to that student |
 
 **The US has official data; other countries are curated by hand.** College
@@ -129,8 +129,11 @@ available", and the CSV's `notes` column says why.
 **Tuition rule:** the **lowest published** international undergraduate fee,
 shown as "from …", with `tuition_basis` saying exactly what it is. When a
 university only publishes one programme's fee, or only per-course or
-per-credit fees, the row says so instead of a computed number (except
-German universities, where a year is always two semesters at a flat fee).
+per-credit fees, the row says so instead of a computed number (except a
+flat per-semester fee, as in Germany, Switzerland, Sweden, Austria and
+Taiwan, which is doubled and the basis says "× 2"). When the page doesn't
+say which year a fee is for, `tuition_year` says "year not stated on the
+page" with the date it was checked, rather than guessing a year.
 
 **Currency:** money is stored in its own currency too. The US-dollar
 figure used for scoring is converted at the ECB reference rate of
