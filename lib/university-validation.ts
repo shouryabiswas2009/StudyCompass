@@ -1,7 +1,9 @@
 import { readList, readNumber, readText } from "@/lib/form-data";
 import {
+  COOP_PROGRAMS,
   DEGREE_LEVELS,
   RESEARCH_INTENSITIES,
+  type CoopProgram,
   type DegreeLevel,
   type ResearchIntensity,
   type UniversityInput,
@@ -14,6 +16,20 @@ export type UniversityValidationResult =
   | { ok: false; errors: UniversityFieldErrors };
 
 const isBad = (n: number | null) => n !== null && Number.isNaN(n);
+
+// An optional link: null when blank, the cleaned-up URL when it's a valid
+// http(s) address, false when it isn't. Only http(s), so it's always a safe
+// thing to render as a link.
+function readHttpUrl(formData: FormData, name: string): string | null | false {
+  const raw = readText(formData, name);
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : false;
+  } catch {
+    return false;
+  }
+}
 
 // Validates the "add / edit a university" form. Same approach as
 // lib/profile-validation.ts: one plain function, one clear message per
@@ -93,16 +109,9 @@ export function validateUniversityForm(formData: FormData): UniversityValidation
   // Optional link to where the student got their figures (e.g. the
   // university's admissions page). Only http(s) links, so it's always a safe
   // thing to render as a link.
-  const sourceUrlRaw = readText(formData, "source_url");
-  let source_url: string | null = null;
-  if (sourceUrlRaw) {
-    try {
-      const url = new URL(sourceUrlRaw);
-      if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error();
-      source_url = url.toString();
-    } catch {
-      errors.source_url = "Enter a full web address starting with https:// (or leave it blank).";
-    }
+  const source_url = readHttpUrl(formData, "source_url");
+  if (source_url === false) {
+    errors.source_url = "Enter a full web address starting with https:// (or leave it blank).";
   }
 
   // Optional focus signals. Blank ("Not sure") is stored as null — unknown,
@@ -113,10 +122,15 @@ export function validateUniversityForm(formData: FormData): UniversityValidation
     errors.research_intensity = "Choose a research level from the list (or Not sure).";
   }
 
-  const coopRaw = readText(formData, "has_coop");
-  const has_coop = coopRaw === "true" ? true : coopRaw === "false" ? false : null;
-  if (coopRaw && has_coop === null) {
-    errors.has_coop = "Choose Yes, No or Not sure.";
+  // "Not sure" is stored as 'unknown', which scoring leaves out — never
+  // read as "no co-op".
+  const coop_program = (readText(formData, "coop_program") || "unknown") as CoopProgram;
+  if (!COOP_PROGRAMS.includes(coop_program)) {
+    errors.coop_program = "Choose one of the options (or Not sure).";
+  }
+  const internship_support_url = readHttpUrl(formData, "internship_support_url");
+  if (internship_support_url === false) {
+    errors.internship_support_url = "Enter a full web address starting with https:// (or leave it blank).";
   }
 
   if (Object.keys(errors).length > 0) {
@@ -140,9 +154,10 @@ export function validateUniversityForm(formData: FormData): UniversityValidation
       popular_programs,
       degree_levels: degree_levels as DegreeLevel[],
       description,
-      source_url,
+      source_url: source_url || null,
       research_intensity,
-      has_coop,
+      coop_program,
+      internship_support_url: internship_support_url || null,
     },
   };
 }

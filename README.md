@@ -45,9 +45,10 @@ Supabase (Auth + Database), and Framer Motion.
    - Then run [`supabase/migration_007_data_sources.sql`](supabase/migration_007_data_sources.sql).
      It labels every university with where its figures come from and adds
      the official College Scorecard columns.
-   - Then run [`supabase/migration_008_primary_focus.sql`](supabase/migration_008_primary_focus.sql).
-     It adds the student's "what matters most to me" focus and the
-     research / retention / co-op columns it uses.
+   - Then run [`supabase/migration_008_primary_focus.sql`](supabase/migration_008_primary_focus.sql)
+     and [`supabase/migration_009_multi_focus_and_coop.sql`](supabase/migration_009_multi_focus_and_coop.sql).
+     They add the student's "what matters most to me" focuses and the
+     research / retention / co-op columns they use.
    - Then run every file in [`supabase/seed_scorecard/`](supabase/seed_scorecard/),
      in order (`00_…` first). They import ~1,600 US universities with
      official data and update the 14 sample US schools in place. They're
@@ -211,8 +212,7 @@ lib/
   supabase/   # Browser client, server client, session refresh helper
   actions/    # Server Actions (auth, profile, saved, universities)
   matching.ts # Match score, breakdown, Reach/Match/Safety, explanations
-  focus.ts    # "What matters most to me": labels, descriptions, research levels
-  scorecard-reference.json # Earnings percentiles from the import (used by the focus factor)
+  focus.ts    # "What matters most to me": labels, descriptions, research and co-op levels
   pending-migrations.ts    # Lets saves work before a new migration is run
   university-filters.ts # Search/filter/sort rules for the university board
   compare.ts  # Compare URL parsing, total cost, "best in row" highlighting
@@ -239,55 +239,73 @@ supabase/
   migration_005_browse_and_custom_universities.sql # Student-added schools + RLS, 34 more schools
   migration_006_applications.sql   # Application tracker / offers (owner-only RLS)
   migration_007_data_sources.sql   # Source label on every school + College Scorecard columns
-  migration_008_primary_focus.sql  # "What matters most to me" + research/retention/co-op columns
+  migration_008_primary_focus.sql  # Single focus + research/retention columns (superseded by 009)
+  migration_009_multi_focus_and_coop.sql # Multi-select focuses + co-op program columns
   seed_scorecard/00–06_*.sql       # Generated: official US schools (upsert, safe to re-run)
 ```
 
 ## How matching works
 
-`lib/matching.ts` scores each university 0–100 from seven factors. The
-weights live in one `WEIGHTS` object at the top of the file and add up to
-100 (a unit test checks this):
+`lib/matching.ts` scores each university 0–100. The weights live at the
+top of the file and always add up to 100 (a unit test checks every
+combination). 80 points are the same for everyone:
 
 | Factor | Points | How it's judged |
 | --- | --- | --- |
 | Budget | 25 | Full points if tuition ≤ your max budget, losing points in proportion to how far over it is |
-| Your focus | 20 | Depends on what matters most to you (below) |
 | Major | 15 | One of your intended majors is among the school's popular programs |
 | Academic fit | 15 | Your GPA vs. the typical admitted GPA, and your SAT vs. the middle-50% range (averaged when both are known) |
 | Country | 10 | The school is in one of your preferred countries |
 | English | 10 | Your IELTS vs. the school's minimum |
 | Acceptance rate | 5 | Higher acceptance rate, more points |
 
-### What matters most to you (the focus factor)
+The other 20 points follow what matters most to you (below).
 
-On the profile, each student picks one primary focus. The focus factor is
-the average of whichever of its signals the school actually has (each
-scored 0–1); if it has none, the factor is left out like any other
-unknown:
+### What matters most to you (focuses)
 
-| Focus | Signals used |
-| --- | --- |
-| Balanced (default) | None: the factor is left out, so the other six decide |
-| Academic reputation | Subject and overall ranking (log scale; illustrative), completion rate, first-year retention rate |
-| Work experience | Co-op / internship program (yes/no), median earnings 10 years after entry (between the 10th and 90th percentile of imported US schools) |
-| Research | Carnegie research classification (R1 = 1, R2 = 0.7, doctoral/professional = 0.4, non-doctoral = 0), subject ranking |
-| Affordability | Tuition + living cost vs. your max budget (half the budget or less = 1, the budget = 0.5, 1.5× = 0) |
+On the profile a student ticks any of four focuses. Ticking none means
+**Balanced**. Each focus has its own factor, scored 0–1 from whichever of
+its figures the school actually has; with none of them, the factor is
+left out like any other unknown:
 
-Where the signals come from:
+| Focus | Factor | Figures used |
+| --- | --- | --- |
+| Academic reputation | Academic reputation | Subject and overall ranking (log scale; illustrative), completion rate, first-year retention rate |
+| Work experience | Co-op / internships | The school's co-op / internship program: mandatory = 1, optional = 0.5, none = 0, unknown = left out |
+| Research | Research | Carnegie research classification (R1 = 1, R2 = 0.7, doctoral/professional = 0.4, non-doctoral = 0), subject ranking |
+| Affordability | Affordability | Tuition + living cost vs. your max budget (half the budget or less = 1, the budget = 0.5, 1.5× = 0) |
+
+**Blending rule** (`focusWeights()`): think of each focus as a weight
+profile, the 80 base points plus all 20 focus points on its own factor.
+The profiles of every ticked focus are **averaged with equal weight**, so
+each ticked focus gets 20 ÷ (number ticked) points: one focus gets 20,
+two get 10 each, and so on. Balanced is the average of all four profiles,
+5 points each. So **ticking all four gives exactly the same weights as
+Balanced**: caring about everything equally is the same as not
+prioritizing anything. A unit test checks this.
+
+**"Work experience" means co-op and internship opportunities**: does the
+school run a co-op or internship program, and is it mandatory or
+optional. It does **not** use employment rates or graduate earnings,
+which describe what happens after graduating, not whether the school
+helps a student get experience while studying. Earnings still appear on
+the details page as information only. A test checks that a school with
+excellent earnings but no co-op information gets no work-experience boost.
+
+Where the figures come from:
 - **Carnegie classification and retention rate:** official, from College
   Scorecard (`school.carnegie_basic`; 1,519 of 1,577 schools have one). Not
   available for illustrative schools.
-- **Earnings percentiles:** computed from the import into
-  [`lib/scorecard-reference.json`](lib/scorecard-reference.json), not
-  picked by hand.
-- **Co-op programs:** no free official source lists them for every
-  school, so the app never fills one in. Only a student can set it, on a
-  school they add, and it's labeled "entered by you".
+- **Co-op programs** (`coop_program`: mandatory / optional / none /
+  unknown, plus an optional `internship_support_url`): there's no official
+  dataset, so it's only filled in from the school's own page, with that
+  page's URL. It defaults to `unknown`, which is never read as "none". A
+  student can set it on schools they add.
 
-The focus also adds its own strengths and concerns, listed first so they
-show on cards. Each one says where its figure came from, and missing
-figures show as "not available".
+Ticked focuses also add their own strengths and concerns, listed first so
+they show on cards, e.g. "Has a mandatory co-op program" or "No co-op
+information available for this school." Each one says where its figure
+came from.
 
 **Unknown isn't failure.** If a factor can't be judged (no SAT on your
 profile, or a non-US school with no SAT range), it's left out and the score
@@ -407,18 +425,20 @@ is **Admitted** (or **Accepted**), it appears on `/offers`, ranked by
   with missing details can't look cheaper than it is.
 - Each offer is scored 0–100 from seven criteria, each weighted 0–10 by
   sliders the student controls. Where the sliders start depends on the
-  student's focus (`FOCUS_OFFER_WEIGHTS`), and the page says so in one
-  line, e.g. "Because you prioritize research, subject ranking and research
-  intensity count more." Balanced starts at cost 5, overall ranking 3,
-  subject ranking 3, match score 2, preferred country 1, research
-  intensity 1, career outcomes 1:
+  student's focuses, blended with the same rule as matching: the starting
+  weights of every ticked focus (`FOCUS_OFFER_WEIGHTS`) are averaged and
+  rounded to whole slider steps. The page says so in one line, e.g.
+  "Because you prioritize work experience and research, subject ranking,
+  research intensity and co-op / internships count more." Balanced starts
+  at cost 5, overall ranking 3, subject ranking 3, match score 2,
+  preferred country 1, research intensity 1, co-op / internships 1:
   - **Cost and rankings are relative** to the student's own offers: the
     best gets full marks and the worst gets none.
   - **Rankings use a log scale**, because #5 vs #10 is a much bigger
     difference than #205 vs #210.
   - **Match score** (0–100 from matching), **preferred country** (yes/no),
-    **research intensity** and **career outcomes** (the same 0–1 signals
-    the focus factor uses) are used as they are.
+    **research intensity** and **co-op / internships** (the same 0–1
+    figures the focus factors use) are used as they are.
   - **Unknown values are left out**, as in matching: a criterion that's
     unknown for an offer (e.g. no subject ranking) is excluded from that
     offer's score instead of counting as zero.

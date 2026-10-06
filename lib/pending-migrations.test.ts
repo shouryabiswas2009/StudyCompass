@@ -7,7 +7,7 @@ const unknownColumn = (column: string) => ({
 
 describe("missingColumn", () => {
   it("reads the column name out of PostgREST's error", () => {
-    expect(missingColumn(unknownColumn("primary_focus").error)).toBe("primary_focus");
+    expect(missingColumn(unknownColumn("focuses").error)).toBe("focuses");
   });
 
   it("ignores every other error", () => {
@@ -20,14 +20,14 @@ describe("writeSkippingPendingColumns", () => {
   it("drops a not-yet-migrated column and retries", async () => {
     const seen: Record<string, unknown>[] = [];
     const { result, skipped } = await writeSkippingPendingColumns(
-      { full_name: "A", primary_focus: "research" },
+      { full_name: "A", focuses: ["research"] },
       async (payload) => {
         seen.push(payload);
-        return "primary_focus" in payload ? unknownColumn("primary_focus") : { error: null };
+        return "focuses" in payload ? unknownColumn("focuses") : { error: null };
       }
     );
     expect(result.error).toBeNull();
-    expect(skipped).toEqual(["primary_focus"]);
+    expect(skipped).toEqual(["focuses"]);
     expect(seen[1]).toEqual({ full_name: "A" });
   });
 
@@ -40,7 +40,7 @@ describe("writeSkippingPendingColumns", () => {
   });
 
   it("explains what wasn't saved and which file to run", () => {
-    expect(skippedNotice(["primary_focus"])).toContain("migration_008_primary_focus.sql");
+    expect(skippedNotice(["focuses"])).toContain("migration_009_multi_focus_and_coop.sql");
     expect(skippedNotice([])).toBeUndefined();
   });
 });

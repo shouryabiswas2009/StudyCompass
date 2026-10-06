@@ -241,7 +241,7 @@ export function UniversityForm({
 
       <div className="space-y-4 rounded-2xl border p-4">
         <div>
-          <h2 className="font-medium">Research and careers (optional)</h2>
+          <h2 className="font-medium">Research and work experience (optional)</h2>
           <p className="text-sm text-muted-foreground">
             Used when a student&apos;s focus is research or work experience.
             Pick &ldquo;Not sure&rdquo; unless the university says so itself.
@@ -269,19 +269,33 @@ export function UniversityForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="has_coop">Co-op / internship program</Label>
+            <Label htmlFor="coop_program">Co-op / internship program</Label>
             <select
-              id="has_coop"
-              name="has_coop"
-              defaultValue={initial("has_coop") ?? ""}
-              aria-invalid={!!errors.has_coop}
+              id="coop_program"
+              name="coop_program"
+              defaultValue={initial("coop_program") ?? "unknown"}
+              aria-invalid={!!errors.coop_program}
               className="h-9 w-full rounded-md border bg-transparent px-3 text-sm"
             >
-              <option value="">Not sure</option>
-              <option value="true">Yes</option>
-              <option value="false">No</option>
+              <option value="unknown">Not sure</option>
+              <option value="mandatory">Mandatory co-op (every student does one)</option>
+              <option value="optional">Optional co-op / internship program</option>
+              <option value="none">No co-op program</option>
             </select>
-            <FieldError message={errors.has_coop} />
+            <FieldError message={errors.coop_program} />
+          </div>
+
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="internship_support_url">Co-op / internship page (optional)</Label>
+            <Input
+              id="internship_support_url"
+              name="internship_support_url"
+              type="url"
+              defaultValue={initial("internship_support_url")}
+              placeholder="https://www.university.edu/co-op"
+              aria-invalid={!!errors.internship_support_url}
+            />
+            <FieldError message={errors.internship_support_url} />
           </div>
         </div>
       </div>

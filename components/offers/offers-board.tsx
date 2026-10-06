@@ -18,7 +18,7 @@ import {
 } from "@/lib/offers";
 import { formatRank } from "@/lib/matching";
 import { usd } from "@/lib/format";
-import type { ApplicationStatus, PrimaryFocus } from "@/lib/types";
+import type { ApplicationStatus, Focus } from "@/lib/types";
 
 // OfferInput plus what this page shows but the ranking doesn't use.
 export type OfferRow = OfferInput & {
@@ -32,9 +32,9 @@ const CRITERIA = Object.keys(DEFAULT_OFFER_WEIGHTS) as OfferCriterion[];
 
 // The ranking itself lives in lib/offers.ts (pure and tested); this
 // component only holds the slider values and re-runs it as they move.
-// The student's primary focus only picks where the sliders start.
-export function OffersBoard({ offers, focus }: { offers: OfferRow[]; focus: PrimaryFocus }) {
-  const defaults = defaultOfferWeights(focus);
+// The student's focuses only pick where the sliders start.
+export function OffersBoard({ offers, focuses }: { offers: OfferRow[]; focuses: Focus[] }) {
+  const defaults = defaultOfferWeights(focuses);
   const [weights, setWeights] = useState<OfferWeights>(defaults);
 
   const ranked = useMemo(() => rankOffers(offers, weights), [offers, weights]);
@@ -50,9 +50,9 @@ export function OffersBoard({ offers, focus }: { offers: OfferRow[]; focus: Prim
             0 = ignore, 10 = matters most. The ranking updates as you move them.
           </p>
           <p className="mt-2 text-sm">
-            {focusWeightsNote(focus)}{" "}
+            {focusWeightsNote(focuses)}{" "}
             <Link href="/profile" className="text-muted-foreground underline">
-              Change your focus
+              Change your focuses
             </Link>
           </p>
         </div>
@@ -131,8 +131,8 @@ export function OffersBoard({ offers, focus }: { offers: OfferRow[]; focus: Prim
           Each offer gets 0–100 from the criteria above. Costs and rankings are
           compared between your offers (best = full marks), rankings on a log
           scale so #5 vs #10 counts more than #205 vs #210. Research intensity
-          (Carnegie classification) and career outcomes (co-op program and
-          graduate earnings) use fixed scales instead, and are only known for
+          (Carnegie classification) and co-op / internships (mandatory,
+          optional or none) use fixed scales instead, and are only known for
           some schools. Anything unknown for an offer is left out of its score
           rather than counted as zero.
           {missingCost && " Some offers are missing cost details, so cost can't separate them yet."}

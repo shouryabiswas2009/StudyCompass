@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import { Award } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { OffersBoard, type OfferRow } from "@/components/offers/offers-board";
-import { careerSignal, countryMatches, researchSignal, scoreUniversity } from "@/lib/matching";
-import { focusOf } from "@/lib/focus";
+import { coopSignal, countryMatches, researchSignal, scoreUniversity } from "@/lib/matching";
+import { focusesOf } from "@/lib/focus";
 import { netCostPerYear, totalProgramCost } from "@/lib/offers";
 import type { Application, Profile, University } from "@/lib/types";
 import { getCurrentUser } from "@/lib/auth";
@@ -37,6 +37,7 @@ export default async function OffersPage() {
     const { match, ranking } = scoreUniversity(profile, university);
     const hasSubjectRank = ranking.label !== "Overall";
     const research = researchSignal(university);
+    const coop = coopSignal(university);
 
     return {
       id: application.id,
@@ -53,7 +54,8 @@ export default async function OffersPage() {
       inPreferredCountry: countryMatches(profile, university),
       researchScore: research?.value ?? null,
       researchLabel: research?.label ?? null,
-      careerScore: careerSignal(university),
+      coopScore: coop?.value ?? null,
+      coopLabel: coop?.label ?? null,
     };
   });
 
@@ -86,7 +88,7 @@ export default async function OffersPage() {
           </p>
         </div>
       ) : (
-        <OffersBoard offers={offers} focus={focusOf(profile)} />
+        <OffersBoard offers={offers} focuses={focusesOf(profile)} />
       )}
     </div>
   );

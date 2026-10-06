@@ -1,9 +1,9 @@
 import { readList, readNumber, readText } from "@/lib/form-data";
 import {
   DEGREE_LEVELS,
-  PRIMARY_FOCUSES,
+  FOCUSES,
   type DegreeLevel,
-  type PrimaryFocus,
+  type Focus,
   type ProfileInput,
 } from "@/lib/types";
 
@@ -73,11 +73,13 @@ export function validateProfileForm(formData: FormData): ProfileValidationResult
     errors.preferred_degree_level = "Choose a degree level.";
   }
 
-  // Not choosing is the same as "balanced" (the database default too).
-  const primary_focus = readText(formData, "primary_focus") || "balanced";
-  if (!PRIMARY_FOCUSES.includes(primary_focus as PrimaryFocus)) {
-    errors.primary_focus = "Choose what matters most to you.";
+  // Any number of focuses; none ticked means Balanced. Kept in a fixed
+  // order and without repeats, so the same choice is always stored the same.
+  const ticked = readList(formData, "focuses");
+  if (!ticked.every((f) => FOCUSES.includes(f as Focus))) {
+    errors.focuses = "Pick from the options listed.";
   }
+  const focuses = FOCUSES.filter((f) => ticked.includes(f));
 
   if (Object.keys(errors).length > 0) {
     return { ok: false, errors };
@@ -97,7 +99,7 @@ export function validateProfileForm(formData: FormData): ProfileValidationResult
       budget_min,
       budget_max: budget_max as number,
       preferred_degree_level: level as DegreeLevel,
-      primary_focus: primary_focus as PrimaryFocus,
+      focuses,
     },
   };
 }

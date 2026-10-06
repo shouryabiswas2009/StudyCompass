@@ -15,7 +15,7 @@ import { AdmissionEstimate } from "@/components/universities/admission-estimate"
 import { StrengthsConcerns } from "@/components/universities/strengths-concerns";
 import { Flag } from "@/components/flag";
 import { usd } from "@/lib/format";
-import { FOCUS_LABELS, RESEARCH_LABELS, focusOf } from "@/lib/focus";
+import { COOP_LABELS, RESEARCH_LABELS, focusSummary, focusesOf } from "@/lib/focus";
 import { compareUrl } from "@/lib/compare";
 import type { Profile, University } from "@/lib/types";
 import { getCurrentUser } from "@/lib/auth";
@@ -114,7 +114,7 @@ export default async function UniversityDetailsPage({
     },
     {
       label: "Co-op / internship program",
-      value: university.has_coop == null ? "Not available" : university.has_coop ? "Yes" : "No",
+      value: COOP_LABELS[university.coop_program ?? "unknown"],
     },
   ];
 
@@ -199,7 +199,7 @@ export default async function UniversityDetailsPage({
             />
           </div>
           <p className="-mt-2 mb-4 text-sm text-muted-foreground">
-            Scored with your focus: <strong>{FOCUS_LABELS[focusOf(profile!)]}</strong>.{" "}
+            Scored with your focuses: <strong>{focusSummary(focusesOf(profile!))}</strong>.{" "}
             <Link href="/profile" className="underline">
               Change it
             </Link>
@@ -273,7 +273,7 @@ export default async function UniversityDetailsPage({
       )}
 
       <div className="mt-8 space-y-2">
-        <h2 className="font-medium">Research and careers</h2>
+        <h2 className="font-medium">Research and work experience</h2>
         <dl className="grid grid-cols-2 gap-3">
           {focusFigures.map((figure) => (
             <div key={figure.label} className="rounded-xl border p-3">
@@ -288,9 +288,19 @@ export default async function UniversityDetailsPage({
             : official
               ? "Research activity is the Carnegie Classification as reported by College Scorecard."
               : "Not available for illustrative schools."}{" "}
-          No official source lists co-op / internship programs for every
-          school, so the app never fills that in; you can set it on schools you
-          add yourself.
+          Co-op / internship programs are only filled in from the school&apos;s
+          own page{university.internship_support_url ? (
+            <>
+              {" "}(
+              <a href={university.internship_support_url} target="_blank" rel="noopener noreferrer" className="underline">
+                source
+              </a>
+              )
+            </>
+          ) : null}
+          ; &ldquo;not available&rdquo; means we haven&apos;t found a clear statement,
+          not that there isn&apos;t one. Graduate earnings (above) are shown for
+          information only and don&apos;t affect the work-experience focus.
         </p>
       </div>
 

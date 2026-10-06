@@ -37,7 +37,8 @@ const ECHOED_FIELDS = [
   "description",
   "source_url",
   "research_intensity",
-  "has_coop",
+  "coop_program",
+  "internship_support_url",
 ];
 
 function submittedValues(formData: FormData): Record<string, string> {

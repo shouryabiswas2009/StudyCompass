@@ -15,8 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { COUNTRY_OPTIONS } from "@/lib/countries";
-import { FOCUS_DESCRIPTIONS, FOCUS_LABELS } from "@/lib/focus";
-import { DEGREE_LEVELS, PRIMARY_FOCUSES, type Profile } from "@/lib/types";
+import { BALANCED_DESCRIPTION, FOCUS_DESCRIPTIONS, FOCUS_LABELS, focusesOf } from "@/lib/focus";
+import { DEGREE_LEVELS, FOCUSES, type Profile } from "@/lib/types";
 
 // Common majors offered by the sample universities — just autocomplete
 // hints, students can still type anything.
@@ -51,6 +51,11 @@ export function ProfileForm({
     const saved = existingProfile?.[name];
     return saved === null || saved === undefined ? undefined : String(saved);
   }
+
+  // After a failed save, the boxes the student just ticked; otherwise their
+  // saved focuses (also read from the old single choice before migration 009).
+  const checkedFocuses: string[] =
+    state?.focuses ?? (existingProfile ? focusesOf(existingProfile) : []);
 
   return (
     // noValidate: let the server's messages (lib/profile-validation.ts) be
@@ -201,26 +206,26 @@ export function ProfileForm({
           <FieldError message={errors.preferred_degree_level} />
         </div>
 
-        {/* A plain radio group: one choice, every option and its meaning
+        {/* Plain checkboxes: tick any number, every option and its meaning
             visible at once, and it works without JavaScript. */}
         <fieldset className="space-y-2 sm:col-span-2">
-          <legend className="text-sm font-medium">What matters most to you?</legend>
+          <legend className="text-sm font-medium">What matters most to you? (tick any)</legend>
           <p className="text-sm text-muted-foreground">
             This changes how universities are scored and where the sliders
-            start on the offers page.
+            start on the offers page. {BALANCED_DESCRIPTION}
           </p>
           <div className="grid gap-2 pt-1 sm:grid-cols-2">
-            {PRIMARY_FOCUSES.map((focus) => (
+            {FOCUSES.map((focus) => (
               <label
                 key={focus}
                 className="flex cursor-pointer gap-3 rounded-xl border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
               >
                 <input
-                  type="radio"
-                  name="primary_focus"
+                  type="checkbox"
+                  name="focuses"
                   value={focus}
-                  defaultChecked={(initial("primary_focus") ?? "balanced") === focus}
-                  className="mt-1 accent-primary"
+                  defaultChecked={checkedFocuses.includes(focus)}
+                  className="mt-1 size-4 accent-primary"
                 />
                 <span className="space-y-0.5">
                   <span className="block text-sm font-medium">{FOCUS_LABELS[focus]}</span>
@@ -231,7 +236,7 @@ export function ProfileForm({
               </label>
             ))}
           </div>
-          <FieldError message={errors.primary_focus} />
+          <FieldError message={errors.focuses} />
         </fieldset>
       </div>
 

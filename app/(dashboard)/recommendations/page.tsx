@@ -5,7 +5,7 @@ import { offersDegreeLevel, scoreUniversity } from "@/lib/matching";
 import { UniversityBoard } from "@/components/universities/university-board";
 import { Button } from "@/components/ui/button";
 import type { Profile, University } from "@/lib/types";
-import { FOCUS_LABELS, focusOf } from "@/lib/focus";
+import { focusesOf, joinFocuses } from "@/lib/focus";
 import { getCurrentUser } from "@/lib/auth";
 
 export default async function RecommendationsPage() {
@@ -47,9 +47,9 @@ export default async function RecommendationsPage() {
           <h1 className="text-2xl font-semibold">Your recommendations</h1>
           <p className="text-muted-foreground">
             Matched to your budget, preferred countries, and intended majors
-            {focusOf(profile) === "balanced"
+            {focusesOf(profile).length === 0
               ? "."
-              : `, with extra weight on what matters most to you: ${FOCUS_LABELS[focusOf(profile)].toLowerCase()}.`}
+              : `, with extra weight on what matters most to you: ${joinFocuses(focusesOf(profile))}.`}
           </p>
         </div>
         <Button variant="outline" asChild>

@@ -10,7 +10,9 @@ import { join } from "node:path";
 
 const SUPABASE_DIR = join(import.meta.dirname, "..", "supabase");
 
-export async function createInMemoryDb() {
+// `before`: stop before this migration number (e.g. 9 applies up to 008),
+// so a test can add old-style rows and then check a migration converts them.
+export async function createInMemoryDb({ before = Infinity } = {}) {
   const db = new PGlite();
 
   // Minimal stand-ins for the parts of Supabase the migrations reference.
@@ -23,6 +25,7 @@ export async function createInMemoryDb() {
 
   const migrations = readdirSync(SUPABASE_DIR)
     .filter((f) => /^migration_\d+.*\.sql$/.test(f))
+    .filter((f) => Number(f.match(/^migration_(\d+)/)[1]) < before)
     .sort();
 
   for (const file of ["seed.sql", ...migrations]) {

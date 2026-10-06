@@ -5,17 +5,12 @@ export type DegreeLevel = "Undergraduate" | "Masters" | "PhD";
 
 export const DEGREE_LEVELS: DegreeLevel[] = ["Undergraduate", "Masters", "PhD"];
 
-// "What matters most to me" (migration_008). Labels, descriptions and how
-// each one steers scoring live in lib/focus.ts.
-export const PRIMARY_FOCUSES = [
-  "balanced",
-  "academic",
-  "work_experience",
-  "research",
-  "affordability",
-] as const;
+// "What matters most to me" (migration_009): a student ticks any number of
+// these. None ticked means Balanced. Labels, descriptions and how they
+// steer scoring live in lib/focus.ts and lib/matching.ts.
+export const FOCUSES = ["academic", "work_experience", "research", "affordability"] as const;
 
-export type PrimaryFocus = (typeof PRIMARY_FOCUSES)[number];
+export type Focus = (typeof FOCUSES)[number];
 
 export type Profile = {
   id: string;
@@ -29,8 +24,11 @@ export type Profile = {
   budget_max: number;
   preferred_countries: string[];
   preferred_degree_level: DegreeLevel;
-  // Missing (undefined) until migration_008 is run; read it with focusOf().
-  primary_focus?: PrimaryFocus;
+  // Missing (undefined) until migration_009 is run; read it with focusesOf().
+  focuses?: Focus[];
+  // The old single choice (migration_008). Migration 009 copies it into
+  // focuses and drops it; only read as a fallback before 009 has run.
+  primary_focus?: "balanced" | Focus;
   created_at: string;
   updated_at: string;
 };
@@ -88,8 +86,15 @@ export type University = {
   // because they're missing until that migration runs; null = not available.
   research_intensity?: ResearchIntensity | null; // Carnegie classification
   retention_rate?: number | null; // % of first-year students who return
-  has_coop?: boolean | null; // only ever set by a student, never imported
+  // Co-op / internship program (migration_009). Only filled from the school's
+  // own page, with that page's URL; "unknown" is left out of scoring.
+  coop_program?: CoopProgram;
+  internship_support_url?: string | null;
 };
+
+export const COOP_PROGRAMS = ["mandatory", "optional", "none", "unknown"] as const;
+
+export type CoopProgram = (typeof COOP_PROGRAMS)[number];
 
 // What list pages need: everything except the detail-page-only figures.
 // Browse and recommendations load ~1,600 of these (lib/data/universities.ts),
@@ -140,7 +145,8 @@ export type UniversityInput = Pick<
   | "description"
   | "source_url"
   | "research_intensity"
-  | "has_coop"
+  | "coop_program"
+  | "internship_support_url"
 >;
 
 // Application tracker (migration_006). An "admitted" application doubles as

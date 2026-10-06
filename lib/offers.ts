@@ -1,5 +1,6 @@
 import { usd } from "@/lib/format";
-import type { Application, PrimaryFocus } from "@/lib/types";
+import { joinFocuses } from "@/lib/focus";
+import { FOCUSES, type Application, type Focus } from "@/lib/types";
 
 // ─── Costs ───────────────────────────────────────────────────────────────
 
@@ -38,11 +39,12 @@ export type OfferInput = {
   subjectLabel: string | null;
   matchScore: number; // 0-100, from computeMatchScore
   inPreferredCountry: boolean;
-  // 0..1 from researchSignal / careerSignal in lib/matching.ts; null when
+  // 0..1 from researchSignal / coopSignal in lib/matching.ts; null when
   // the school has no figure for it.
   researchScore: number | null;
   researchLabel: string | null;
-  careerScore: number | null;
+  coopScore: number | null;
+  coopLabel: string | null;
 };
 
 export type OfferCriterion =
@@ -52,43 +54,56 @@ export type OfferCriterion =
   | "match"
   | "country"
   | "research"
-  | "careers";
+  | "coop";
 
 // How much each criterion matters, 0-10 (the sliders on the offers page).
 export type OfferWeights = Record<OfferCriterion, number>;
 
-// The starting slider positions for each primary focus. The student can
-// still move every slider; these only decide where they start. "balanced"
-// keeps the weights the app used before the focus existed, with the two
-// newer criteria at a low 1.
-export const FOCUS_OFFER_WEIGHTS: Record<PrimaryFocus, OfferWeights> = {
-  balanced: { cost: 5, ranking: 3, subjectRanking: 3, match: 2, country: 1, research: 1, careers: 1 },
-  academic: { cost: 3, ranking: 7, subjectRanking: 7, match: 2, country: 1, research: 2, careers: 1 },
-  work_experience: { cost: 4, ranking: 2, subjectRanking: 2, match: 2, country: 1, research: 1, careers: 8 },
-  research: { cost: 3, ranking: 2, subjectRanking: 7, match: 2, country: 1, research: 8, careers: 1 },
-  affordability: { cost: 9, ranking: 2, subjectRanking: 2, match: 2, country: 1, research: 1, careers: 1 },
+// The starting slider positions. The student can still move every slider;
+// these only decide where they start. Balanced keeps the weights the app
+// used before focuses existed, with the two newer criteria at a low 1. Each
+// focus raises the criteria it's about.
+export const BALANCED_OFFER_WEIGHTS: OfferWeights = {
+  cost: 5, ranking: 3, subjectRanking: 3, match: 2, country: 1, research: 1, coop: 1,
 };
 
-export const DEFAULT_OFFER_WEIGHTS: OfferWeights = FOCUS_OFFER_WEIGHTS.balanced;
+export const FOCUS_OFFER_WEIGHTS: Record<Focus, OfferWeights> = {
+  academic: { cost: 3, ranking: 7, subjectRanking: 7, match: 2, country: 1, research: 2, coop: 1 },
+  work_experience: { cost: 4, ranking: 2, subjectRanking: 2, match: 2, country: 1, research: 1, coop: 8 },
+  research: { cost: 3, ranking: 2, subjectRanking: 7, match: 2, country: 1, research: 8, coop: 1 },
+  affordability: { cost: 9, ranking: 2, subjectRanking: 2, match: 2, country: 1, research: 1, coop: 1 },
+};
 
-export function defaultOfferWeights(focus: PrimaryFocus): OfferWeights {
-  return FOCUS_OFFER_WEIGHTS[focus];
+export const DEFAULT_OFFER_WEIGHTS: OfferWeights = BALANCED_OFFER_WEIGHTS;
+
+// Same blending rule as the match score (lib/matching.ts, focusWeights):
+// average the profiles of every ticked focus, each counting equally, then
+// round to whole slider steps. Nothing ticked → Balanced.
+export function defaultOfferWeights(focuses: Focus[]): OfferWeights {
+  if (focuses.length === 0) return BALANCED_OFFER_WEIGHTS;
+  const blended = {} as OfferWeights;
+  for (const key of Object.keys(BALANCED_OFFER_WEIGHTS) as OfferCriterion[]) {
+    const sum = focuses.reduce((total, focus) => total + FOCUS_OFFER_WEIGHTS[focus][key], 0);
+    blended[key] = Math.round(sum / focuses.length);
+  }
+  return blended;
 }
 
-// The plain-language line shown above the sliders.
-export function focusWeightsNote(focus: PrimaryFocus): string {
-  switch (focus) {
-    case "academic":
-      return "Because you prioritize academic reputation, overall and subject rankings count more.";
-    case "work_experience":
-      return "Because you prioritize work experience, career outcomes (co-op programs and graduate earnings) count more.";
-    case "research":
-      return "Because you prioritize research, subject ranking and research intensity count more.";
-    case "affordability":
-      return "Because you prioritize affordability, total cost counts the most.";
-    case "balanced":
-      return "You chose Balanced, so no single criterion is boosted.";
-  }
+// The plain-language line above the sliders: names every ticked focus and
+// the criteria that start higher than Balanced because of them.
+export function focusWeightsNote(focuses: Focus[]): string {
+  const ordered = FOCUSES.filter((f) => focuses.includes(f));
+  if (ordered.length === 0) return "You chose Balanced, so no single criterion is boosted.";
+  const weights = defaultOfferWeights(ordered);
+  const boosted = (Object.keys(weights) as OfferCriterion[])
+    .filter((key) => weights[key] > BALANCED_OFFER_WEIGHTS[key])
+    .map((key) => CRITERION_LABELS[key].toLowerCase());
+  const list =
+    boosted.length <= 1 ? boosted.join("") : `${boosted.slice(0, -1).join(", ")} and ${boosted[boosted.length - 1]}`;
+  const verb = boosted.length === 1 ? "counts" : "count";
+  return boosted.length === 0
+    ? `You prioritize ${joinFocuses(ordered)}, which balance out, so no single criterion is boosted.`
+    : `Because you prioritize ${joinFocuses(ordered)}, ${list} ${verb} more.`;
 }
 
 export const CRITERION_LABELS: Record<OfferCriterion, string> = {
@@ -98,7 +113,7 @@ export const CRITERION_LABELS: Record<OfferCriterion, string> = {
   match: "Match score",
   country: "Preferred country",
   research: "Research intensity",
-  careers: "Career outcomes",
+  coop: "Co-op / internships",
 };
 
 // Generic so callers can pass extra fields (e.g. for display) and get them
@@ -153,9 +168,9 @@ export function rankOffers<T extends OfferInput>(
       match: offer.matchScore / 100,
       country: offer.inPreferredCountry ? 1 : 0,
       // Already on a fixed 0..1 scale (not relative to the other offers),
-      // so an offer only gets full marks for an actual R1 / strong outcomes.
+      // so an offer only gets full marks for an actual R1 / mandatory co-op.
       research: offer.researchScore,
-      careers: offer.careerScore,
+      coop: offer.coopScore,
     };
 
     let earned = 0;
@@ -203,8 +218,8 @@ function strongPhrase(key: OfferCriterion, offer: OfferInput, value: number): st
       return "being in one of your preferred countries";
     case "research":
       return `its research intensity (${offer.researchLabel})`;
-    case "careers":
-      return "strong career outcomes (co-op and graduate earnings)";
+    case "coop":
+      return `its co-op program (${offer.coopLabel?.toLowerCase()})`;
   }
 }
 
@@ -222,8 +237,8 @@ function weakPhrase(key: OfferCriterion, offer: OfferInput): string {
       return "not being in your preferred countries";
     case "research":
       return `its lower research intensity (${offer.researchLabel})`;
-    case "careers":
-      return "weaker career outcomes (co-op and graduate earnings)";
+    case "coop":
+      return `its co-op situation (${offer.coopLabel?.toLowerCase()})`;
   }
 }
 

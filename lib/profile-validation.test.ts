@@ -37,16 +37,17 @@ describe("validateProfileForm", () => {
     }
   });
 
-  it("defaults the primary focus to balanced and rejects unknown values", () => {
-    const missing = validateProfileForm(makeForm());
-    expect(missing.ok && missing.data.primary_focus).toBe("balanced");
+  it("accepts any number of focuses (none = Balanced) and rejects unknown values", () => {
+    const none = validateProfileForm(makeForm());
+    expect(none.ok && none.data.focuses).toEqual([]);
 
-    const research = validateProfileForm(makeForm({ primary_focus: "research" }));
-    expect(research.ok && research.data.primary_focus).toBe("research");
+    // Stored in a fixed order without repeats, whatever order they arrive in.
+    const two = validateProfileForm(makeForm({ focuses: ["research", "academic", "research"] }));
+    expect(two.ok && two.data.focuses).toEqual(["academic", "research"]);
 
-    const bad = validateProfileForm(makeForm({ primary_focus: "fame" }));
+    const bad = validateProfileForm(makeForm({ focuses: ["research", "fame"] }));
     expect(bad.ok).toBe(false);
-    if (!bad.ok) expect(bad.errors.primary_focus).toBeDefined();
+    if (!bad.ok) expect(bad.errors.focuses).toBeDefined();
   });
 
   it("treats blank optional scores as missing, not as errors", () => {

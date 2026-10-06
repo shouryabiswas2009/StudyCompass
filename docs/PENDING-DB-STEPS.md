@@ -5,11 +5,12 @@ all, twice, on a scratch Postgres) and then run by hand on the live
 Supabase database. Nothing here counts as verified against the real
 database until it's ticked off below.
 
-**Status (2026-10-06): nothing pending.** All four steps were run in the
-SQL Editor and verified with read-only queries against the live database:
-the new columns exist, 14 sample schools are linked, and the counts match
-`npm run db:check` exactly (College Scorecard 1,577, illustrative 47;
+**Status:** steps 1–4 were run in the SQL Editor on 2026-10-06 and
+verified with read-only queries against the live database (the new
+columns exist, 14 sample schools are linked, and the counts match
+`npm run db:check` exactly: College Scorecard 1,577, illustrative 47;
 research levels 146 / 126 / 154 / 1,093 with 58 unknown).
+**Step 5 is pending.**
 
 New migrations will be added to this table when they're written.
 
@@ -23,6 +24,7 @@ this order: the seed files need both migrations first.
 | 2 | `supabase/migration_008_primary_focus.sql` | Done, verified 2026-10-06 |
 | 3 | `supabase/seed_scorecard/00_link_existing.sql` | Done, verified 2026-10-06 (14 linked) |
 | 4 | `supabase/seed_scorecard/01_universities.sql` … `06_universities.sql` (one at a time, in order) | Done, verified 2026-10-06 (1,577 rows) |
+| 5 | `supabase/migration_009_multi_focus_and_coop.sql` | **Not run yet** |
 
 All of them are safe to run again if you're not sure whether one went
 through.
@@ -114,8 +116,39 @@ select research_intensity, count(*) from public.universities where source = 'Col
 Expect `non_doctoral 1093`, `doctoral_professional 154`, `very_high 146`,
 `high 126`, and `58` with no value (null).
 
+
+## 5. `migration_009_multi_focus_and_coop.sql`
+
+**What it does:** replaces the single "what matters most" choice with a
+multi-select. Adds `profiles.focuses` (a list; empty = Balanced; only
+academic / work_experience / research / affordability allowed), copies
+each student's old `primary_focus` into it, then drops `primary_focus`.
+Adds `universities.coop_program` (mandatory / optional / none / unknown,
+default unknown) and `internship_support_url`, carries over any yes/no
+`has_coop` answers students gave (yes → optional, no → none), then drops
+`has_coop`. Re-running it does nothing (it checks the old columns still
+exist first). Tested locally in `scripts/migrations.test.mjs`.
+
+**What's affected until it runs:**
+- Profile page: the checkboxes show your old single choice, but saving
+  can't store the new list. The profile saves everything else and shows
+  an amber note naming this file.
+- Scoring and offers use your old single choice (read as a one-item list).
+- Co-op shows "Not available" everywhere, and "Add / edit a university"
+  can't store the co-op answer or page link (the form says so).
+- Nothing errors.
+
+**Check:**
+```sql
+select count(*) from information_schema.columns where table_schema = 'public' and ((table_name = 'profiles' and column_name = 'focuses') or (table_name = 'universities' and column_name in ('coop_program', 'internship_support_url')));
+```
+Expect `3`. And the old columns should be gone:
+```sql
+select count(*) from information_schema.columns where table_schema = 'public' and column_name in ('primary_focus', 'has_coop');
+```
+Expect `0`.
+
 ---
 
 When everything is run and checked, tell Claude "the Supabase steps are
-done" so this file can be marked verified (and Phase C's performance
-measurements can start: they need real queries).
+done" so this file can be marked verified.

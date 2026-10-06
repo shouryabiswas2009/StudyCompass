@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  BALANCED_OFFER_WEIGHTS,
   DEFAULT_OFFER_WEIGHTS,
   FOCUS_OFFER_WEIGHTS,
   defaultOfferWeights,
@@ -23,7 +24,8 @@ function offer(overrides: Partial<OfferInput> & { id: string }): OfferInput {
     inPreferredCountry: true,
     researchScore: null,
     researchLabel: null,
-    careerScore: null,
+    coopScore: null,
+    coopLabel: null,
     ...overrides,
   };
 }
@@ -35,7 +37,7 @@ const only = (key: keyof OfferWeights): OfferWeights => ({
   match: 0,
   country: 0,
   research: 0,
-  careers: 0,
+  coop: 0,
   [key]: 10,
 });
 
@@ -102,7 +104,7 @@ describe("rankOffers", () => {
   });
 
   it("scores everything 0 when every weight is 0, without crashing", () => {
-    const zero = { cost: 0, ranking: 0, subjectRanking: 0, match: 0, country: 0, research: 0, careers: 0 };
+    const zero = { cost: 0, ranking: 0, subjectRanking: 0, match: 0, country: 0, research: 0, coop: 0 };
     const ranked = rankOffers([cheapLowRanked, pricyTopRanked], zero);
     expect(ranked.every((r) => r.score === 0)).toBe(true);
   });
@@ -125,17 +127,18 @@ describe("rankOffers", () => {
   });
 });
 
-describe("primary focus and the default weights", () => {
-  // A cheap teaching-focused school vs. an expensive R1 with a strong
-  // subject ranking and strong graduate outcomes.
-  const cheapTeaching = offer({
-    id: "Cheap teaching",
+describe("focuses and the default weights", () => {
+  // A cheap teaching-focused school with a mandatory co-op vs. an expensive
+  // R1 with a strong subject ranking and no co-op information.
+  const cheapCoop = offer({
+    id: "Cheap co-op",
     totalCost: 60000,
     subjectRank: 300,
     subjectLabel: "Physics",
     researchScore: 0,
     researchLabel: "Not a doctoral research university",
-    careerScore: 0.3,
+    coopScore: 1,
+    coopLabel: "Mandatory co-op program",
   });
   const pricyResearch = offer({
     id: "Pricey R1",
@@ -144,42 +147,57 @@ describe("primary focus and the default weights", () => {
     subjectLabel: "Physics",
     researchScore: 1,
     researchLabel: "Very high research activity (R1)",
-    careerScore: 0.9,
   });
   const order = (weights: OfferWeights) =>
-    rankOffers([cheapTeaching, pricyResearch], weights).map((r) => r.offer.id);
+    rankOffers([cheapCoop, pricyResearch], weights).map((r) => r.offer.id);
 
   it("changes which offer comes first", () => {
-    expect(order(defaultOfferWeights("research"))[0]).toBe("Pricey R1");
-    expect(order(defaultOfferWeights("work_experience"))[0]).toBe("Pricey R1");
-    expect(order(defaultOfferWeights("affordability"))[0]).toBe("Cheap teaching");
+    expect(order(defaultOfferWeights(["research"]))[0]).toBe("Pricey R1");
+    expect(order(defaultOfferWeights(["work_experience"]))[0]).toBe("Cheap co-op");
+    expect(order(defaultOfferWeights(["affordability"]))[0]).toBe("Cheap co-op");
   });
 
   it("boosts the criteria each focus is about", () => {
-    const balanced = FOCUS_OFFER_WEIGHTS.balanced;
+    const balanced = BALANCED_OFFER_WEIGHTS;
     expect(FOCUS_OFFER_WEIGHTS.research.research).toBeGreaterThan(balanced.research);
     expect(FOCUS_OFFER_WEIGHTS.research.subjectRanking).toBeGreaterThan(balanced.subjectRanking);
-    expect(FOCUS_OFFER_WEIGHTS.work_experience.careers).toBeGreaterThan(balanced.careers);
+    expect(FOCUS_OFFER_WEIGHTS.work_experience.coop).toBeGreaterThan(balanced.coop);
     expect(FOCUS_OFFER_WEIGHTS.affordability.cost).toBeGreaterThan(balanced.cost);
     expect(FOCUS_OFFER_WEIGHTS.academic.ranking).toBeGreaterThan(balanced.ranking);
   });
 
+  it("blends several focuses by averaging their weights, rounded to slider steps", () => {
+    // research: subjectRanking 7, research 8, coop 1; work: 2, 1, 8 → 4.5 → 5 each
+    expect(defaultOfferWeights(["research", "work_experience"])).toMatchObject({
+      subjectRanking: 5,
+      research: 5,
+      coop: 5,
+    });
+    expect(defaultOfferWeights([])).toEqual(BALANCED_OFFER_WEIGHTS);
+  });
+
   it("keeps every default on the 0-10 slider scale", () => {
-    for (const weights of Object.values(FOCUS_OFFER_WEIGHTS)) {
+    for (const weights of [BALANCED_OFFER_WEIGHTS, ...Object.values(FOCUS_OFFER_WEIGHTS)]) {
       for (const w of Object.values(weights)) expect(w >= 0 && w <= 10).toBe(true);
     }
-    expect(DEFAULT_OFFER_WEIGHTS).toEqual(FOCUS_OFFER_WEIGHTS.balanced);
+    expect(DEFAULT_OFFER_WEIGHTS).toEqual(BALANCED_OFFER_WEIGHTS);
   });
 
-  it("says in plain language what the focus changed", () => {
-    expect(focusWeightsNote("research")).toBe(
+  it("names every ticked focus and what counts more because of them", () => {
+    expect(focusWeightsNote(["research"])).toBe(
       "Because you prioritize research, subject ranking and research intensity count more."
     );
+    expect(focusWeightsNote(["work_experience", "research"])).toBe(
+      "Because you prioritize work experience and research, subject ranking, research intensity and co-op / internships count more."
+    );
+    expect(focusWeightsNote([])).toBe("You chose Balanced, so no single criterion is boosted.");
   });
 
-  it("names research intensity when it decides the ranking", () => {
-    const [first] = rankOffers([cheapTeaching, pricyResearch], only("research"));
-    expect(first.reason).toContain("Very high research activity (R1)");
+  it("names the research level or co-op program when it decides the ranking", () => {
+    const [byResearch] = rankOffers([cheapCoop, pricyResearch], only("research"));
+    expect(byResearch.reason).toContain("Very high research activity (R1)");
+    const [byCoop] = rankOffers([cheapCoop, pricyResearch], only("coop"));
+    expect(byCoop.reason).toContain("mandatory co-op program");
   });
 });
 

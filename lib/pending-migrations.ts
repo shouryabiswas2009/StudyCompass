@@ -10,9 +10,10 @@
 export const PENDING_COLUMNS: Record<string, string> = {
   source: "migration_007_data_sources.sql",
   source_url: "migration_007_data_sources.sql",
-  primary_focus: "migration_008_primary_focus.sql",
   research_intensity: "migration_008_primary_focus.sql",
-  has_coop: "migration_008_primary_focus.sql",
+  focuses: "migration_009_multi_focus_and_coop.sql",
+  coop_program: "migration_009_multi_focus_and_coop.sql",
+  internship_support_url: "migration_009_multi_focus_and_coop.sql",
 };
 
 type DbError = { code?: string; message?: string } | null;

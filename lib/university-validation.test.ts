@@ -80,20 +80,26 @@ describe("validateUniversityForm", () => {
     }
   });
 
-  it("stores 'Not sure' research and co-op answers as unknown (null), never as 'no'", () => {
-    const blank = validateUniversityForm(makeForm({ research_intensity: "", has_coop: "" }));
+  it("stores 'Not sure' research and co-op answers as unknown, never as 'no'", () => {
+    const blank = validateUniversityForm(makeForm({ research_intensity: "", coop_program: "" }));
     expect(blank.ok && blank.data.research_intensity).toBeNull();
-    expect(blank.ok && blank.data.has_coop).toBeNull();
+    expect(blank.ok && blank.data.coop_program).toBe("unknown");
 
-    const set = validateUniversityForm(makeForm({ research_intensity: "high", has_coop: "false" }));
+    const set = validateUniversityForm(
+      makeForm({ research_intensity: "high", coop_program: "mandatory", internship_support_url: "https://uwaterloo.ca/co-operative-education" })
+    );
     expect(set.ok && set.data.research_intensity).toBe("high");
-    expect(set.ok && set.data.has_coop).toBe(false);
+    expect(set.ok && set.data.coop_program).toBe("mandatory");
+    expect(set.ok && set.data.internship_support_url).toBe("https://uwaterloo.ca/co-operative-education");
 
-    const bad = validateUniversityForm(makeForm({ research_intensity: "huge", has_coop: "maybe" }));
+    const bad = validateUniversityForm(
+      makeForm({ research_intensity: "huge", coop_program: "sometimes", internship_support_url: "javascript:alert(1)" })
+    );
     expect(bad.ok).toBe(false);
     if (!bad.ok) {
       expect(bad.errors.research_intensity).toBeDefined();
-      expect(bad.errors.has_coop).toBeDefined();
+      expect(bad.errors.coop_program).toBeDefined();
+      expect(bad.errors.internship_support_url).toBeDefined();
     }
   });
 

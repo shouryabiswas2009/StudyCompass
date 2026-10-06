@@ -18,6 +18,7 @@ export type ProfileFormState =
       // resets a form after its action runs, which would otherwise wipe
       // their input whenever validation fails.
       values?: Record<string, string>;
+      focuses?: string[]; // ticked checkboxes, echoed like `values`
     }
   | undefined;
 
@@ -31,7 +32,6 @@ const ECHOED_FIELDS = [
   "sat_score",
   "budget_min",
   "budget_max",
-  "primary_focus",
 ];
 
 function submittedValues(formData: FormData): Record<string, string> {
@@ -61,11 +61,12 @@ export async function saveProfile(
       error: "Please fix the highlighted fields.",
       fieldErrors: result.errors,
       values: submittedValues(formData),
+      focuses: formData.getAll("focuses").map(String),
     };
   }
 
-  // If migration_008 hasn't been run yet, the profile still saves without
-  // primary_focus, and the student is told why their focus didn't stick.
+  // If migration_009 hasn't been run yet, the profile still saves without
+  // focuses, and the student is told why their choice didn't stick.
   const {
     result: { error },
     skipped,
@@ -74,10 +75,10 @@ export async function saveProfile(
   );
 
   if (error) {
-    return { error: error.message, values: submittedValues(formData) };
+    return { error: error.message, values: submittedValues(formData), focuses: formData.getAll("focuses").map(String) };
   }
   if (skipped.length > 0) {
-    return { notice: skippedNotice(skipped), values: submittedValues(formData) };
+    return { notice: skippedNotice(skipped), values: submittedValues(formData), focuses: formData.getAll("focuses").map(String) };
   }
 
   redirect("/recommendations");

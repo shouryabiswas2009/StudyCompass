@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
-  WEIGHTS,
+  BALANCED_WEIGHTS,
   admissionChance,
   computeMatchScore,
-  earningsScore,
   explainMatch,
+  focusWeights,
   formatRank,
   getDisplayRanking,
   rankScore,
 } from "@/lib/matching";
-import scorecardReference from "@/lib/scorecard-reference.json";
+import type { Focus } from "@/lib/types";
 import type { Profile, University } from "@/lib/types";
 
 // A strong student and a school that suits them. Each test overrides only
@@ -38,16 +38,18 @@ function makeUniversity(overrides: Partial<University> = {}): University {
     id: "uni-1",
     name: "Test University",
     country: "Canada",
-    tuition: 40000,
-    qs_ranking: 50,
-    program_rankings: { "Computer Science": 10 },
+    // Top marks on every focus factor too (rank #1, R1, mandatory co-op,
+    // tuition + living = half the 60k budget), so "perfect" really is 100.
+    tuition: 20000,
+    qs_ranking: 1,
+    program_rankings: { "Computer Science": 1 },
     degree_levels: ["Undergraduate", "Masters", "PhD"],
     acceptance_rate: 100,
     avg_admitted_gpa: 90,
     sat_25: 1300,
     sat_75: 1500,
     min_ielts: 6.5,
-    living_cost_per_year: 15000,
+    living_cost_per_year: 10000,
     popular_programs: ["Computer Science", "Business"],
     description: "",
     created_by: null,
@@ -66,6 +68,8 @@ function makeUniversity(overrides: Partial<University> = {}): University {
     student_size: null,
     completion_rate: null,
     median_earnings_10yr: null,
+    research_intensity: "very_high",
+    coop_program: "mandatory",
     ...overrides,
   };
 }
@@ -97,7 +101,7 @@ describe("computeMatchScore", () => {
 
     // English can't be judged at all; academic fit falls back to GPA only.
     expect(pointsFor(result, "english")).toBeNull();
-    expect(pointsFor(result, "academic")).toBe(WEIGHTS.academic);
+    expect(pointsFor(result, "academic")).toBe(BALANCED_WEIGHTS.academic);
     // Everything we *can* judge is perfect, so the rescaled score stays 100.
     expect(result.score).toBe(100);
   });
@@ -196,7 +200,8 @@ describe("admissionChance", () => {
 
 describe("getDisplayRanking", () => {
   it("uses the subject ranking for the student's major when there is one", () => {
-    expect(getDisplayRanking(makeUniversity(), makeProfile())).toEqual({
+    const university = makeUniversity({ qs_ranking: 50, program_rankings: { "Computer Science": 10 } });
+    expect(getDisplayRanking(university, makeProfile())).toEqual({
       rank: 10,
       label: "Computer Science",
     });
@@ -204,7 +209,8 @@ describe("getDisplayRanking", () => {
 
   it("falls back to the overall ranking, labeled as such", () => {
     const profile = makeProfile({ intended_majors: ["Law"] });
-    expect(getDisplayRanking(makeUniversity(), profile)).toEqual({
+    const university = makeUniversity({ qs_ranking: 50, program_rankings: { "Computer Science": 10 } });
+    expect(getDisplayRanking(university, profile)).toEqual({
       rank: 50,
       label: "Overall",
     });
@@ -231,98 +237,164 @@ describe("missing program data", () => {
   });
 });
 
-describe("primary focus", () => {
-  // Same student, two schools that differ only in what the focuses look at:
-  // an R1 with a top-10 subject ranking that costs more than the budget
-  // once living costs are added, and a cheap teaching-focused college.
+
+describe("what matters most (focuses)", () => {
+  const sum = (weights: Record<string, number>) => Object.values(weights).reduce((a, b) => a + b, 0);
+  const profileWith = (focuses: Focus[]) => makeProfile({ focuses });
+
+  it("keeps the weights adding up to 100 for every combination of focuses", () => {
+    const all: Focus[] = ["academic", "work_experience", "research", "affordability"];
+    // Every subset of the four focuses (16 of them, including none).
+    for (let mask = 0; mask < 16; mask++) {
+      const focuses = all.filter((_, i) => mask & (1 << i));
+      expect(sum(focusWeights(focuses))).toBeCloseTo(100, 10);
+    }
+  });
+
+  it("gives one ticked focus all 20 focus points, and splits them evenly between two", () => {
+    expect(focusWeights(["research"])).toMatchObject({ research: 20, coop: 0, reputation: 0, affordability: 0 });
+    expect(focusWeights(["research", "work_experience"])).toMatchObject({
+      research: 10,
+      coop: 10,
+      reputation: 0,
+      affordability: 0,
+    });
+  });
+
+  it("treats all four ticked exactly like Balanced (caring about everything equally)", () => {
+    expect(focusWeights(["academic", "work_experience", "research", "affordability"])).toEqual(BALANCED_WEIGHTS);
+    expect(BALANCED_WEIGHTS).toMatchObject({ reputation: 5, coop: 5, research: 5, affordability: 5 });
+  });
+
+  // Same student, two schools: an R1 with a top-10 subject ranking whose
+  // tuition is over the 60k budget, and a cheap teaching-focused college
+  // with a mandatory co-op.
   const researchSchool = makeUniversity({
     id: "r1",
-    tuition: 55000,
+    tuition: 70000,
     living_cost_per_year: 15000,
     research_intensity: "very_high",
+    program_rankings: { "Computer Science": 10 },
+    coop_program: "unknown",
   });
-  const cheapCollege = makeUniversity({
-    id: "cheap",
+  const coopCollege = makeUniversity({
+    id: "coop",
     tuition: 15000,
     living_cost_per_year: 10000,
     qs_ranking: null,
     program_rankings: {},
     research_intensity: "non_doctoral",
+    coop_program: "mandatory",
   });
   const order = (profile: Profile) =>
-    [researchSchool, cheapCollege]
+    [researchSchool, coopCollege]
       .map((u) => ({ id: u.id, score: computeMatchScore(profile, u).score }))
       .sort((a, b) => b.score - a.score)
       .map((r) => r.id);
 
   it("ranks the same two schools differently under different focuses", () => {
-    expect(order(makeProfile({ primary_focus: "research" }))).toEqual(["r1", "cheap"]);
-    expect(order(makeProfile({ primary_focus: "affordability" }))).toEqual(["cheap", "r1"]);
+    expect(order(profileWith(["research"]))).toEqual(["r1", "coop"]);
+    expect(order(profileWith(["work_experience"]))).toEqual(["coop", "r1"]);
+    expect(order(profileWith(["affordability"]))).toEqual(["coop", "r1"]);
   });
 
-  it("keeps the weights adding up to 100", () => {
-    expect(Object.values(WEIGHTS).reduce((a, b) => a + b, 0)).toBe(100);
+  it("leaves a ticked focus with no data out of the blend, instead of counting it as zero", () => {
+    // The R1 has no co-op information. With research + work experience
+    // ticked, each gets 10 points; the co-op 10 can't be judged, so it's
+    // left out and the score is scaled over what is known.
+    const both = computeMatchScore(profileWith(["research", "work_experience"]), researchSchool);
+    expect(both.factors.find((f) => f.key === "research")?.max).toBe(10);
+    expect(pointsFor(both, "coop")).toBeNull();
+    const withNone = computeMatchScore(
+      profileWith(["research", "work_experience"]),
+      { ...researchSchool, coop_program: "none" }
+    );
+    expect(both.score).toBeGreaterThan(withNone.score);
   });
 
-  it("leaves the focus factor out for Balanced, and for profiles saved before the focus existed", () => {
-    const balanced = computeMatchScore(makeProfile({ primary_focus: "balanced" }), researchSchool);
-    const legacy = computeMatchScore(makeProfile({ primary_focus: undefined }), researchSchool);
-    expect(pointsFor(balanced, "focus")).toBeNull();
-    expect(balanced.factors.find((f) => f.key === "focus")?.note).toBe("Not used (Balanced)");
-    expect(legacy.score).toBe(balanced.score);
+  it("only shows factors that count for this student", () => {
+    const keys = computeMatchScore(profileWith(["research"]), researchSchool).factors.map((f) => f.key);
+    expect(keys).toContain("research");
+    expect(keys).not.toContain("coop");
   });
 
-  it("treats missing focus data as unknown, not zero", () => {
-    // No co-op flag and no earnings: the work-experience factor can't be judged.
-    const profile = makeProfile({ primary_focus: "work_experience" });
-    const result = computeMatchScore(profile, makeUniversity());
-    const balanced = computeMatchScore(makeProfile(), makeUniversity());
+  it("reads profiles saved before multi-select (old single primary_focus)", () => {
+    const legacy = makeProfile({ primary_focus: "research" });
+    expect(computeMatchScore(legacy, researchSchool).score).toBe(
+      computeMatchScore(profileWith(["research"]), researchSchool).score
+    );
+    const oldBalanced = makeProfile({ primary_focus: "balanced" });
+    expect(computeMatchScore(oldBalanced, researchSchool).score).toBe(
+      computeMatchScore(profileWith([]), researchSchool).score
+    );
+  });
 
-    expect(pointsFor(result, "focus")).toBeNull();
-    expect(result.score).toBe(balanced.score);
+  it("leaves unknown co-op out of the score instead of counting it as none", () => {
+    const profile = profileWith(["work_experience"]);
+    const unknown = computeMatchScore(profile, makeUniversity({ coop_program: "unknown" }));
+    const none = computeMatchScore(profile, makeUniversity({ coop_program: "none" }));
+    expect(pointsFor(unknown, "coop")).toBeNull();
+    expect(pointsFor(none, "coop")).toBe(0);
+    expect(unknown.score).toBeGreaterThan(none.score);
+  });
+
+  it("scores mandatory co-op above optional above none", () => {
+    const profile = profileWith(["work_experience"]);
+    const points = (coop_program: "mandatory" | "optional" | "none") =>
+      pointsFor(computeMatchScore(profile, makeUniversity({ coop_program })), "coop");
+    expect(points("mandatory")).toBe(20);
+    expect(points("optional")).toBe(10);
+    expect(points("none")).toBe(0);
+  });
+
+  it("doesn't boost work experience for great graduate earnings without co-op information", () => {
+    const profile = profileWith(["work_experience"]);
+    const highEarnings = makeUniversity({ coop_program: "unknown", median_earnings_10yr: 150000 });
+    const lowEarnings = makeUniversity({ coop_program: "unknown", median_earnings_10yr: 20000 });
+    expect(computeMatchScore(profile, highEarnings).score).toBe(computeMatchScore(profile, lowEarnings).score);
+    expect(pointsFor(computeMatchScore(profile, highEarnings), "coop")).toBeNull();
+  });
+
+  it("doesn't break when a school has no data for any ticked focus", () => {
+    const blank = makeUniversity({
+      qs_ranking: null,
+      program_rankings: {},
+      research_intensity: null,
+      coop_program: "unknown",
+      living_cost_per_year: null,
+    });
+    const result = computeMatchScore(profileWith(["academic", "work_experience", "research", "affordability"]), blank);
+    const focusFactors = result.factors.filter((f) =>
+      ["reputation", "coop", "research", "affordability"].includes(f.key)
+    );
     expect(Number.isFinite(result.score)).toBe(true);
-    const { concerns } = explainMatch(profile, makeUniversity());
-    expect(concerns).toContain("Co-op / internship program: not available for this school.");
-    expect(concerns).toContain("Graduate earnings: not available for this school.");
+    expect(focusFactors.every((f) => f.points === null)).toBe(true);
   });
 
-  it("uses only the figures it has (earnings without a co-op flag)", () => {
-    const profile = makeProfile({ primary_focus: "work_experience" });
-    const p90 = scorecardReference.median_earnings_10yr.p90;
-    const result = computeMatchScore(profile, makeUniversity({ median_earnings_10yr: p90 }));
-    expect(pointsFor(result, "focus")).toBe(WEIGHTS.focus);
-  });
-
-  it("puts the focus lines first, labeled with where the figure came from", () => {
+  it("puts each ticked focus's lines first, labeled with where the figure came from", () => {
     const { strengths } = explainMatch(
-      makeProfile({ primary_focus: "research" }),
-      makeUniversity({ research_intensity: "very_high", source: "College Scorecard" })
+      profileWith(["work_experience", "research"]),
+      makeUniversity({ coop_program: "mandatory", research_intensity: "very_high", source: "College Scorecard" })
     );
-    expect(strengths[0]).toBe(
-      "Very high research activity (R1) — Carnegie classification (College Scorecard)."
-    );
+    expect(strengths[0]).toBe("Has a mandatory co-op program (College Scorecard).");
+    expect(strengths[1]).toBe("Very high research activity (R1) — Carnegie classification (College Scorecard).");
   });
 
-  it("says when a student entered a co-op flag themselves", () => {
-    const { strengths } = explainMatch(
-      makeProfile({ primary_focus: "work_experience" }),
-      makeUniversity({ has_coop: true, source: "user-entered" })
-    );
-    expect(strengths[0]).toBe("Has a co-op / internship program (entered by you).");
+  it("says when there's no co-op information, after the real concerns", () => {
+    const { concerns } = explainMatch(profileWith(["work_experience"]), makeUniversity({ coop_program: "unknown" }));
+    expect(concerns[concerns.length - 1]).toBe("No co-op information available for this school.");
+  });
+
+  it("mentions the subject ranking once when academic and research are both ticked", () => {
+    const { strengths } = explainMatch(profileWith(["academic", "research"]), makeUniversity());
+    expect(strengths.filter((s) => s.startsWith("Strong subject ranking")).length).toBe(1);
   });
 });
 
-describe("focus scales", () => {
+describe("rankScore", () => {
   it("scores rankings on a log scale", () => {
     expect(rankScore(1)).toBe(1);
     expect(rankScore(1000)).toBe(0);
     expect(rankScore(5) - rankScore(10)).toBeGreaterThan(rankScore(205) - rankScore(210));
-  });
-
-  it("scores earnings between the 10th and 90th percentile of imported schools", () => {
-    const { p10, p90 } = scorecardReference.median_earnings_10yr;
-    expect(earningsScore(p10)).toBe(0);
-    expect(earningsScore(p90)).toBe(1);
-    expect(earningsScore(p90 * 2)).toBe(1);
   });
 });
