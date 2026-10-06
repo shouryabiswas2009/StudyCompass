@@ -9,7 +9,6 @@ evaluated in TypeScript (`lib/admission-model.ts`).
 | Data | Real? | Used for |
 | --- | --- | --- |
 | `data/synthetic_applicants.csv` | **No — simulated** by `generate_synthetic.py` around the app's *illustrative* university figures | Training/evaluating the admission-probability model the app uses |
-| `data/raw/Admission_Predict_Ver1.1.csv` (Kaggle) | Real, but self-reported, 500 Masters applicants | Linear regression analysis only (features like GRE/TOEFL aren't in the app) |
 
 There's no public per-student undergraduate admissions data, so the app's
 model is trained on synthetic applicants. Its metrics show that the
@@ -28,19 +27,12 @@ ml/.venv/Scripts/python -m pip install -r ml/requirements.txt
 
 (On macOS/Linux use `ml/.venv/bin/python` instead.)
 
-For the regression analysis, download the Kaggle data: sign in at
-kaggle.com, open
-<https://www.kaggle.com/datasets/mohansacharya/graduate-admissions>, click
-Download, unzip, and copy `Admission_Predict_Ver1.1.csv` into
-`ml/data/raw/`.
-
 ## Run
 
 ```bash
 npm run ml:export-universities                      # SQL seed + migrations → data/universities.csv
 ml/.venv/Scripts/python ml/generate_synthetic.py    # → data/synthetic_applicants.csv
 ml/.venv/Scripts/python ml/train_admission.py       # → reports/, lib/model/*.json
-ml/.venv/Scripts/python ml/train_kaggle_regression.py   # needs the Kaggle CSV
 npm test                                            # includes the TS-vs-Python parity test
 ```
 
@@ -68,10 +60,6 @@ Everything is seeded, so re-running gives identical data and results.
   set. It reports ROC-AUC, log-loss, Brier score, calibration and ROC
   plots, and confusion matrices, then exports the logistic regression plus
   20 parity fixtures.
-- **`train_kaggle_regression.py`** fits a standardized linear regression to
-  predict "Chance of Admit" and reports R², RMSE, cross-validated R², a
-  coefficient table and a residual plot. Its two-sentence interpretation is
-  generated from the fitted numbers.
 
 ## Why logistic regression in the app
 
@@ -88,5 +76,5 @@ exported JSON), and only for undergraduate profiles.
 
 ## Results
 
-See `reports/admission_report.md` and `reports/kaggle_regression.md`
-(written by the scripts; numbers are never typed in by hand).
+See `reports/admission_report.md` (written by the script; numbers are
+never typed in by hand).

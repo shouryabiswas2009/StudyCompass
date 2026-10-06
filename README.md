@@ -248,13 +248,9 @@ These numbers show the pipeline recovers the structure of data it was
 built to have. They say nothing about real admissions, and the UI labels
 the estimate as a demo. Gradient boosting scores slightly higher;
 logistic regression is used because its coefficients and per-factor
-contributions can be explained, and it runs in the browser without a
-server. The model only replaces the old rule because training recorded
-that it beats the rule on all three metrics.
-
-A separate linear regression on the real (self-reported) Kaggle Graduate
-Admissions data lives in `ml/train_kaggle_regression.py`; its results go
-in `ml/reports/kaggle_regression.md` once the dataset is downloaded.
+contributions can be explained, and it runs in plain TypeScript inside the
+Next.js app, with no Python server. The model only replaces the old rule
+because training recorded that it beats the rule on all three metrics.
 
 ## How offer ranking works
 

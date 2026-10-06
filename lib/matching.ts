@@ -60,8 +60,10 @@ export type MatchExplanation = { strengths: string[]; concerns: string[] };
 // leaves out costs. It never lowers the score: paying less isn't a worse fit.
 const MUCH_CHEAPER_RATIO = 0.5;
 
-// Reach/Match/Safety thresholds. This hand-tuned rule is the baseline a
-// trained model has to beat later (Phase 6).
+// Reach/Match/Safety thresholds. This hand-tuned rule is the baseline the
+// trained model (lib/admission-model.ts) is measured against; for
+// undergraduate profiles scoreUniversity() uses the model instead, because
+// it beat this rule on held-out data.
 const REACH_IF_ACCEPTANCE_BELOW = 15; // % — this selective is a reach for anyone
 const REACH_IF_ACADEMIC_FIT_BELOW = 0.5;
 const SAFETY_ACADEMIC_FIT = 0.85;
