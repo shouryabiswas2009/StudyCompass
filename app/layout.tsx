@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { siteUrl } from "@/lib/site-url";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "flag-icons/css/flag-icons.min.css";
@@ -19,6 +20,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  // Lets link previews (and any relative metadata URL) use the real domain.
+  metadataBase: new URL(siteUrl()),
   title: "StudyCompass — Find the right university for you",
   description:
     "StudyCompass matches students to universities based on their academic profile, budget, and preferences.",

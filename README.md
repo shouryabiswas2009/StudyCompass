@@ -253,6 +253,14 @@ Recommendations also show **top picks by country**: the best three
 matches in each of the student's preferred countries, above the full
 ranked list, so one country can't crowd out the others.
 
+## Putting it online
+
+Step-by-step guide for Vercel (free) with your own domain, including the
+DNS records and the Supabase URL settings:
+[`docs/DEPLOY.md`](docs/DEPLOY.md). The site's public address comes from
+`NEXT_PUBLIC_SITE_URL` (or Vercel's own domain if that's empty), see
+[`lib/site-url.ts`](lib/site-url.ts).
+
 ## Continuous integration
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push
