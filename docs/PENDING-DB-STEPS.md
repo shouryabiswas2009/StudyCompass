@@ -1,9 +1,17 @@
 # Pending database steps
 
 SQL files that are written and tested locally (`npm run db:check` runs them
-all, twice, on a scratch Postgres) but **have not been run on the live
-Supabase database yet**. Nothing here is verified against the real database
-until it's ticked off below.
+all, twice, on a scratch Postgres) and then run by hand on the live
+Supabase database. Nothing here counts as verified against the real
+database until it's ticked off below.
+
+**Status (2026-10-06): nothing pending.** All four steps were run in the
+SQL Editor and verified with read-only queries against the live database:
+the new columns exist, 14 sample schools are linked, and the counts match
+`npm run db:check` exactly (College Scorecard 1,577, illustrative 47;
+research levels 146 / 126 / 154 / 1,093 with 58 unknown).
+
+New migrations will be added to this table when they're written.
 
 Run them in the Supabase dashboard → **SQL Editor** → **New query**: paste
 the whole file, click **Run**, then run the check underneath it. Do them in
@@ -11,10 +19,10 @@ this order: the seed files need both migrations first.
 
 | # | File | Status |
 | --- | --- | --- |
-| 1 | `supabase/migration_007_data_sources.sql` | Not run yet |
-| 2 | `supabase/migration_008_primary_focus.sql` | Not run yet |
-| 3 | `supabase/seed_scorecard/00_link_existing.sql` | Not run yet |
-| 4 | `supabase/seed_scorecard/01_universities.sql` … `06_universities.sql` (one at a time, in order) | Not run yet |
+| 1 | `supabase/migration_007_data_sources.sql` | Done, verified 2026-10-06 |
+| 2 | `supabase/migration_008_primary_focus.sql` | Done, verified 2026-10-06 |
+| 3 | `supabase/seed_scorecard/00_link_existing.sql` | Done, verified 2026-10-06 (14 linked) |
+| 4 | `supabase/seed_scorecard/01_universities.sql` … `06_universities.sql` (one at a time, in order) | Done, verified 2026-10-06 (1,577 rows) |
 
 All of them are safe to run again if you're not sure whether one went
 through.
