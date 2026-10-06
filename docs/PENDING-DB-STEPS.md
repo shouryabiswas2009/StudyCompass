@@ -9,8 +9,11 @@ database until it's ticked off below.
 verified with read-only queries against the live database (the new
 columns exist, 14 sample schools are linked, and the counts match
 `npm run db:check` exactly: College Scorecard 1,577, illustrative 47;
-research levels 146 / 126 / 154 / 1,093 with 58 unknown).
-**Step 5 is pending.**
+research levels 146 / 126 / 154 / 1,093 with 58 unknown). Step 5 was run
+the same day and verified: `focuses`, `coop_program` and
+`internship_support_url` exist, `primary_focus` and `has_coop` are gone,
+all 1,624 schools start at co-op `unknown`, and a signed-in profile's old
+single focus shows up in the new list. **Nothing pending.**
 
 New migrations will be added to this table when they're written.
 
@@ -24,7 +27,7 @@ this order: the seed files need both migrations first.
 | 2 | `supabase/migration_008_primary_focus.sql` | Done, verified 2026-10-06 |
 | 3 | `supabase/seed_scorecard/00_link_existing.sql` | Done, verified 2026-10-06 (14 linked) |
 | 4 | `supabase/seed_scorecard/01_universities.sql` … `06_universities.sql` (one at a time, in order) | Done, verified 2026-10-06 (1,577 rows) |
-| 5 | `supabase/migration_009_multi_focus_and_coop.sql` | **Not run yet** |
+| 5 | `supabase/migration_009_multi_focus_and_coop.sql` | Done, verified 2026-10-06 |
 
 All of them are safe to run again if you're not sure whether one went
 through.
