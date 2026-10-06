@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  WEIGHTS,
   admissionChance,
   computeMatchScore,
+  earningsScore,
   explainMatch,
   formatRank,
   getDisplayRanking,
+  rankScore,
 } from "@/lib/matching";
+import scorecardReference from "@/lib/scorecard-reference.json";
 import type { Profile, University } from "@/lib/types";
 
 // A strong student and a school that suits them. Each test overrides only
@@ -93,7 +97,7 @@ describe("computeMatchScore", () => {
 
     // English can't be judged at all; academic fit falls back to GPA only.
     expect(pointsFor(result, "english")).toBeNull();
-    expect(pointsFor(result, "academic")).toBe(20);
+    expect(pointsFor(result, "academic")).toBe(WEIGHTS.academic);
     // Everything we *can* judge is perfect, so the rescaled score stays 100.
     expect(result.score).toBe(100);
   });
@@ -119,12 +123,12 @@ describe("computeMatchScore", () => {
   });
 
   it("loses budget points in proportion to how far over budget a school is", () => {
-    // 50% over the 60k budget → half of the 30 budget points.
+    // 50% over the 60k budget → half of the 25 budget points.
     const university = makeUniversity({ tuition: 90000 });
     const result = computeMatchScore(makeProfile(), university);
     const { concerns } = explainMatch(makeProfile(), university);
 
-    expect(pointsFor(result, "budget")).toBe(15);
+    expect(pointsFor(result, "budget")).toBe(12.5);
     expect(result.score).toBeLessThan(100);
     expect(concerns).toContain("Tuition ($90,000/yr) is $30,000 over your budget.");
   });
@@ -224,5 +228,101 @@ describe("missing program data", () => {
     expect(result.factors.find((f) => f.key === "major")?.points).toBeNull();
     expect(result.score).toBe(100); // everything known is a perfect fit
     expect(concerns.some((c) => c.startsWith("None of your intended majors"))).toBe(false);
+  });
+});
+
+describe("primary focus", () => {
+  // Same student, two schools that differ only in what the focuses look at:
+  // an R1 with a top-10 subject ranking that costs more than the budget
+  // once living costs are added, and a cheap teaching-focused college.
+  const researchSchool = makeUniversity({
+    id: "r1",
+    tuition: 55000,
+    living_cost_per_year: 15000,
+    research_intensity: "very_high",
+  });
+  const cheapCollege = makeUniversity({
+    id: "cheap",
+    tuition: 15000,
+    living_cost_per_year: 10000,
+    qs_ranking: null,
+    program_rankings: {},
+    research_intensity: "non_doctoral",
+  });
+  const order = (profile: Profile) =>
+    [researchSchool, cheapCollege]
+      .map((u) => ({ id: u.id, score: computeMatchScore(profile, u).score }))
+      .sort((a, b) => b.score - a.score)
+      .map((r) => r.id);
+
+  it("ranks the same two schools differently under different focuses", () => {
+    expect(order(makeProfile({ primary_focus: "research" }))).toEqual(["r1", "cheap"]);
+    expect(order(makeProfile({ primary_focus: "affordability" }))).toEqual(["cheap", "r1"]);
+  });
+
+  it("keeps the weights adding up to 100", () => {
+    expect(Object.values(WEIGHTS).reduce((a, b) => a + b, 0)).toBe(100);
+  });
+
+  it("leaves the focus factor out for Balanced, and for profiles saved before the focus existed", () => {
+    const balanced = computeMatchScore(makeProfile({ primary_focus: "balanced" }), researchSchool);
+    const legacy = computeMatchScore(makeProfile({ primary_focus: undefined }), researchSchool);
+    expect(pointsFor(balanced, "focus")).toBeNull();
+    expect(balanced.factors.find((f) => f.key === "focus")?.note).toBe("Not used (Balanced)");
+    expect(legacy.score).toBe(balanced.score);
+  });
+
+  it("treats missing focus data as unknown, not zero", () => {
+    // No co-op flag and no earnings: the work-experience factor can't be judged.
+    const profile = makeProfile({ primary_focus: "work_experience" });
+    const result = computeMatchScore(profile, makeUniversity());
+    const balanced = computeMatchScore(makeProfile(), makeUniversity());
+
+    expect(pointsFor(result, "focus")).toBeNull();
+    expect(result.score).toBe(balanced.score);
+    expect(Number.isFinite(result.score)).toBe(true);
+    const { concerns } = explainMatch(profile, makeUniversity());
+    expect(concerns).toContain("Co-op / internship program: not available for this school.");
+    expect(concerns).toContain("Graduate earnings: not available for this school.");
+  });
+
+  it("uses only the figures it has (earnings without a co-op flag)", () => {
+    const profile = makeProfile({ primary_focus: "work_experience" });
+    const p90 = scorecardReference.median_earnings_10yr.p90;
+    const result = computeMatchScore(profile, makeUniversity({ median_earnings_10yr: p90 }));
+    expect(pointsFor(result, "focus")).toBe(WEIGHTS.focus);
+  });
+
+  it("puts the focus lines first, labeled with where the figure came from", () => {
+    const { strengths } = explainMatch(
+      makeProfile({ primary_focus: "research" }),
+      makeUniversity({ research_intensity: "very_high", source: "College Scorecard" })
+    );
+    expect(strengths[0]).toBe(
+      "Very high research activity (R1) — Carnegie classification (College Scorecard)."
+    );
+  });
+
+  it("says when a student entered a co-op flag themselves", () => {
+    const { strengths } = explainMatch(
+      makeProfile({ primary_focus: "work_experience" }),
+      makeUniversity({ has_coop: true, source: "user-entered" })
+    );
+    expect(strengths[0]).toBe("Has a co-op / internship program (entered by you).");
+  });
+});
+
+describe("focus scales", () => {
+  it("scores rankings on a log scale", () => {
+    expect(rankScore(1)).toBe(1);
+    expect(rankScore(1000)).toBe(0);
+    expect(rankScore(5) - rankScore(10)).toBeGreaterThan(rankScore(205) - rankScore(210));
+  });
+
+  it("scores earnings between the 10th and 90th percentile of imported schools", () => {
+    const { p10, p90 } = scorecardReference.median_earnings_10yr;
+    expect(earningsScore(p10)).toBe(0);
+    expect(earningsScore(p90)).toBe(1);
+    expect(earningsScore(p90 * 2)).toBe(1);
   });
 });

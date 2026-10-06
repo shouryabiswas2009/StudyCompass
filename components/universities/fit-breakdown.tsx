@@ -12,7 +12,7 @@ export function FitBreakdown({ factors }: { factors: FactorScore[] }) {
             <span className="text-muted-foreground">{factor.label}</span>
             <span className="font-medium">
               {factor.points === null
-                ? "Unknown (not counted)"
+                ? (factor.note ?? "Unknown (not counted)")
                 : `${factor.points} / ${factor.max}`}
             </span>
           </div>

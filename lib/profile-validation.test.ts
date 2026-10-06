@@ -37,6 +37,18 @@ describe("validateProfileForm", () => {
     }
   });
 
+  it("defaults the primary focus to balanced and rejects unknown values", () => {
+    const missing = validateProfileForm(makeForm());
+    expect(missing.ok && missing.data.primary_focus).toBe("balanced");
+
+    const research = validateProfileForm(makeForm({ primary_focus: "research" }));
+    expect(research.ok && research.data.primary_focus).toBe("research");
+
+    const bad = validateProfileForm(makeForm({ primary_focus: "fame" }));
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) expect(bad.errors.primary_focus).toBeDefined();
+  });
+
   it("treats blank optional scores as missing, not as errors", () => {
     const result = validateProfileForm(makeForm({ ielts_score: "", sat_score: "" }));
     expect(result.ok).toBe(true);

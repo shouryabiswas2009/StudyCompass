@@ -4,6 +4,7 @@ import {
   detectDataYear,
   livingCost,
   normalizeSchool,
+  researchIntensity,
   satRange,
   topPrograms,
 } from "./normalize-lib.mjs";
@@ -19,6 +20,7 @@ function rawSchool(overrides = {}) {
       ownership: 1,
       region_id: 3,
       degrees_awarded: { highest: 4 },
+      carnegie_basic: 15,
     },
     latest: {
       admissions: {
@@ -35,7 +37,7 @@ function rawSchool(overrides = {}) {
         roomboard: { oncampus: 12820 },
         otherexpense: { oncampus: 2290 },
       },
-      student: { size: 44503 },
+      student: { size: 44503, retention_rate: { four_year: { full_time: 0.927 } } },
       completion: { completion_rate_4yr_150nt: 0.831 },
       earnings: { "10_yrs_after_entry": { median: 72424 } },
       academics: { program_percentage: { engineering: 0.25, computer: 0.12, business_marketing: 0.1, health: 0.08, history: 0.01 } },
@@ -62,6 +64,8 @@ describe("normalizeSchool", () => {
       sat_midpoint: 1310,
       living_cost_per_year: 15110,
       completion_rate: 83.1,
+      retention_rate: 92.7,
+      research_intensity: "very_high",
       source: "College Scorecard",
       data_year: "2024",
     });
@@ -77,6 +81,21 @@ describe("normalizeSchool", () => {
     const raw = rawSchool();
     raw.latest.cost.tuition = { in_state: null, out_of_state: null };
     expect(normalizeSchool(raw, meta)).toBeNull();
+  });
+});
+
+describe("researchIntensity", () => {
+  it("maps the three doctoral Carnegie codes and labels the rest non-doctoral", () => {
+    expect(researchIntensity(15)).toBe("very_high");
+    expect(researchIntensity(16)).toBe("high");
+    expect(researchIntensity(17)).toBe("doctoral_professional");
+    expect(researchIntensity(21)).toBe("non_doctoral"); // e.g. a liberal arts college
+  });
+
+  it("leaves unclassified schools unknown", () => {
+    expect(researchIntensity(-2)).toBeNull();
+    expect(researchIntensity(0)).toBeNull();
+    expect(researchIntensity(undefined)).toBeNull();
   });
 });
 

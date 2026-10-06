@@ -20,6 +20,7 @@ export const FIELDS = [
   "school.ownership",
   "school.region_id",
   "school.degrees_awarded.highest",
+  "school.carnegie_basic",
   "latest.admissions.admission_rate.overall",
   "latest.admissions.sat_scores.25th_percentile.critical_reading",
   "latest.admissions.sat_scores.75th_percentile.critical_reading",
@@ -35,6 +36,7 @@ export const FIELDS = [
   "latest.cost.otherexpense.oncampus",
   "latest.student.size",
   "latest.completion.completion_rate_4yr_150nt",
+  "latest.student.retention_rate.four_year.full_time",
   "latest.earnings.10_yrs_after_entry.median",
   "latest.academics.program_percentage",
 ];
@@ -45,6 +47,20 @@ export const YEAR_PROBE_SCHOOL_ID = 243780;
 
 // Scorecard ownership codes.
 export const OWNERSHIP = { 1: "public", 2: "private nonprofit", 3: "private for-profit" };
+
+// Carnegie Classification "basic" codes, as published in Scorecard's
+// school.carnegie_basic. Only the three doctoral codes say anything about
+// research activity; every other positive code (associate, master's,
+// baccalaureate, special focus, tribal) is a non-doctoral institution.
+// 0 / -2 / missing mean "not classified" and stay null. Checked against
+// schools with well-known classifications: MIT, Purdue and Northeastern
+// report 15, Ball State 16, Amherst and Williams 21.
+// Definitions: https://carnegieclassifications.acenet.edu/
+export const CARNEGIE_RESEARCH = {
+  15: "very_high", // Doctoral Universities: Very High Research Activity ("R1")
+  16: "high", // Doctoral Universities: High Research Activity ("R2")
+  17: "doctoral_professional", // Doctoral/Professional Universities
+};
 
 // Scorecard (IPEDS) region codes.
 export const REGIONS = {

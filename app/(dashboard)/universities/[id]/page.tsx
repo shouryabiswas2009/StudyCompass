@@ -15,6 +15,7 @@ import { AdmissionEstimate } from "@/components/universities/admission-estimate"
 import { StrengthsConcerns } from "@/components/universities/strengths-concerns";
 import { Flag } from "@/components/flag";
 import { usd } from "@/lib/format";
+import { FOCUS_LABELS, RESEARCH_LABELS, focusOf } from "@/lib/focus";
 import { compareUrl } from "@/lib/compare";
 import type { Profile, University } from "@/lib/types";
 
@@ -98,11 +99,25 @@ export default async function UniversityDetailsPage({
     { label: "In-state tuition", value: university.tuition_in_state != null ? `${usd(university.tuition_in_state)}/yr` : null },
     { label: "Average net price", value: university.avg_net_price != null ? `${usd(university.avg_net_price)}/yr` : null },
     { label: "Graduate within 6 years", value: university.completion_rate != null ? `${university.completion_rate}%` : null },
+    { label: "Return for a 2nd year", value: university.retention_rate != null ? `${university.retention_rate}%` : null },
     {
       label: "Median earnings, 10 yrs after entry",
       value: university.median_earnings_10yr != null ? `${usd(university.median_earnings_10yr)}/yr` : null,
     },
   ].filter((f) => f.value !== null);
+
+  // The figures the research / work-experience focuses use. Shown for every
+  // school, with "Not available" rather than a guess when we don't have one.
+  const focusFigures = [
+    {
+      label: "Research activity (Carnegie)",
+      value: university.research_intensity ? RESEARCH_LABELS[university.research_intensity] : "Not available",
+    },
+    {
+      label: "Co-op / internship program",
+      value: university.has_coop == null ? "Not available" : university.has_coop ? "Yes" : "No",
+    },
+  ];
 
   const stats = [
     {
@@ -184,6 +199,12 @@ export default async function UniversityDetailsPage({
               probability={entry.prediction?.probability}
             />
           </div>
+          <p className="-mt-2 mb-4 text-sm text-muted-foreground">
+            Scored with your focus: <strong>{FOCUS_LABELS[focusOf(profile!)]}</strong>.{" "}
+            <Link href="/profile" className="underline">
+              Change it
+            </Link>
+          </p>
           <div className="grid gap-6 sm:grid-cols-2">
             <FitBreakdown factors={entry.match.factors} />
             <StrengthsConcerns explanation={entry.explanation} />
@@ -251,6 +272,28 @@ export default async function UniversityDetailsPage({
           </p>
         </div>
       )}
+
+      <div className="mt-8 space-y-2">
+        <h2 className="font-medium">Research and careers</h2>
+        <dl className="grid grid-cols-2 gap-3">
+          {focusFigures.map((figure) => (
+            <div key={figure.label} className="rounded-xl border p-3">
+              <dt className="text-xs text-muted-foreground">{figure.label}</dt>
+              <dd className="font-medium">{figure.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="text-xs text-muted-foreground">
+          {university.source === "user-entered"
+            ? "Entered by you."
+            : official
+              ? "Research activity is the Carnegie Classification as reported by College Scorecard."
+              : "Not available for illustrative schools."}{" "}
+          No official source lists co-op / internship programs for every
+          school, so the app never fills that in; you can set it on schools you
+          add yourself.
+        </p>
+      </div>
 
       <div className="mt-8 space-y-2">
         <h2 className="font-medium">Popular programs</h2>

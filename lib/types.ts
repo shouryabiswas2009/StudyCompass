@@ -5,6 +5,18 @@ export type DegreeLevel = "Undergraduate" | "Masters" | "PhD";
 
 export const DEGREE_LEVELS: DegreeLevel[] = ["Undergraduate", "Masters", "PhD"];
 
+// "What matters most to me" (migration_008). Labels, descriptions and how
+// each one steers scoring live in lib/focus.ts.
+export const PRIMARY_FOCUSES = [
+  "balanced",
+  "academic",
+  "work_experience",
+  "research",
+  "affordability",
+] as const;
+
+export type PrimaryFocus = (typeof PRIMARY_FOCUSES)[number];
+
 export type Profile = {
   id: string;
   full_name: string;
@@ -17,6 +29,8 @@ export type Profile = {
   budget_max: number;
   preferred_countries: string[];
   preferred_degree_level: DegreeLevel;
+  // Missing (undefined) until migration_008 is run; read it with focusOf().
+  primary_focus?: PrimaryFocus;
   created_at: string;
   updated_at: string;
 };
@@ -69,7 +83,24 @@ export type University = {
   student_size: number | null;
   completion_rate: number | null; // % finishing within 150% of normal time
   median_earnings_10yr: number | null;
+
+  // Signals for the student's primary focus (migration_008). Optional
+  // because they're missing until that migration runs; null = not available.
+  research_intensity?: ResearchIntensity | null; // Carnegie classification
+  retention_rate?: number | null; // % of first-year students who return
+  has_coop?: boolean | null; // only ever set by a student, never imported
 };
+
+// Carnegie Classification research activity, as reported by College
+// Scorecard: R1, R2, other doctoral/professional, or not a doctoral school.
+export const RESEARCH_INTENSITIES = [
+  "very_high",
+  "high",
+  "doctoral_professional",
+  "non_doctoral",
+] as const;
+
+export type ResearchIntensity = (typeof RESEARCH_INTENSITIES)[number];
 
 export type UniversitySource = "College Scorecard" | "illustrative" | "user-entered";
 
@@ -90,6 +121,8 @@ export type UniversityInput = Pick<
   | "degree_levels"
   | "description"
   | "source_url"
+  | "research_intensity"
+  | "has_coop"
 >;
 
 // Application tracker (migration_006). An "admitted" application doubles as

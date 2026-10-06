@@ -5,19 +5,28 @@ import {
   predictAdmission,
   type AdmissionPrediction,
 } from "@/lib/admission-model";
-import type { Profile, University } from "@/lib/types";
+import {
+  FOCUS_LABELS,
+  RESEARCH_LABELS,
+  RESEARCH_SCORES,
+  focusOf,
+} from "@/lib/focus";
+import scorecardReference from "@/lib/scorecard-reference.json";
+import type { PrimaryFocus, Profile, University } from "@/lib/types";
 
 // ─── Scoring weights ─────────────────────────────────────────────────────
 // The one place the weights live. They add up to 100, so each reads as
 // "how many points out of 100 this factor is worth". Budget is heaviest
-// because a school a student can't afford isn't a real option.
+// because a school a student can't afford isn't a real option. "focus" is
+// the student's "what matters most to me" choice (see focusSignals below).
 export const WEIGHTS = {
-  budget: 30,
-  major: 20,
-  academic: 20,
-  country: 15,
+  budget: 25,
+  major: 15,
+  academic: 15,
+  country: 10,
   english: 10,
   acceptance: 5,
+  focus: 20,
 } as const;
 
 export type FactorKey = keyof typeof WEIGHTS;
@@ -29,6 +38,7 @@ const FACTOR_LABELS: Record<FactorKey, string> = {
   country: "Country",
   english: "English",
   acceptance: "Acceptance rate",
+  focus: "Your focus",
 };
 
 export type FactorScore = {
@@ -38,6 +48,9 @@ export type FactorScore = {
   // null = we can't tell (e.g. no SAT on either side). Unknown factors are
   // left out of the total rather than counted as zero.
   points: number | null;
+  // Why points is null, when it isn't simply "unknown" (e.g. "Balanced"
+  // doesn't use the focus factor at all).
+  note?: string;
 };
 
 export type AdmissionChance = "Reach" | "Match" | "Safety";
@@ -161,6 +174,112 @@ function acceptanceFit(university: University): number {
   return clamp01(university.acceptance_rate / 100);
 }
 
+// ─── Focus signals ───────────────────────────────────────────────────────
+// Each focus picks which university figures count. A signal is only
+// included when we actually have the figure, so the focus factor is the
+// average of what's known, and null (left out) when nothing is.
+
+export type FocusSignal = { name: string; value: number }; // value 0..1
+
+// Rankings on a log scale, like the offers page: #1 → 1, #10 → 0.67,
+// #100 → 0.33, #1000 or lower → 0. Going from #10 to #5 matters more than
+// going from #210 to #205.
+export function rankScore(rank: number): number {
+  return clamp01(1 - Math.log10(Math.max(rank, 1)) / 3);
+}
+
+// Where a school's median earnings sit between the 10th and 90th percentile
+// of all imported US schools (lib/scorecard-reference.json, written by the
+// import script), so the cut-offs come from the data, not from a guess.
+const EARNINGS = scorecardReference.median_earnings_10yr;
+export function earningsScore(earnings: number): number {
+  return clamp01((earnings - EARNINGS.p10) / (EARNINGS.p90 - EARNINGS.p10));
+}
+
+// Tuition + living cost per year, or null when living cost is unknown —
+// tuition alone would make a school look cheaper than it is.
+function totalCostPerYear(university: University): number | null {
+  const living = university.living_cost_per_year;
+  return isKnown(living) ? university.tuition + living : null;
+}
+
+// Total cost vs. the student's maximum budget: half the budget or less → 1,
+// exactly the budget → 0.5, 1.5× the budget or more → 0.
+function affordabilityScore(total: number, budgetMax: number): number {
+  return clamp01(1.5 - total / budgetMax);
+}
+
+function subjectRanking(profile: Profile, university: University) {
+  const match = findMatchingProgram(profile, university);
+  const rank = match ? university.program_rankings?.[match.program] : undefined;
+  return match && isKnown(rank) ? { program: match.program, rank } : null;
+}
+
+// Research intensity as a 0..1 signal with its label, or null if unknown.
+// Exported for the offers page.
+export function researchSignal(university: University): { value: number; label: string } | null {
+  const level = university.research_intensity;
+  return level ? { value: RESEARCH_SCORES[level], label: RESEARCH_LABELS[level] } : null;
+}
+
+const hasCoopKnown = (university: University) =>
+  university.has_coop === true || university.has_coop === false;
+
+// Career outcomes (co-op program + graduate earnings) as one 0..1 signal,
+// or null if neither is known. Exported for the offers page.
+export function careerSignal(university: University): number | null {
+  const parts: number[] = [];
+  if (hasCoopKnown(university)) parts.push(university.has_coop ? 1 : 0);
+  if (isKnown(university.median_earnings_10yr)) {
+    parts.push(earningsScore(university.median_earnings_10yr));
+  }
+  return parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : null;
+}
+
+export function focusSignals(
+  focus: PrimaryFocus,
+  profile: Profile,
+  university: University
+): FocusSignal[] {
+  const signals: FocusSignal[] = [];
+  const add = (name: string, value: number | null | undefined) => {
+    if (isKnown(value)) signals.push({ name, value });
+  };
+  const subject = subjectRanking(profile, university);
+  const { qs_ranking, completion_rate, retention_rate, median_earnings_10yr } = university;
+
+  switch (focus) {
+    case "academic":
+      add("subject ranking", subject ? rankScore(subject.rank) : null);
+      add("overall ranking", isKnown(qs_ranking) ? rankScore(qs_ranking) : null);
+      add("completion rate", isKnown(completion_rate) ? completion_rate / 100 : null);
+      add("retention rate", isKnown(retention_rate) ? retention_rate / 100 : null);
+      break;
+    case "work_experience":
+      add("co-op / internship program", hasCoopKnown(university) ? (university.has_coop ? 1 : 0) : null);
+      add("graduate earnings", isKnown(median_earnings_10yr) ? earningsScore(median_earnings_10yr) : null);
+      break;
+    case "research":
+      add("research intensity", researchSignal(university)?.value);
+      add("subject ranking", subject ? rankScore(subject.rank) : null);
+      break;
+    case "affordability": {
+      const total = totalCostPerYear(university);
+      add("total cost vs. budget", total === null ? null : affordabilityScore(total, profile.budget_max));
+      break;
+    }
+    case "balanced":
+      break; // no extra factor: the other factors already balance things
+  }
+  return signals;
+}
+
+function focusFit(focus: PrimaryFocus, profile: Profile, university: University): number | null {
+  const signals = focusSignals(focus, profile, university);
+  if (signals.length === 0) return null;
+  return signals.reduce((sum, s) => sum + s.value, 0) / signals.length;
+}
+
 // ─── Public API ──────────────────────────────────────────────────────────
 
 export function admissionChance(
@@ -180,6 +299,7 @@ export function admissionChance(
 // How well a university fits a student: a 0-100 score plus the points
 // behind it, so the UI can show *why* and not just a number.
 export function computeMatchScore(profile: Profile, university: University): MatchResult {
+  const focus = focusOf(profile);
   const fits: Record<FactorKey, number | null> = {
     budget: budgetFit(profile, university),
     // No program list at all means we don't know, not that none match.
@@ -190,16 +310,21 @@ export function computeMatchScore(profile: Profile, university: University): Mat
     country: countryMatches(profile, university) ? 1 : 0,
     english: englishFit(profile, university),
     acceptance: acceptanceFit(university),
+    focus: focusFit(focus, profile, university),
   };
 
   const factors: FactorScore[] = (Object.keys(WEIGHTS) as FactorKey[]).map((key) => {
     const fit = fits[key];
-    return {
+    const factor: FactorScore = {
       key,
-      label: FACTOR_LABELS[key],
+      label: key === "focus" ? `Your focus: ${FOCUS_LABELS[focus]}` : FACTOR_LABELS[key],
       max: WEIGHTS[key],
       points: fit === null ? null : Math.round(fit * WEIGHTS[key] * 10) / 10,
     };
+    if (key === "focus" && fit === null) {
+      factor.note = focus === "balanced" ? "Not used (Balanced)" : "No data for this school (not counted)";
+    }
+    return factor;
   });
 
   // Rescale over the factors we actually know, so a missing SAT or IELTS
@@ -220,25 +345,134 @@ export function computeMatchScore(profile: Profile, university: University): Mat
   };
 }
 
+// Says where a figure came from, so an official number and one a student
+// typed in never read the same.
+function fromWhere(university: University): string {
+  if (university.source === "College Scorecard") return "College Scorecard";
+  if (university.source === "user-entered") return "entered by you";
+  return "illustrative";
+}
+
+// Lines about the student's chosen focus. They go first in the lists, so
+// the short card view shows them. "Not available" notes go last, after the
+// real concerns, so they don't crowd out what we do know.
+function explainFocus(
+  focus: PrimaryFocus,
+  profile: Profile,
+  university: University
+): MatchExplanation & { unavailable: string[] } {
+  const strengths: string[] = [];
+  const concerns: string[] = [];
+  const unavailable: string[] = [];
+  const source = fromWhere(university);
+
+  // Rankings in this app are illustrative for every school (Scorecard has
+  // none), so ranking lines always say so.
+  const subjectLine = () => {
+    const subject = subjectRanking(profile, university);
+    if (!subject) return;
+    const text = `#${subject.rank} in ${subject.program} (illustrative ranking).`;
+    if (subject.rank <= 100) strengths.push(`Strong subject ranking: ${text}`);
+    else concerns.push(`Subject ranking outside the top 100: ${text}`);
+  };
+
+  switch (focus) {
+    case "academic": {
+      subjectLine();
+      const rank = university.qs_ranking;
+      if (isKnown(rank) && rank <= 100) strengths.push(`Ranked #${rank} overall (illustrative ranking).`);
+      else if (isKnown(rank) && rank > 200) concerns.push(`Ranked #${rank} overall (illustrative ranking).`);
+
+      const completion = university.completion_rate;
+      if (isKnown(completion) && completion >= 80) {
+        strengths.push(`${completion}% of students graduate within 6 years (${source}).`);
+      } else if (isKnown(completion) && completion < 60) {
+        concerns.push(`Only ${completion}% of students graduate within 6 years (${source}).`);
+      }
+      const retention = university.retention_rate;
+      if (isKnown(retention) && retention >= 90) {
+        strengths.push(`${retention}% of first-year students come back for a second year (${source}).`);
+      } else if (isKnown(retention) && retention < 75) {
+        concerns.push(`Only ${retention}% of first-year students come back for a second year (${source}).`);
+      }
+      if (focusSignals(focus, profile, university).length === 0) {
+        unavailable.push("Rankings, graduation and retention rates: not available for this school.");
+      }
+      break;
+    }
+    case "work_experience": {
+      if (university.has_coop === true) {
+        strengths.push(`Has a co-op / internship program (${source}).`);
+      } else if (university.has_coop === false) {
+        concerns.push(`No co-op / internship program (${source}).`);
+      } else {
+        unavailable.push("Co-op / internship program: not available for this school.");
+      }
+      const earnings = university.median_earnings_10yr;
+      if (isKnown(earnings)) {
+        const side = earnings >= EARNINGS.p50 ? "above" : "below";
+        const line = `Graduates' median earnings 10 years after starting: ${usd(earnings)}, ${side} the middle of US schools here (${usd(EARNINGS.p50)}) (${source}).`;
+        (side === "above" ? strengths : concerns).push(line);
+      } else {
+        unavailable.push("Graduate earnings: not available for this school.");
+      }
+      break;
+    }
+    case "research": {
+      const research = researchSignal(university);
+      if (!research) {
+        unavailable.push("Research intensity: not available for this school.");
+      } else {
+        const line = `${research.label} — Carnegie classification (${source}).`;
+        (research.value >= RESEARCH_SCORES.high ? strengths : concerns).push(line);
+      }
+      subjectLine();
+      break;
+    }
+    case "affordability": {
+      const total = totalCostPerYear(university);
+      if (total === null) {
+        unavailable.push("Living costs: not available, so the total cost can't be checked against your budget.");
+      } else if (total <= profile.budget_max / 2) {
+        strengths.push(`Tuition plus living costs (about ${usd(total)}/yr) is well under your budget.`);
+      } else if (total <= profile.budget_max) {
+        strengths.push(`Tuition plus living costs (about ${usd(total)}/yr) fits your budget.`);
+      } else {
+        concerns.push(
+          `Tuition plus living costs (about ${usd(total)}/yr) is ${usd(total - profile.budget_max)} over your budget.`
+        );
+      }
+      break;
+    }
+    case "balanced":
+      break;
+  }
+  return { strengths, concerns, unavailable };
+}
+
 // Plain-language strengths and concerns built from the same factors as the
 // score, so the weak spots are visible and not just the good news. Some
 // concerns (like living costs) don't change the score but are worth knowing.
 export function explainMatch(profile: Profile, university: University): MatchExplanation {
-  const strengths: string[] = [];
-  const concerns: string[] = [];
-
   if (!offersDegreeLevel(profile, university)) {
-    concerns.push(
-      `Doesn't offer ${profile.preferred_degree_level} programs, so it isn't an option for you.`
-    );
-    return { strengths, concerns };
+    return {
+      strengths: [],
+      concerns: [`Doesn't offer ${profile.preferred_degree_level} programs, so it isn't an option for you.`],
+    };
   }
+
+  // The chosen focus goes first, so it shows even on the short card view.
+  const focus = focusOf(profile);
+  const focusLines = explainFocus(focus, profile, university);
+  const strengths: string[] = [...focusLines.strengths];
+  const concerns: string[] = [...focusLines.concerns];
 
   // Budget
   const { tuition, living_cost_per_year: living } = university;
   if (tuition <= profile.budget_max) {
     strengths.push(`Tuition (${usd(tuition)}/yr) fits your budget of ${usd(profile.budget_max)}.`);
-    if (isKnown(living) && tuition + living > profile.budget_max) {
+    // The affordability focus already said this, with the total, above.
+    if (focus !== "affordability" && isKnown(living) && tuition + living > profile.budget_max) {
       concerns.push(
         `With living costs (about ${usd(living)}/yr), the total is about ${usd(tuition + living)}/yr — above your budget.`
       );
@@ -329,6 +563,7 @@ export function explainMatch(profile: Profile, university: University): MatchExp
     strengths.push(`Admits about ${rate}% of applicants.`);
   }
 
+  concerns.push(...focusLines.unavailable);
   return { strengths, concerns };
 }
 

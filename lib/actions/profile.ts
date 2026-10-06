@@ -6,10 +6,13 @@ import {
   validateProfileForm,
   type ProfileFieldErrors,
 } from "@/lib/profile-validation";
+import { skippedNotice, writeSkippingPendingColumns } from "@/lib/pending-migrations";
 
 export type ProfileFormState =
   | {
       error?: string;
+      // Saved, but with a caveat (e.g. a column whose migration isn't run).
+      notice?: string;
       fieldErrors?: ProfileFieldErrors;
       // What the student typed, so the form can refill itself. React 19
       // resets a form after its action runs, which would otherwise wipe
@@ -28,6 +31,7 @@ const ECHOED_FIELDS = [
   "sat_score",
   "budget_min",
   "budget_max",
+  "primary_focus",
 ];
 
 function submittedValues(formData: FormData): Record<string, string> {
@@ -60,12 +64,20 @@ export async function saveProfile(
     };
   }
 
-  const { error } = await supabase
-    .from("profiles")
-    .upsert({ id: user.id, ...result.data });
+  // If migration_008 hasn't been run yet, the profile still saves without
+  // primary_focus, and the student is told why their focus didn't stick.
+  const {
+    result: { error },
+    skipped,
+  } = await writeSkippingPendingColumns({ id: user.id, ...result.data }, (row) =>
+    supabase.from("profiles").upsert(row)
+  );
 
   if (error) {
     return { error: error.message, values: submittedValues(formData) };
+  }
+  if (skipped.length > 0) {
+    return { notice: skippedNotice(skipped), values: submittedValues(formData) };
   }
 
   redirect("/recommendations");

@@ -1,5 +1,11 @@
 import { readList, readNumber, readText } from "@/lib/form-data";
-import { DEGREE_LEVELS, type DegreeLevel, type UniversityInput } from "@/lib/types";
+import {
+  DEGREE_LEVELS,
+  RESEARCH_INTENSITIES,
+  type DegreeLevel,
+  type ResearchIntensity,
+  type UniversityInput,
+} from "@/lib/types";
 
 export type UniversityFieldErrors = Partial<Record<keyof UniversityInput, string>>;
 
@@ -99,6 +105,20 @@ export function validateUniversityForm(formData: FormData): UniversityValidation
     }
   }
 
+  // Optional focus signals. Blank ("Not sure") is stored as null — unknown,
+  // never "no".
+  const researchRaw = readText(formData, "research_intensity");
+  const research_intensity = researchRaw ? (researchRaw as ResearchIntensity) : null;
+  if (research_intensity !== null && !RESEARCH_INTENSITIES.includes(research_intensity)) {
+    errors.research_intensity = "Choose a research level from the list (or Not sure).";
+  }
+
+  const coopRaw = readText(formData, "has_coop");
+  const has_coop = coopRaw === "true" ? true : coopRaw === "false" ? false : null;
+  if (coopRaw && has_coop === null) {
+    errors.has_coop = "Choose Yes, No or Not sure.";
+  }
+
   if (Object.keys(errors).length > 0) {
     return { ok: false, errors };
   }
@@ -121,6 +141,8 @@ export function validateUniversityForm(formData: FormData): UniversityValidation
       degree_levels: degree_levels as DegreeLevel[],
       description,
       source_url,
+      research_intensity,
+      has_coop,
     },
   };
 }

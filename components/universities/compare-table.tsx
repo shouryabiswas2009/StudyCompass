@@ -50,7 +50,7 @@ const ROWS: Row[] = [
       <ul className="space-y-0.5 text-xs text-muted-foreground">
         {match.factors.map((f) => (
           <li key={f.key}>
-            {f.label}: {f.points === null ? "unknown" : `${f.points}/${f.max}`}
+            {f.label}: {f.points === null ? (f.note ?? "unknown") : `${f.points}/${f.max}`}
           </li>
         ))}
       </ul>

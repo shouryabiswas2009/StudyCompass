@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_OFFER_WEIGHTS,
+  FOCUS_OFFER_WEIGHTS,
+  defaultOfferWeights,
+  focusWeightsNote,
   netCostPerYear,
   rankOffers,
   summarizeOffers,
@@ -18,6 +21,9 @@ function offer(overrides: Partial<OfferInput> & { id: string }): OfferInput {
     subjectLabel: null,
     matchScore: 70,
     inPreferredCountry: true,
+    researchScore: null,
+    researchLabel: null,
+    careerScore: null,
     ...overrides,
   };
 }
@@ -28,6 +34,8 @@ const only = (key: keyof OfferWeights): OfferWeights => ({
   subjectRanking: 0,
   match: 0,
   country: 0,
+  research: 0,
+  careers: 0,
   [key]: 10,
 });
 
@@ -94,7 +102,7 @@ describe("rankOffers", () => {
   });
 
   it("scores everything 0 when every weight is 0, without crashing", () => {
-    const zero = { cost: 0, ranking: 0, subjectRanking: 0, match: 0, country: 0 };
+    const zero = { cost: 0, ranking: 0, subjectRanking: 0, match: 0, country: 0, research: 0, careers: 0 };
     const ranked = rankOffers([cheapLowRanked, pricyTopRanked], zero);
     expect(ranked.every((r) => r.score === 0)).toBe(true);
   });
@@ -114,6 +122,64 @@ describe("rankOffers", () => {
     const [only1] = rankOffers([cheapLowRanked], DEFAULT_OFFER_WEIGHTS);
     expect(only1.position).toBe(1);
     expect(Number.isFinite(only1.score)).toBe(true);
+  });
+});
+
+describe("primary focus and the default weights", () => {
+  // A cheap teaching-focused school vs. an expensive R1 with a strong
+  // subject ranking and strong graduate outcomes.
+  const cheapTeaching = offer({
+    id: "Cheap teaching",
+    totalCost: 60000,
+    subjectRank: 300,
+    subjectLabel: "Physics",
+    researchScore: 0,
+    researchLabel: "Not a doctoral research university",
+    careerScore: 0.3,
+  });
+  const pricyResearch = offer({
+    id: "Pricey R1",
+    totalCost: 200000,
+    subjectRank: 20,
+    subjectLabel: "Physics",
+    researchScore: 1,
+    researchLabel: "Very high research activity (R1)",
+    careerScore: 0.9,
+  });
+  const order = (weights: OfferWeights) =>
+    rankOffers([cheapTeaching, pricyResearch], weights).map((r) => r.offer.id);
+
+  it("changes which offer comes first", () => {
+    expect(order(defaultOfferWeights("research"))[0]).toBe("Pricey R1");
+    expect(order(defaultOfferWeights("work_experience"))[0]).toBe("Pricey R1");
+    expect(order(defaultOfferWeights("affordability"))[0]).toBe("Cheap teaching");
+  });
+
+  it("boosts the criteria each focus is about", () => {
+    const balanced = FOCUS_OFFER_WEIGHTS.balanced;
+    expect(FOCUS_OFFER_WEIGHTS.research.research).toBeGreaterThan(balanced.research);
+    expect(FOCUS_OFFER_WEIGHTS.research.subjectRanking).toBeGreaterThan(balanced.subjectRanking);
+    expect(FOCUS_OFFER_WEIGHTS.work_experience.careers).toBeGreaterThan(balanced.careers);
+    expect(FOCUS_OFFER_WEIGHTS.affordability.cost).toBeGreaterThan(balanced.cost);
+    expect(FOCUS_OFFER_WEIGHTS.academic.ranking).toBeGreaterThan(balanced.ranking);
+  });
+
+  it("keeps every default on the 0-10 slider scale", () => {
+    for (const weights of Object.values(FOCUS_OFFER_WEIGHTS)) {
+      for (const w of Object.values(weights)) expect(w >= 0 && w <= 10).toBe(true);
+    }
+    expect(DEFAULT_OFFER_WEIGHTS).toEqual(FOCUS_OFFER_WEIGHTS.balanced);
+  });
+
+  it("says in plain language what the focus changed", () => {
+    expect(focusWeightsNote("research")).toBe(
+      "Because you prioritize research, subject ranking and research intensity count more."
+    );
+  });
+
+  it("names research intensity when it decides the ranking", () => {
+    const [first] = rankOffers([cheapTeaching, pricyResearch], only("research"));
+    expect(first.reason).toContain("Very high research activity (R1)");
   });
 });
 

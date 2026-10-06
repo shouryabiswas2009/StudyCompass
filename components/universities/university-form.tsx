@@ -8,7 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { TagInput } from "@/components/tag-input";
 import { FieldError } from "@/components/field-error";
 import { COUNTRY_OPTIONS } from "@/lib/countries";
-import { DEGREE_LEVELS, type University } from "@/lib/types";
+import Link from "next/link";
+import { RESEARCH_LABELS } from "@/lib/focus";
+import { DEGREE_LEVELS, RESEARCH_INTENSITIES, type University } from "@/lib/types";
 import type { UniversityFormState } from "@/lib/actions/universities";
 
 type Action = (state: UniversityFormState, formData: FormData) => Promise<UniversityFormState>;
@@ -237,6 +239,53 @@ export function UniversityForm({
         </div>
       </div>
 
+      <div className="space-y-4 rounded-2xl border p-4">
+        <div>
+          <h2 className="font-medium">Research and careers (optional)</h2>
+          <p className="text-sm text-muted-foreground">
+            Used when a student&apos;s focus is research or work experience.
+            Pick &ldquo;Not sure&rdquo; unless the university says so itself.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Native selects: simple, and they reset cleanly with the form. */}
+          <div className="space-y-2">
+            <Label htmlFor="research_intensity">Research activity (Carnegie classification)</Label>
+            <select
+              id="research_intensity"
+              name="research_intensity"
+              defaultValue={initial("research_intensity") ?? ""}
+              aria-invalid={!!errors.research_intensity}
+              className="h-9 w-full rounded-md border bg-transparent px-3 text-sm"
+            >
+              <option value="">Not sure</option>
+              {RESEARCH_INTENSITIES.map((level) => (
+                <option key={level} value={level}>
+                  {RESEARCH_LABELS[level]}
+                </option>
+              ))}
+            </select>
+            <FieldError message={errors.research_intensity} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="has_coop">Co-op / internship program</Label>
+            <select
+              id="has_coop"
+              name="has_coop"
+              defaultValue={initial("has_coop") ?? ""}
+              aria-invalid={!!errors.has_coop}
+              className="h-9 w-full rounded-md border bg-transparent px-3 text-sm"
+            >
+              <option value="">Not sure</option>
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+            <FieldError message={errors.has_coop} />
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="description">Description (optional)</Label>
         <Textarea
@@ -268,6 +317,16 @@ export function UniversityForm({
       </div>
 
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
+      {state?.notice && (
+        <p className="text-sm text-amber-700 dark:text-amber-400">
+          {state.notice}{" "}
+          {state.savedId && (
+            <Link href={`/universities/${state.savedId}`} className="underline">
+              View the university
+            </Link>
+          )}
+        </p>
+      )}
 
       <Button type="submit" disabled={pending} className="w-full sm:w-auto">
         {pending ? "Saving…" : submitLabel}

@@ -80,6 +80,23 @@ describe("validateUniversityForm", () => {
     }
   });
 
+  it("stores 'Not sure' research and co-op answers as unknown (null), never as 'no'", () => {
+    const blank = validateUniversityForm(makeForm({ research_intensity: "", has_coop: "" }));
+    expect(blank.ok && blank.data.research_intensity).toBeNull();
+    expect(blank.ok && blank.data.has_coop).toBeNull();
+
+    const set = validateUniversityForm(makeForm({ research_intensity: "high", has_coop: "false" }));
+    expect(set.ok && set.data.research_intensity).toBe("high");
+    expect(set.ok && set.data.has_coop).toBe(false);
+
+    const bad = validateUniversityForm(makeForm({ research_intensity: "huge", has_coop: "maybe" }));
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) {
+      expect(bad.errors.research_intensity).toBeDefined();
+      expect(bad.errors.has_coop).toBeDefined();
+    }
+  });
+
   it("requires a program and a valid degree level", () => {
     const result = validateUniversityForm(
       makeForm({ popular_programs: null, degree_levels: ["Diploma"] })

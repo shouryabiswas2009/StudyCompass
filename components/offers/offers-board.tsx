@@ -8,6 +8,8 @@ import { StatusBadge } from "@/components/applications/status-badge";
 import {
   CRITERION_LABELS,
   DEFAULT_OFFER_WEIGHTS,
+  defaultOfferWeights,
+  focusWeightsNote,
   rankOffers,
   summarizeOffers,
   type OfferCriterion,
@@ -16,7 +18,7 @@ import {
 } from "@/lib/offers";
 import { formatRank } from "@/lib/matching";
 import { usd } from "@/lib/format";
-import type { ApplicationStatus } from "@/lib/types";
+import type { ApplicationStatus, PrimaryFocus } from "@/lib/types";
 
 // OfferInput plus what this page shows but the ranking doesn't use.
 export type OfferRow = OfferInput & {
@@ -30,8 +32,10 @@ const CRITERIA = Object.keys(DEFAULT_OFFER_WEIGHTS) as OfferCriterion[];
 
 // The ranking itself lives in lib/offers.ts (pure and tested); this
 // component only holds the slider values and re-runs it as they move.
-export function OffersBoard({ offers }: { offers: OfferRow[] }) {
-  const [weights, setWeights] = useState<OfferWeights>(DEFAULT_OFFER_WEIGHTS);
+// The student's primary focus only picks where the sliders start.
+export function OffersBoard({ offers, focus }: { offers: OfferRow[]; focus: PrimaryFocus }) {
+  const defaults = defaultOfferWeights(focus);
+  const [weights, setWeights] = useState<OfferWeights>(defaults);
 
   const ranked = useMemo(() => rankOffers(offers, weights), [offers, weights]);
   const summary = useMemo(() => summarizeOffers(ranked), [ranked]);
@@ -44,6 +48,12 @@ export function OffersBoard({ offers }: { offers: OfferRow[] }) {
           <h2 className="font-medium">What matters to you?</h2>
           <p className="text-sm text-muted-foreground">
             0 = ignore, 10 = matters most. The ranking updates as you move them.
+          </p>
+          <p className="mt-2 text-sm">
+            {focusWeightsNote(focus)}{" "}
+            <Link href="/profile" className="text-muted-foreground underline">
+              Change your focus
+            </Link>
           </p>
         </div>
         {CRITERIA.map((key) => (
@@ -67,7 +77,7 @@ export function OffersBoard({ offers }: { offers: OfferRow[] }) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setWeights(DEFAULT_OFFER_WEIGHTS)}
+          onClick={() => setWeights(defaults)}
           className="-ml-2"
         >
           <RotateCcw className="size-4" />
@@ -120,8 +130,11 @@ export function OffersBoard({ offers }: { offers: OfferRow[] }) {
         <p className="text-xs text-muted-foreground">
           Each offer gets 0–100 from the criteria above. Costs and rankings are
           compared between your offers (best = full marks), rankings on a log
-          scale so #5 vs #10 counts more than #205 vs #210. Anything unknown for
-          an offer is left out of its score rather than counted as zero.
+          scale so #5 vs #10 counts more than #205 vs #210. Research intensity
+          (Carnegie classification) and career outcomes (co-op program and
+          graduate earnings) use fixed scales instead, and are only known for
+          some schools. Anything unknown for an offer is left out of its score
+          rather than counted as zero.
           {missingCost && " Some offers are missing cost details, so cost can't separate them yet."}
         </p>
       </div>

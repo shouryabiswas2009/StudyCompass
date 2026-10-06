@@ -5,6 +5,7 @@ import { offersDegreeLevel, scoreUniversity } from "@/lib/matching";
 import { UniversityBoard } from "@/components/universities/university-board";
 import { Button } from "@/components/ui/button";
 import type { Profile, University } from "@/lib/types";
+import { FOCUS_LABELS, focusOf } from "@/lib/focus";
 
 export default async function RecommendationsPage() {
   const supabase = await createClient();
@@ -46,7 +47,10 @@ export default async function RecommendationsPage() {
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold">Your recommendations</h1>
           <p className="text-muted-foreground">
-            Matched to your budget, preferred countries, and intended majors.
+            Matched to your budget, preferred countries, and intended majors
+            {focusOf(profile) === "balanced"
+              ? "."
+              : `, with extra weight on what matters most to you: ${FOCUS_LABELS[focusOf(profile)].toLowerCase()}.`}
           </p>
         </div>
         <Button variant="outline" asChild>

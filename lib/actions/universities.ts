@@ -7,10 +7,14 @@ import {
   validateUniversityForm,
   type UniversityFieldErrors,
 } from "@/lib/university-validation";
+import { skippedNotice, writeSkippingPendingColumns } from "@/lib/pending-migrations";
 
 export type UniversityFormState =
   | {
       error?: string;
+      // Saved, but some fields were skipped (their migration isn't run yet).
+      notice?: string;
+      savedId?: string;
       fieldErrors?: UniversityFieldErrors;
       // What the student typed, so the form can refill itself after
       // React 19 resets it (see lib/actions/profile.ts for the same idea).
@@ -32,6 +36,8 @@ const ECHOED_FIELDS = [
   "living_cost_per_year",
   "description",
   "source_url",
+  "research_intensity",
+  "has_coop",
 ];
 
 function submittedValues(formData: FormData): Record<string, string> {
@@ -68,17 +74,21 @@ export async function createUniversity(
 
   // created_by marks the row as this student's; RLS also refuses any insert
   // where it isn't their own id, so this can't be faked from the browser.
-  const { data, error } = await supabase
-    .from("universities")
-    // source must be 'user-entered' for a student's own row — the database
-    // check in migration_007 refuses anything else.
-    .insert({ ...result.data, created_by: user.id, source: "user-entered" })
-    .select("id")
-    .single();
+  // source must be 'user-entered' for a student's own row — the database
+  // check in migration_007 refuses anything else. Columns from a migration
+  // that isn't run yet are skipped (and the student is told).
+  const {
+    result: { data, error },
+    skipped,
+  } = await writeSkippingPendingColumns(
+    { ...result.data, created_by: user.id, source: "user-entered" },
+    (row) => supabase.from("universities").insert(row).select("id").single()
+  );
 
   if (error) return { error: error.message, values: submittedValues(formData) };
 
   refreshListings();
+  if (skipped.length > 0) return { notice: skippedNotice(skipped), savedId: data.id };
   redirect(`/universities/${data.id}`);
 }
 
@@ -106,11 +116,12 @@ export async function updateUniversity(
 
   // RLS silently skips rows you don't own, so check that a row was updated
   // instead of assuming success.
-  const { data, error } = await supabase
-    .from("universities")
-    .update(result.data)
-    .eq("id", id)
-    .select("id");
+  const {
+    result: { data, error },
+    skipped,
+  } = await writeSkippingPendingColumns(result.data, (row) =>
+    supabase.from("universities").update(row).eq("id", id).select("id")
+  );
 
   if (error) return { error: error.message, values: submittedValues(formData) };
   if (!data || data.length === 0) {
@@ -119,6 +130,7 @@ export async function updateUniversity(
 
   refreshListings();
   revalidatePath(`/universities/${id}`);
+  if (skipped.length > 0) return { notice: skippedNotice(skipped), savedId: id };
   redirect(`/universities/${id}`);
 }
 

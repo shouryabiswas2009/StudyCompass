@@ -1,5 +1,5 @@
 import { usd } from "@/lib/format";
-import type { Application } from "@/lib/types";
+import type { Application, PrimaryFocus } from "@/lib/types";
 
 // ─── Costs ───────────────────────────────────────────────────────────────
 
@@ -38,20 +38,58 @@ export type OfferInput = {
   subjectLabel: string | null;
   matchScore: number; // 0-100, from computeMatchScore
   inPreferredCountry: boolean;
+  // 0..1 from researchSignal / careerSignal in lib/matching.ts; null when
+  // the school has no figure for it.
+  researchScore: number | null;
+  researchLabel: string | null;
+  careerScore: number | null;
 };
 
-export type OfferCriterion = "cost" | "ranking" | "subjectRanking" | "match" | "country";
+export type OfferCriterion =
+  | "cost"
+  | "ranking"
+  | "subjectRanking"
+  | "match"
+  | "country"
+  | "research"
+  | "careers";
 
 // How much each criterion matters, 0-10 (the sliders on the offers page).
 export type OfferWeights = Record<OfferCriterion, number>;
 
-export const DEFAULT_OFFER_WEIGHTS: OfferWeights = {
-  cost: 5,
-  ranking: 3,
-  subjectRanking: 3,
-  match: 2,
-  country: 1,
+// The starting slider positions for each primary focus. The student can
+// still move every slider; these only decide where they start. "balanced"
+// keeps the weights the app used before the focus existed, with the two
+// newer criteria at a low 1.
+export const FOCUS_OFFER_WEIGHTS: Record<PrimaryFocus, OfferWeights> = {
+  balanced: { cost: 5, ranking: 3, subjectRanking: 3, match: 2, country: 1, research: 1, careers: 1 },
+  academic: { cost: 3, ranking: 7, subjectRanking: 7, match: 2, country: 1, research: 2, careers: 1 },
+  work_experience: { cost: 4, ranking: 2, subjectRanking: 2, match: 2, country: 1, research: 1, careers: 8 },
+  research: { cost: 3, ranking: 2, subjectRanking: 7, match: 2, country: 1, research: 8, careers: 1 },
+  affordability: { cost: 9, ranking: 2, subjectRanking: 2, match: 2, country: 1, research: 1, careers: 1 },
 };
+
+export const DEFAULT_OFFER_WEIGHTS: OfferWeights = FOCUS_OFFER_WEIGHTS.balanced;
+
+export function defaultOfferWeights(focus: PrimaryFocus): OfferWeights {
+  return FOCUS_OFFER_WEIGHTS[focus];
+}
+
+// The plain-language line shown above the sliders.
+export function focusWeightsNote(focus: PrimaryFocus): string {
+  switch (focus) {
+    case "academic":
+      return "Because you prioritize academic reputation, overall and subject rankings count more.";
+    case "work_experience":
+      return "Because you prioritize work experience, career outcomes (co-op programs and graduate earnings) count more.";
+    case "research":
+      return "Because you prioritize research, subject ranking and research intensity count more.";
+    case "affordability":
+      return "Because you prioritize affordability, total cost counts the most.";
+    case "balanced":
+      return "You chose Balanced, so no single criterion is boosted.";
+  }
+}
 
 export const CRITERION_LABELS: Record<OfferCriterion, string> = {
   cost: "Total cost",
@@ -59,6 +97,8 @@ export const CRITERION_LABELS: Record<OfferCriterion, string> = {
   subjectRanking: "Subject ranking",
   match: "Match score",
   country: "Preferred country",
+  research: "Research intensity",
+  careers: "Career outcomes",
 };
 
 // Generic so callers can pass extra fields (e.g. for display) and get them
@@ -93,7 +133,7 @@ function relativeScores(
 // bigger deal than going from #210 to #205.
 const logRank = (rank: number | null) => (rank === null ? null : Math.log(rank));
 
-// Scores each offer 0-100 from the five criteria and the student's weights,
+// Scores each offer 0-100 from the criteria and the student's weights,
 // then sorts best first. Like the match score, a criterion that's unknown
 // for an offer (e.g. no subject ranking) is left out of that offer's score
 // instead of counting as zero.
@@ -112,6 +152,10 @@ export function rankOffers<T extends OfferInput>(
       subjectRanking: subject[i],
       match: offer.matchScore / 100,
       country: offer.inPreferredCountry ? 1 : 0,
+      // Already on a fixed 0..1 scale (not relative to the other offers),
+      // so an offer only gets full marks for an actual R1 / strong outcomes.
+      research: offer.researchScore,
+      careers: offer.careerScore,
     };
 
     let earned = 0;
@@ -157,6 +201,10 @@ function strongPhrase(key: OfferCriterion, offer: OfferInput, value: number): st
       return `a high match score (${offer.matchScore}%)`;
     case "country":
       return "being in one of your preferred countries";
+    case "research":
+      return `its research intensity (${offer.researchLabel})`;
+    case "careers":
+      return "strong career outcomes (co-op and graduate earnings)";
   }
 }
 
@@ -172,6 +220,10 @@ function weakPhrase(key: OfferCriterion, offer: OfferInput): string {
       return `its lower match score (${offer.matchScore}%)`;
     case "country":
       return "not being in your preferred countries";
+    case "research":
+      return `its lower research intensity (${offer.researchLabel})`;
+    case "careers":
+      return "weaker career outcomes (co-op and graduate earnings)";
   }
 }
 

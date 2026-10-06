@@ -15,7 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { COUNTRY_OPTIONS } from "@/lib/countries";
-import { DEGREE_LEVELS, type Profile } from "@/lib/types";
+import { FOCUS_DESCRIPTIONS, FOCUS_LABELS } from "@/lib/focus";
+import { DEGREE_LEVELS, PRIMARY_FOCUSES, type Profile } from "@/lib/types";
 
 // Common majors offered by the sample universities — just autocomplete
 // hints, students can still type anything.
@@ -199,9 +200,45 @@ export function ProfileForm({
           </Select>
           <FieldError message={errors.preferred_degree_level} />
         </div>
+
+        {/* A plain radio group: one choice, every option and its meaning
+            visible at once, and it works without JavaScript. */}
+        <fieldset className="space-y-2 sm:col-span-2">
+          <legend className="text-sm font-medium">What matters most to you?</legend>
+          <p className="text-sm text-muted-foreground">
+            This changes how universities are scored and where the sliders
+            start on the offers page.
+          </p>
+          <div className="grid gap-2 pt-1 sm:grid-cols-2">
+            {PRIMARY_FOCUSES.map((focus) => (
+              <label
+                key={focus}
+                className="flex cursor-pointer gap-3 rounded-xl border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+              >
+                <input
+                  type="radio"
+                  name="primary_focus"
+                  value={focus}
+                  defaultChecked={(initial("primary_focus") ?? "balanced") === focus}
+                  className="mt-1 accent-primary"
+                />
+                <span className="space-y-0.5">
+                  <span className="block text-sm font-medium">{FOCUS_LABELS[focus]}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {FOCUS_DESCRIPTIONS[focus]}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <FieldError message={errors.primary_focus} />
+        </fieldset>
       </div>
 
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
+      {state?.notice && (
+        <p className="text-sm text-amber-700 dark:text-amber-400">{state.notice}</p>
+      )}
 
       <Button type="submit" disabled={pending} className="w-full sm:w-auto">
         {pending ? "Saving…" : "Save profile & see recommendations"}

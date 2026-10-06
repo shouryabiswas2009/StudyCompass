@@ -1,0 +1,57 @@
+// Lets saves keep working while a migration hasn't been run yet on the live
+// database (see docs/PENDING-DB-STEPS.md). Reads already cope — select("*")
+// just doesn't return the new column — but a write that mentions a column
+// the database doesn't have fails completely.
+//
+// Only the columns listed here are ever dropped, and the caller is told
+// which ones, so nothing is lost silently.
+
+// Column → the migration that adds it.
+export const PENDING_COLUMNS: Record<string, string> = {
+  source: "migration_007_data_sources.sql",
+  source_url: "migration_007_data_sources.sql",
+  primary_focus: "migration_008_primary_focus.sql",
+  research_intensity: "migration_008_primary_focus.sql",
+  has_coop: "migration_008_primary_focus.sql",
+};
+
+type DbError = { code?: string; message?: string } | null;
+
+// PostgREST answers a write that names an unknown column with code PGRST204:
+// "Could not find the 'primary_focus' column of 'profiles' in the schema cache".
+export function missingColumn(error: DbError): string | null {
+  if (!error || error.code !== "PGRST204") return null;
+  const match = /Could not find the '([^']+)' column/.exec(error.message ?? "");
+  return match ? match[1] : null;
+}
+
+// Runs `write(payload)`. If the database is missing one of PENDING_COLUMNS,
+// drops that field and tries again. Any other error is returned unchanged.
+export async function writeSkippingPendingColumns<R extends { error: DbError }>(
+  payload: Record<string, unknown>,
+  write: (payload: Record<string, unknown>) => PromiseLike<R>
+): Promise<{ result: R; skipped: string[] }> {
+  const current = { ...payload };
+  const skipped: string[] = [];
+
+  for (;;) {
+    const result = await write(current);
+    const column = missingColumn(result.error);
+    if (!column || !(column in PENDING_COLUMNS) || !(column in current)) {
+      return { result, skipped };
+    }
+    delete current[column];
+    skipped.push(column);
+  }
+}
+
+// "Saved, but your focus wasn't stored yet — run migration_008 …"
+export function skippedNotice(skipped: string[]): string | undefined {
+  if (skipped.length === 0) return undefined;
+  const files = [...new Set(skipped.map((c) => PENDING_COLUMNS[c]))].join(" and ");
+  return (
+    `Saved, except ${skipped.join(", ")}: the database doesn't have ` +
+    `${skipped.length === 1 ? "that column" : "those columns"} yet. Run supabase/${files} ` +
+    "(see docs/PENDING-DB-STEPS.md), then save again."
+  );
+}

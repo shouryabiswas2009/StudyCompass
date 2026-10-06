@@ -4,7 +4,7 @@
 //
 // The rule throughout: if Scorecard doesn't have a figure, the row gets
 // null — never an estimate.
-import { OWNERSHIP, PROGRAM_LABELS, REGIONS } from "./config.mjs";
+import { CARNEGIE_RESEARCH, OWNERSHIP, PROGRAM_LABELS, REGIONS } from "./config.mjs";
 
 const isNum = (v) => typeof v === "number" && Number.isFinite(v);
 
@@ -56,6 +56,12 @@ export function degreeLevels(highest) {
 // added up when both are known, so a partial cost never looks complete.
 export function livingCost(roomBoard, otherExpenses) {
   return isNum(roomBoard) && isNum(otherExpenses) ? roomBoard + otherExpenses : null;
+}
+
+// Carnegie basic code → the app's research_intensity. Unclassified → null.
+export function researchIntensity(code) {
+  if (!isNum(code) || code <= 0) return null;
+  return CARNEGIE_RESEARCH[code] ?? "non_doctoral";
 }
 
 // Which Scorecard year `latest` is: the newest year-specific value equal to
@@ -112,6 +118,9 @@ export function normalizeSchool(raw, { dataYear, fetchedAt }) {
     ),
     student_size: get(raw, "latest.student.size") ?? null,
     completion_rate: pct(get(raw, "latest.completion.completion_rate_4yr_150nt")),
+    // Share of first-time, full-time students who come back for year two.
+    retention_rate: pct(get(raw, "latest.student.retention_rate.four_year.full_time")),
+    research_intensity: researchIntensity(get(raw, "school.carnegie_basic")),
     median_earnings_10yr: get(raw, "latest.earnings.10_yrs_after_entry.median") ?? null,
     popular_programs: topPrograms(get(raw, "latest.academics.program_percentage")),
     degree_levels: degreeLevels(get(raw, "school.degrees_awarded.highest")),
