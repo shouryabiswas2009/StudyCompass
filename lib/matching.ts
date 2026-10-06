@@ -1,4 +1,10 @@
 import { usd } from "@/lib/format";
+import {
+  ADMISSION_MODEL_INFO,
+  chanceFromProbability,
+  predictAdmission,
+  type AdmissionPrediction,
+} from "@/lib/admission-model";
 import type { Profile, University } from "@/lib/types";
 
 // ─── Scoring weights ─────────────────────────────────────────────────────
@@ -41,6 +47,9 @@ export type MatchResult = {
   eligible: boolean; // false when the school lacks the student's degree level
   factors: FactorScore[];
   chance: AdmissionChance;
+  // "rule" = the hand-tuned admissionChance() below; "model" = the trained
+  // logistic regression (see scoreUniversity).
+  chanceSource: "rule" | "model";
 };
 
 export type MatchExplanation = { strengths: string[]; concerns: string[] };
@@ -202,6 +211,7 @@ export function computeMatchScore(profile: Profile, university: University): Mat
     eligible,
     factors,
     chance: admissionChance(fits.academic, university.acceptance_rate),
+    chanceSource: "rule",
   };
 }
 
@@ -347,13 +357,32 @@ export type MatchEntry = {
   match: MatchResult;
   explanation: MatchExplanation;
   ranking: DisplayRanking;
+  // Estimated admission probability from the trained model, or null when
+  // it doesn't apply (see below).
+  prediction: AdmissionPrediction | null;
 };
 
+// The trained model only replaces the rule-based Reach/Match/Safety label
+// when (1) training showed it beats the rule on held-out data, and (2) the
+// student is applying for undergraduate study, because that's the only
+// kind of applicant the synthetic training data simulates.
 export function scoreUniversity(profile: Profile, university: University): MatchEntry {
+  const match = computeMatchScore(profile, university);
+  const prediction =
+    profile.preferred_degree_level === "Undergraduate"
+      ? predictAdmission(profile, university)
+      : null;
+
+  if (prediction && ADMISSION_MODEL_INFO.beatsBaseline) {
+    match.chance = chanceFromProbability(prediction.probability);
+    match.chanceSource = "model";
+  }
+
   return {
     university,
-    match: computeMatchScore(profile, university),
+    match,
     explanation: explainMatch(profile, university),
     ranking: getDisplayRanking(university, profile),
+    prediction,
   };
 }

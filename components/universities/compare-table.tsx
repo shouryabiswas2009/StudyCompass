@@ -53,8 +53,17 @@ const ROWS: Row[] = [
   },
   {
     label: "Admission chance",
-    render: ({ match }) => <ChanceBadge chance={match.chance} />,
+    render: ({ match, prediction }) => (
+      <ChanceBadge chance={match.chance} source={match.chanceSource} probability={prediction?.probability} />
+    ),
     value: ({ match }) => CHANCE_ORDER[match.chance],
+    better: "higher",
+  },
+  {
+    label: "Estimated admission chance (demo model)",
+    render: ({ prediction }) =>
+      prediction ? `~${Math.round(prediction.probability * 100)}%` : muted("Not available"),
+    value: ({ prediction }) => prediction?.probability ?? null,
     better: "higher",
   },
   {

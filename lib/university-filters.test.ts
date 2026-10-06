@@ -20,9 +20,16 @@ function entry(
 
   return {
     university,
-    match: { score: extra.score ?? 50, eligible: true, factors: [], chance: extra.chance ?? "Match" },
+    match: {
+      score: extra.score ?? 50,
+      eligible: true,
+      factors: [],
+      chance: extra.chance ?? "Match",
+      chanceSource: "rule",
+    },
     explanation: { strengths: [], concerns: [] },
     ranking: { rank: extra.rank === undefined ? 10 : extra.rank, label: "Overall" },
+    prediction: null,
   };
 }
 

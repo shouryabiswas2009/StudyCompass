@@ -10,6 +10,7 @@ import { SaveButton } from "@/components/universities/save-button";
 import { MatchScoreBadge } from "@/components/universities/match-score-badge";
 import { ChanceBadge } from "@/components/universities/chance-badge";
 import { FitBreakdown } from "@/components/universities/fit-breakdown";
+import { AdmissionEstimate } from "@/components/universities/admission-estimate";
 import { StrengthsConcerns } from "@/components/universities/strengths-concerns";
 import { Flag } from "@/components/flag";
 import { usd } from "@/lib/format";
@@ -160,11 +161,22 @@ export default async function UniversityDetailsPage({
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <h2 className="mr-auto font-medium">Your fit</h2>
             <MatchScoreBadge score={entry.match.score} />
-            <ChanceBadge chance={entry.match.chance} />
+            <ChanceBadge
+              chance={entry.match.chance}
+              source={entry.match.chanceSource}
+              probability={entry.prediction?.probability}
+            />
           </div>
           <div className="grid gap-6 sm:grid-cols-2">
             <FitBreakdown factors={entry.match.factors} />
             <StrengthsConcerns explanation={entry.explanation} />
+          </div>
+          <div className="mt-6 border-t pt-5">
+            <h3 className="mb-3 text-sm font-medium">Admission estimate</h3>
+            <AdmissionEstimate
+              prediction={entry.prediction}
+              degreeLevel={profile!.preferred_degree_level}
+            />
           </div>
         </div>
       )}

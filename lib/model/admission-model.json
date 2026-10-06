@@ -1,0 +1,80 @@
+{
+  "description": "Logistic regression trained on SYNTHETIC undergraduate applicants (ml/generate_synthetic.py). Demonstrates the pipeline; not a real admissions predictor.",
+  "trained_on": "synthetic",
+  "features": [
+    "gpa_gap",
+    "sat_z",
+    "sat_known",
+    "ielts_margin",
+    "ielts_known",
+    "acceptance_logit"
+  ],
+  "scaler_mean": [
+    -0.41071857923497274,
+    -0.05880995668892936,
+    0.18397085610200364,
+    0.24854280510018215,
+    0.8356102003642987,
+    -0.9989203774356742
+  ],
+  "scaler_scale": [
+    0.5868300528826786,
+    0.4494689312685495,
+    0.3874604240527018,
+    0.6545501858526829,
+    0.3706289160487013,
+    1.115390512632241
+  ],
+  "coefficients": [
+    1.3004610597091246,
+    0.34909817104725177,
+    0.032764372040081785,
+    0.8116200205216089,
+    -0.23687372178319735,
+    1.3597046689256829
+  ],
+  "intercept": -1.648981787023987,
+  "regularization_C": 1.0,
+  "test_metrics": {
+    "model": "Logistic regression",
+    "roc_auc": 0.874,
+    "log_loss": 0.3864,
+    "brier": 0.1239,
+    "threshold": 0.38,
+    "confusion_matrix": {
+      "tn": 2294,
+      "fp": 369,
+      "fn": 303,
+      "tp": 694
+    },
+    "precision": 0.6529,
+    "recall": 0.6961,
+    "accuracy": 0.8164
+  },
+  "baseline_test_metrics": {
+    "model": "Baseline rule",
+    "roc_auc": 0.7297,
+    "log_loss": 0.4999,
+    "brier": 0.1647,
+    "threshold": 0.12,
+    "confusion_matrix": {
+      "tn": 1753,
+      "fp": 910,
+      "fn": 221,
+      "tp": 776
+    },
+    "precision": 0.4603,
+    "recall": 0.7783,
+    "accuracy": 0.691
+  },
+  "beats_baseline": true,
+  "data": {
+    "rows": 18300,
+    "train": 10980,
+    "validation": 3660,
+    "test": 3660,
+    "admit_rate": 0.2725,
+    "seed": 42
+  },
+  "sklearn_version": "1.9.1"
+}

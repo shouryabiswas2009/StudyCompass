@@ -252,6 +252,7 @@ export function UniversityBoard({
               match={entry.match}
               explanation={entry.explanation}
               ranking={entry.ranking}
+              prediction={entry.prediction}
               isSaved={savedIds.has(entry.university.id)}
               index={i}
               compare={{
@@ -295,8 +296,9 @@ export function UniversityBoard({
 
       <p className="text-xs text-muted-foreground">
         Tuition, rankings and admission figures are illustrative approximations
-        for this demo, not official statistics. Reach / Match / Safety is a
-        rough rule of thumb, not a prediction.
+        for this demo, not official statistics. Reach / Match / Safety (and the
+        ~% next to it for undergraduate profiles) comes from a model trained on
+        simulated applicants — a demo of the method, not a real prediction.
       </p>
     </div>
   );

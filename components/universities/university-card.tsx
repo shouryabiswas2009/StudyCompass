@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ApplicationStatusControl } from "@/components/applications/application-status-control";
 import type { ApplicationStatus } from "@/lib/types";
+import type { AdmissionPrediction } from "@/lib/admission-model";
 import type { University } from "@/lib/types";
 
 const TIER_BORDER = {
@@ -37,6 +38,7 @@ export function UniversityCard({
   match,
   explanation,
   ranking,
+  prediction,
   isSaved = false,
   index = 0,
   compare,
@@ -46,6 +48,7 @@ export function UniversityCard({
   match: MatchResult;
   explanation: MatchExplanation;
   ranking?: DisplayRanking;
+  prediction?: AdmissionPrediction | null;
   isSaved?: boolean;
   index?: number;
   // Present when the card is shown in a board that supports comparing.
@@ -92,7 +95,11 @@ export function UniversityCard({
                 </Badge>
               )}
               <span className="ml-auto">
-                <ChanceBadge chance={match.chance} />
+                <ChanceBadge
+                  chance={match.chance}
+                  source={match.chanceSource}
+                  probability={prediction?.probability}
+                />
               </span>
             </CardDescription>
           </CardHeader>

@@ -141,6 +141,10 @@ lib/
   university-filters.ts # Search/filter/sort rules for the university board
   compare.ts  # Compare URL parsing, total cost, "best in row" highlighting
   offers.ts   # Net cost, offer ranking with adjustable weights, reasons
+  admission-model.ts    # Runs the exported logistic regression (no server)
+  model/                # admission-model.json + parity fixtures, written by ml/
+ml/           # Python: synthetic data, model training, reports (see ml/README.md)
+scripts/      # export-universities.mjs: builds the DB in memory (PGlite) from the SQL files
   format.ts   # Shared number formatting
   *-validation.ts       # Form validation (profile, university)
   types.ts    # Shared TypeScript types
@@ -219,6 +223,38 @@ when every school is ranked the same way, since a subject ranking and an
 overall ranking aren't on the same scale. The estimated total per year is
 tuition plus living cost, and shows as unknown when the living cost is
 missing rather than quietly showing tuition alone.
+
+## Admission model (trained on synthetic data)
+
+For undergraduate profiles, Reach / Match / Safety and the "~%" estimate
+come from a logistic regression trained offline in Python ([`ml/`](ml/README.md))
+and run in TypeScript ([`lib/admission-model.ts`](lib/admission-model.ts)):
+standardize six features, take a dot product, apply a sigmoid. A Vitest
+parity test checks the TypeScript predictions match scikit-learn's on 20
+fixture rows. The details page shows how much each factor (GPA, SAT,
+IELTS, selectivity) moves the estimate.
+
+**It's trained on synthetic applicants**, because there's no public
+per-student undergraduate admissions data. On the held-out synthetic test
+set ([`ml/reports/admission_report.md`](ml/reports/admission_report.md)):
+
+| Model | ROC-AUC | Log-loss | Brier |
+| --- | --- | --- | --- |
+| Old rule (baseline) | 0.730 | 0.500 | 0.165 |
+| Logistic regression (used in the app) | 0.874 | 0.386 | 0.124 |
+| Gradient boosting (comparison) | 0.885 | 0.371 | 0.118 |
+
+These numbers show the pipeline recovers the structure of data it was
+built to have. They say nothing about real admissions, and the UI labels
+the estimate as a demo. Gradient boosting scores slightly higher;
+logistic regression is used because its coefficients and per-factor
+contributions can be explained, and it runs in the browser without a
+server. The model only replaces the old rule because training recorded
+that it beats the rule on all three metrics.
+
+A separate linear regression on the real (self-reported) Kaggle Graduate
+Admissions data lives in `ml/train_kaggle_regression.py`; its results go
+in `ml/reports/kaggle_regression.md` once the dataset is downloaded.
 
 ## How offer ranking works
 

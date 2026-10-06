@@ -40,3 +40,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ml: Python environment and data (all regenerable or downloaded by you).
+# ml/reports/ IS committed — the README quotes numbers from it.
+ml/.venv/
+__pycache__/
+ml/data/*.csv
+ml/data/raw/*
+!ml/data/raw/.gitkeep
