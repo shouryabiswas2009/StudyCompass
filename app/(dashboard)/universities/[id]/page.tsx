@@ -2,12 +2,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, TrendingUp, Percent, DollarSign } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getDisplayRanking } from "@/lib/matching";
+import { scoreUniversity } from "@/lib/matching";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/universities/save-button";
+import { MatchScoreBadge } from "@/components/universities/match-score-badge";
+import { ChanceBadge } from "@/components/universities/chance-badge";
+import { FitBreakdown } from "@/components/universities/fit-breakdown";
+import { StrengthsConcerns } from "@/components/universities/strengths-concerns";
 import { Flag } from "@/components/flag";
 import type { Profile, University } from "@/lib/types";
+
+const usd = (n: number) => `$${n.toLocaleString("en-US")}`;
 
 export default async function UniversityDetailsPage({
   params,
@@ -47,17 +53,41 @@ export default async function UniversityDetailsPage({
       : Promise.resolve({ data: null }),
   ]);
 
-  // Falls back to a plain "Overall" ranking when we don't know the
-  // viewer's intended major (not signed in, or no profile yet).
-  const ranking = profile
-    ? getDisplayRanking(university, profile)
-    : { rank: university.qs_ranking, label: "Overall" };
+  // Personal fit needs a profile. Without one (not signed in, or no profile
+  // yet) the page still works and shows a plain "Overall" ranking.
+  const entry = profile ? scoreUniversity(profile, university) : null;
+  const ranking = entry?.ranking ?? { rank: university.qs_ranking, label: "Overall" };
+
+  const admissionFigures = [
+    {
+      label: "Typical admitted GPA",
+      value: university.avg_admitted_gpa != null ? `${university.avg_admitted_gpa} / 100` : "Not available",
+    },
+    {
+      label: "SAT middle 50%",
+      value:
+        university.sat_25 != null && university.sat_75 != null
+          ? `${university.sat_25}–${university.sat_75}`
+          : "Not used / not available",
+    },
+    {
+      label: "Minimum IELTS",
+      value: university.min_ielts != null ? university.min_ielts.toFixed(1) : "Not available",
+    },
+    {
+      label: "Living cost",
+      value:
+        university.living_cost_per_year != null
+          ? `about ${usd(university.living_cost_per_year)}/yr`
+          : "Not available",
+    },
+  ];
 
   const stats = [
     {
       icon: DollarSign,
       label: "Tuition",
-      value: `$${university.tuition.toLocaleString()}/yr`,
+      value: `${usd(university.tuition)}/yr`,
     },
     {
       icon: TrendingUp,
@@ -106,9 +136,39 @@ export default async function UniversityDetailsPage({
         ))}
       </div>
 
+      {entry && (
+        <div className="mt-8 rounded-2xl border p-5">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <h2 className="mr-auto font-medium">Your fit</h2>
+            <MatchScoreBadge score={entry.match.score} />
+            <ChanceBadge chance={entry.match.chance} />
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2">
+            <FitBreakdown factors={entry.match.factors} />
+            <StrengthsConcerns explanation={entry.explanation} />
+          </div>
+        </div>
+      )}
+
       <div className="mt-8 space-y-2">
         <h2 className="font-medium">About</h2>
         <p className="text-muted-foreground">{university.description}</p>
+      </div>
+
+      <div className="mt-8 space-y-2">
+        <h2 className="font-medium">Admission figures</h2>
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {admissionFigures.map((figure) => (
+            <div key={figure.label} className="rounded-xl border p-3">
+              <dt className="text-xs text-muted-foreground">{figure.label}</dt>
+              <dd className="font-medium">{figure.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="text-xs text-muted-foreground">
+          Illustrative approximations for this demo, not official admissions
+          statistics. Check the university&apos;s own website before deciding.
+        </p>
       </div>
 
       <div className="mt-8 space-y-2">

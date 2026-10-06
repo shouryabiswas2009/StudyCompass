@@ -1,12 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import {
-  computeMatchScore,
-  explainMatch,
-  getDisplayRanking,
-  offersDegreeLevel,
-} from "@/lib/matching";
+import { offersDegreeLevel, scoreUniversity } from "@/lib/matching";
 import { UniversityBoard } from "@/components/universities/university-board";
 import { Button } from "@/components/ui/button";
 import type { Profile, University } from "@/lib/types";
@@ -42,13 +37,8 @@ export default async function RecommendationsPage() {
     // Schools without the student's degree level aren't recommendations at
     // all, so leave them out rather than showing them with a 0% score.
     .filter((university) => offersDegreeLevel(profile, university))
-    .map((university) => ({
-      university,
-      score: computeMatchScore(profile, university),
-      explanation: explainMatch(profile, university),
-      ranking: getDisplayRanking(university, profile),
-    }))
-    .sort((a, b) => b.score - a.score);
+    .map((university) => scoreUniversity(profile, university))
+    .sort((a, b) => b.match.score - a.match.score);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">

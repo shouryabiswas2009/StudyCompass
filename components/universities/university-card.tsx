@@ -10,9 +10,12 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { MatchScoreBadge, matchTier } from "@/components/universities/match-score-badge";
+import { ChanceBadge } from "@/components/universities/chance-badge";
+import { StrengthsConcerns } from "@/components/universities/strengths-concerns";
 import { SaveButton } from "@/components/universities/save-button";
 import { Flag } from "@/components/flag";
 import { cn } from "@/lib/utils";
+import type { MatchExplanation, MatchResult } from "@/lib/matching";
 import type { University } from "@/lib/types";
 
 const TIER_BORDER = {
@@ -23,15 +26,15 @@ const TIER_BORDER = {
 
 export function UniversityCard({
   university,
-  matchScore,
+  match,
   explanation,
   ranking,
   isSaved = false,
   index = 0,
 }: {
   university: University;
-  matchScore: number;
-  explanation: string;
+  match: MatchResult;
+  explanation: MatchExplanation;
   ranking?: { rank: number; label: string };
   isSaved?: boolean;
   index?: number;
@@ -55,7 +58,7 @@ export function UniversityCard({
         <Card
           className={cn(
             "h-full rounded-2xl border-t-4 transition-all hover:-translate-y-0.5 hover:shadow-lg",
-            TIER_BORDER[matchTier(matchScore)]
+            TIER_BORDER[matchTier(match.score)]
           )}
         >
           <CardHeader>
@@ -63,18 +66,21 @@ export function UniversityCard({
               <CardTitle className="text-base leading-snug">
                 {university.name}
               </CardTitle>
-              <MatchScoreBadge score={matchScore} />
+              <MatchScoreBadge score={match.score} />
             </div>
             <CardDescription className="flex items-center gap-1.5">
               <Flag country={university.country} />
               {university.country}
+              <span className="ml-auto">
+                <ChanceBadge chance={match.chance} />
+              </span>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-baseline justify-between text-sm">
               <span className="text-muted-foreground">Tuition</span>
               <span className="font-medium">
-                ${university.tuition.toLocaleString()}/yr
+                ${university.tuition.toLocaleString("en-US")}/yr
               </span>
             </div>
             {ranking && (
@@ -85,7 +91,7 @@ export function UniversityCard({
                 <span className="font-medium">#{ranking.rank}</span>
               </div>
             )}
-            <p className="text-sm text-muted-foreground">{explanation}</p>
+            <StrengthsConcerns explanation={explanation} limit={2} />
           </CardContent>
         </Card>
       </Link>

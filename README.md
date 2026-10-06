@@ -31,6 +31,10 @@ Supabase (Auth + Database), and Framer Motion.
      It adds an optional SAT score to profiles, database checks that match
      the profile form's validation, and a `degree_levels` column on
      `universities`.
+   - Then run [`supabase/migration_004_admission_stats.sql`](supabase/migration_004_admission_stats.sql).
+     It adds illustrative admission figures (typical admitted GPA, SAT
+     middle-50% range for US schools, minimum IELTS, living cost) used by
+     the academic and English fit scores.
    - Copy `.env.local.example` to `.env.local` and fill in your project's
      URL and anon/publishable key (Project Settings → API in the dashboard).
 
@@ -47,6 +51,13 @@ Supabase (Auth + Database), and Framer Motion.
    ```
 
    Open [http://localhost:3000](http://localhost:3000).
+
+5. Run the unit tests (Vitest; covers the matching logic and profile
+   validation):
+
+   ```bash
+   npm test
+   ```
 
 ## Keeping the Supabase project awake
 
@@ -123,19 +134,41 @@ supabase/
   seed.sql                          # Schema, RLS policies, and sample university data
   migration_002_richer_profiles.sql # Multi-select fields, budget range, subject rankings
   migration_003_scores_and_degree_levels.sql # SAT score, input checks, degree levels
+  migration_004_admission_stats.sql # Illustrative admit GPA, SAT range, IELTS, living cost
 ```
 
 ## How matching works
 
-`lib/matching.ts` scores each university 0–100 based on three factors versus
-the student's profile: whether tuition fits their budget (up to 50 points),
-whether the university is in one of their preferred countries (25 points),
-and whether it offers one of their intended majors (25 points). The
-explanation shown alongside each score is generated from the same factors
-with plain string templates — no external AI API is called, so there's no
-added cost or latency.
+`lib/matching.ts` scores each university 0–100 from six factors. The weights
+live in one `WEIGHTS` object at the top of the file and add up to 100:
 
-Two rules sit on top of the score:
+| Factor | Points | How it's judged |
+| --- | --- | --- |
+| Budget | 30 | Full points if tuition ≤ your max budget, losing points in proportion to how far over it is |
+| Major | 20 | One of your intended majors is among the school's popular programs |
+| Academic fit | 20 | Your GPA vs. the typical admitted GPA, and your SAT vs. the middle-50% range (averaged when both are known) |
+| Country | 15 | The school is in one of your preferred countries |
+| English | 10 | Your IELTS vs. the school's minimum |
+| Acceptance rate | 5 | Higher acceptance rate, more points |
+
+**Unknown isn't failure.** If a factor can't be judged (no SAT on your
+profile, or a non-US school with no SAT range), it's left out and the score
+is scaled over the factors that are known. A missing IELTS scores higher
+than one below the minimum.
+
+`computeMatchScore()` returns the per-factor points, not just the total, so
+the details page can show where a score comes from. It also gives a
+**Reach / Match / Safety** label: under 15% acceptance is always a Reach;
+otherwise an academic fit under 0.5 is a Reach, and 0.85 or more at a school
+admitting 50% or more is a Safety. This is a hand-tuned rule of thumb, not a
+prediction.
+
+`explainMatch()` returns `{ strengths, concerns }` built from the same
+factors with plain string templates (no AI API calls, so no cost or
+latency). Some concerns don't affect the score but are worth knowing, for
+example when tuition fits your budget but tuition plus living costs doesn't.
+
+Two more rules sit on top of the score:
 
 - **Degree level is a hard requirement.** A school that doesn't offer the
   student's degree level scores 0 and is left out of recommendations. An

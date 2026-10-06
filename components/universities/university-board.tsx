@@ -12,14 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { UniversityCard } from "@/components/universities/university-card";
 import { Flag } from "@/components/flag";
-import type { University } from "@/lib/types";
-
-export type MatchEntry = {
-  university: University;
-  score: number;
-  explanation: string;
-  ranking: { rank: number; label: string };
-};
+import type { MatchEntry } from "@/lib/matching";
 
 type SortKey = "match" | "tuition-asc" | "tuition-desc" | "ranking";
 
@@ -79,7 +72,7 @@ export function UniversityBoard({
         sorted.sort((a, b) => a.ranking.rank - b.ranking.rank);
         break;
       default:
-        sorted.sort((a, b) => b.score - a.score);
+        sorted.sort((a, b) => b.match.score - a.match.score);
     }
     return sorted;
   }, [matches, activeCountries, sortBy]);
@@ -125,19 +118,25 @@ export function UniversityBoard({
         <EmptyState message="No universities match these filters — try clearing one." />
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map((match, i) => (
+          {visible.map((entry, i) => (
             <UniversityCard
-              key={match.university.id}
-              university={match.university}
-              matchScore={match.score}
-              explanation={match.explanation}
-              ranking={match.ranking}
-              isSaved={savedIds.has(match.university.id)}
+              key={entry.university.id}
+              university={entry.university}
+              match={entry.match}
+              explanation={entry.explanation}
+              ranking={entry.ranking}
+              isSaved={savedIds.has(entry.university.id)}
               index={i}
             />
           ))}
         </div>
       )}
+
+      <p className="text-xs text-muted-foreground">
+        Tuition, rankings and admission figures are illustrative approximations
+        for this demo, not official statistics. Reach / Match / Safety is a
+        rough rule of thumb, not a prediction.
+      </p>
     </div>
   );
 }

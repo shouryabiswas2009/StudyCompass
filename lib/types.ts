@@ -36,6 +36,13 @@ export type University = {
   // Levels the school offers. Empty means unknown, not "offers nothing".
   degree_levels: DegreeLevel[];
   acceptance_rate: number;
+  // Illustrative admission stats (migration_004). Null means unknown, e.g.
+  // non-US schools have no SAT range.
+  avg_admitted_gpa: number | null;
+  sat_25: number | null;
+  sat_75: number | null;
+  min_ielts: number | null;
+  living_cost_per_year: number | null;
   popular_programs: string[];
   description: string;
   created_at: string;

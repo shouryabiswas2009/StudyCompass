@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { computeMatchScore, explainMatch, getDisplayRanking } from "@/lib/matching";
+import { scoreUniversity } from "@/lib/matching";
 import { UniversityBoard } from "@/components/universities/university-board";
 import { Button } from "@/components/ui/button";
 import type { Profile, University } from "@/lib/types";
@@ -30,12 +30,7 @@ export default async function SavedPage() {
 
   const universities = (saved ?? []).map((row) => row.universities);
 
-  const matches = universities.map((university) => ({
-    university,
-    score: computeMatchScore(profile, university),
-    explanation: explainMatch(profile, university),
-    ranking: getDisplayRanking(university, profile),
-  }));
+  const matches = universities.map((university) => scoreUniversity(profile, university));
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
