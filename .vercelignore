@@ -1,0 +1,5 @@
+# Not part of the website, so Vercel doesn't need to upload or build it.
+# ml/ is the offline Python model-training code (its requirements.txt made
+# Vercel think the repo had a second, Python app). The trained model the
+# site uses is already in lib/model/.
+ml/

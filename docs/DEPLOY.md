@@ -91,6 +91,12 @@ Settings**.
 
 ## If something goes wrong
 
+- **"Import multi-service project / needs a vercel.json":** Vercel saw
+  `ml/requirements.txt` (the offline Python training code) and thought the
+  repo had a second app. [`vercel.json`](../vercel.json) now says the
+  project is one Next.js app, and [`.vercelignore`](../.vercelignore) skips
+  `ml/`. Start the import again; the Framework Preset should say Next.js.
+
 - **Build fails on Vercel:** open the deployment's **Build Logs**. Most
   often an environment variable is missing or misspelled; fix it under
   **Settings → Environment Variables**, then **Redeploy**.
