@@ -23,6 +23,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { canonicalCountry } from "@/lib/countries";
 import { getCountryInfo } from "@/lib/data/country-info";
 import { CountryGuidance } from "@/components/universities/country-guidance";
+import { WhatIfPanel } from "@/components/universities/what-if-panel";
 
 export default async function UniversityDetailsPage({
   params,
@@ -244,6 +245,9 @@ export default async function UniversityDetailsPage({
               prediction={entry.prediction}
               degreeLevel={profile!.preferred_degree_level}
             />
+          </div>
+          <div className="mt-6 border-t pt-5">
+            <WhatIfPanel profile={profile!} university={university} />
           </div>
         </div>
       )}

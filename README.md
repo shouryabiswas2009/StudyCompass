@@ -486,6 +486,16 @@ the university), and falls back to the university-wide ranking labeled
 "Overall" otherwise — so a ranking is never shown without saying what it's
 actually ranking.
 
+### "What if?" (details page)
+
+Under "Your fit", sliders for GPA, SAT and IELTS re-run the same scoring
+(`scoreUniversity`) on a copy of your profile in the browser, so the match
+score and admission estimate update as you drag, with the change from your
+real profile. Values snap to the profile form's ranges and steps; SAT and
+IELTS can be switched off ("not taken"). It's labeled a demo estimate
+(the admission model is trained on simulated applicants) and nothing is
+saved. Logic and tests: `lib/what-if.ts`.
+
 ## How comparison works
 
 `/compare?ids=a,b,c` compares up to 4 universities. The URL is the only
