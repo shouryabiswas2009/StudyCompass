@@ -156,6 +156,19 @@ export function rankOffers<T extends OfferInput>(
   offers: T[],
   weights: OfferWeights
 ): RankedOffer<T>[] {
+  return scoreOffers(offers, weights).map((s, i) => ({
+    ...s,
+    position: i + 1,
+    reason: explainOffer(s.offer, s.criteria, weights, i + 1),
+  }));
+}
+
+// The scoring and sorting behind rankOffers, without the written reasons,
+// so the sensitivity check below can run it a thousand times cheaply.
+function scoreOffers<T extends OfferInput>(
+  offers: T[],
+  weights: OfferWeights
+): { offer: T; criteria: Record<OfferCriterion, number | null>; score: number }[] {
   const cost = relativeScores(offers.map((o) => o.totalCost), "lower");
   const ranking = relativeScores(offers.map((o) => logRank(o.overallRank)), "lower");
   const subject = relativeScores(offers.map((o) => logRank(o.subjectRank)), "lower");
@@ -195,11 +208,7 @@ export function rankOffers<T extends OfferInput>(
       a.offer.universityName.localeCompare(b.offer.universityName)
   );
 
-  return scored.map((s, i) => ({
-    ...s,
-    position: i + 1,
-    reason: explainOffer(s.offer, s.criteria, weights, i + 1),
-  }));
+  return scored;
 }
 
 // ─── Plain-language reasons ─────────────────────────────────────────────
@@ -295,5 +304,142 @@ export function summarizeOffers<T extends OfferInput>(ranked: RankedOffer<T>[]):
     highestRanked: withRank.length
       ? withRank.reduce((a, b) => ((b.overallRank as number) < (a.overallRank as number) ? b : a))
       : null,
+  };
+}
+
+// ─── How sure is the ranking? (sensitivity) ─────────────────────────────
+
+// The sliders are rough: "cost 7" vs "cost 6" is not a precise statement.
+// So we re-rank the offers many times with weights jiggled around the
+// student's own (each non-zero weight moved randomly by up to ±50%) and
+// count how often each offer comes first. If one offer wins almost every
+// time, small changes in what the student cares about don't matter; if
+// two trade places, it's a close call worth a closer look.
+
+export const SENSITIVITY_RUNS = 1000;
+export const SENSITIVITY_SPREAD = 0.5; // ±50% around each weight
+// A fixed seed: the same weights always give the same percentages, so the
+// numbers don't flicker on every render and tests are repeatable.
+export const SENSITIVITY_SEED = 20261006;
+// Coming first in at least this share of runs makes a "clear winner".
+export const CLEAR_WINNER_SHARE = 0.75;
+
+// Mulberry32: a tiny, well-known seeded random number generator. Same seed →
+// same sequence of numbers in [0, 1), unlike Math.random().
+export function seededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// One random set of weights near the student's. A criterion set to 0
+// ("ignore") stays ignored.
+export function jiggleWeights(weights: OfferWeights, random: () => number, spread = SENSITIVITY_SPREAD): OfferWeights {
+  const result = {} as OfferWeights;
+  for (const key of Object.keys(weights) as OfferCriterion[]) {
+    result[key] = weights[key] * (1 + spread * (2 * random() - 1));
+  }
+  return result;
+}
+
+export type OfferRobustness = {
+  id: string;
+  universityName: string;
+  firstShare: number; // 0..1: share of runs where this offer came first
+  // rankShares[k] = share of runs where it came (k + 1)th.
+  rankShares: number[];
+  typicalRank: number; // the position it got most often (1 = first)
+};
+
+export type OfferVerdict = { kind: "clear" | "close"; message: string };
+
+export type OfferSensitivity = {
+  runs: number;
+  offers: OfferRobustness[]; // most often first, first
+  verdict: OfferVerdict | null; // null with fewer than 2 offers
+};
+
+export function offerSensitivity<T extends OfferInput>(
+  offers: T[],
+  weights: OfferWeights,
+  { runs = SENSITIVITY_RUNS, seed = SENSITIVITY_SEED, spread = SENSITIVITY_SPREAD } = {}
+): OfferSensitivity {
+  const random = seededRandom(seed);
+  const counts = new Map(offers.map((o) => [o.id, new Array<number>(offers.length).fill(0)]));
+  for (let run = 0; run < runs; run++) {
+    scoreOffers(offers, jiggleWeights(weights, random, spread)).forEach(({ offer }, position) => {
+      counts.get(offer.id)![position] += 1;
+    });
+  }
+
+  const robustness: OfferRobustness[] = offers.map((offer) => {
+    const rankShares = counts.get(offer.id)!.map((n) => n / runs);
+    const typicalRank = rankShares.indexOf(Math.max(...rankShares)) + 1;
+    return { id: offer.id, universityName: offer.universityName, firstShare: rankShares[0] ?? 0, rankShares, typicalRank };
+  });
+  robustness.sort((a, b) => b.firstShare - a.firstShare || a.typicalRank - b.typicalRank || a.universityName.localeCompare(b.universityName));
+
+  return { runs, offers: robustness, verdict: offerVerdict(robustness, runs) };
+}
+
+const pct = (share: number) => `${Math.round(share * 100)}%`;
+
+export function offerVerdict(offers: OfferRobustness[], runs: number): OfferVerdict | null {
+  if (offers.length < 2) return null;
+  const [top, second] = offers;
+  const variations = `${runs.toLocaleString("en-US")} slightly different versions of your weights`;
+  if (top.firstShare >= CLEAR_WINNER_SHARE) {
+    return {
+      kind: "clear",
+      message: `Clear winner: ${top.universityName} comes first in ${pct(top.firstShare)} of ${variations}.`,
+    };
+  }
+  return {
+    kind: "close",
+    message:
+      `Close call: ${top.universityName} comes first in ${pct(top.firstShare)} and ` +
+      `${second.universityName} in ${pct(second.firstShare)} of ${variations}. ` +
+      "Small changes in what matters to you change the winner, so compare the details.",
+  };
+}
+
+// ─── Accept-by dates ────────────────────────────────────────────────────
+
+// An offer due within this many days is "due soon".
+export const DUE_SOON_DAYS = 7;
+
+export type AcceptByStatus = {
+  state: "overdue" | "due-soon" | "upcoming";
+  daysLeft: number; // negative when overdue
+  label: string;
+};
+
+// Badge for the date an offer must be accepted by. Nothing to show when no
+// date is entered, or when the offer has already been accepted.
+export function acceptByStatus(
+  acceptBy: string | null | undefined,
+  status: string,
+  today: Date = new Date()
+): AcceptByStatus | null {
+  if (!acceptBy || status === "accepted") return null;
+  const due = Date.parse(`${acceptBy}T00:00:00Z`);
+  if (Number.isNaN(due)) return null;
+  const todayUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  const daysLeft = Math.round((due - todayUtc) / 86_400_000);
+  const date = new Date(due).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+  if (daysLeft < 0) {
+    const ago = -daysLeft;
+    return { state: "overdue", daysLeft, label: `Overdue: accept by ${date} (${ago} day${ago === 1 ? "" : "s"} ago)` };
+  }
+  const when = daysLeft === 0 ? "today" : daysLeft === 1 ? "tomorrow" : `in ${daysLeft} days`;
+  return {
+    state: daysLeft <= DUE_SOON_DAYS ? "due-soon" : "upcoming",
+    daysLeft,
+    label: `Accept by ${date} (${when})`,
   };
 }

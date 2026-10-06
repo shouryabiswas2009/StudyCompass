@@ -74,7 +74,7 @@ export function ApplicationCard({
       {/* key: remount with the freshly saved values after each save, so
           React's automatic form reset can't show the old ones. */}
       <form key={application.updated_at} action={formAction} noValidate className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-4">
           <div className="space-y-1.5">
             <Label htmlFor={`status-${application.id}`}>Status</Label>
             <select
@@ -110,6 +110,20 @@ export function ApplicationCard({
               defaultValue={application.deadline ?? ""}
             />
             <FieldError message={errors.deadline} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor={`accept_by-${application.id}`}>Accept offer by</Label>
+            <Input
+              id={`accept_by-${application.id}`}
+              name="accept_by"
+              type="date"
+              defaultValue={application.accept_by ?? ""}
+              aria-describedby={`accept_by-hint-${application.id}`}
+            />
+            <p id={`accept_by-hint-${application.id}`} className="text-xs text-muted-foreground">
+              Optional, once you have an offer
+            </p>
+            <FieldError message={errors.accept_by} />
           </div>
         </div>
 
@@ -149,7 +163,10 @@ export function ApplicationCard({
             <Trash2 className="size-4" />
             {isRemoving ? "Removing…" : "Stop tracking"}
           </Button>
-          {state?.saved && <span className="text-sm text-emerald-600 dark:text-emerald-400">Saved</span>}
+          {state?.saved && !state.notice && (
+            <span className="text-sm text-emerald-600 dark:text-emerald-400">Saved</span>
+          )}
+          {state?.notice && <span className="text-sm text-amber-600 dark:text-amber-400">{state.notice}</span>}
           {state?.error && <span className="text-sm text-destructive">{state.error}</span>}
           {removeError && <span className="text-sm text-destructive">{removeError}</span>}
         </div>

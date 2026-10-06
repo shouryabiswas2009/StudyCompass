@@ -57,6 +57,7 @@ export default async function OffersPage() {
       netPerYear: netCostPerYear(application),
       totalCost: totalProgramCost(application),
       durationYears: application.duration_years,
+      acceptBy: application.accept_by ?? null,
       overallRank: university.qs_ranking,
       subjectRank: hasSubjectRank ? ranking.rank : null,
       subjectLabel: hasSubjectRank ? ranking.label : null,

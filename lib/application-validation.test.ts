@@ -6,6 +6,7 @@ function makeForm(overrides: Record<string, string> = {}): FormData {
     status: "admitted",
     program: "BSc Computer Science",
     deadline: "2027-01-15",
+    accept_by: "2027-05-01",
     tuition_per_year: "30000",
     scholarship_per_year: "5000",
     living_cost_per_year: "15000",
@@ -25,16 +26,18 @@ describe("validateApplicationForm", () => {
     if (result.ok) {
       expect(result.data.scholarship_per_year).toBe(5000);
       expect(result.data.deadline).toBe("2027-01-15");
+      expect(result.data.accept_by).toBe("2027-05-01");
     }
   });
 
   it("treats blanks as unknown, and a blank scholarship as 0", () => {
     const result = validateApplicationForm(
-      makeForm({ deadline: "", living_cost_per_year: "", scholarship_per_year: "" })
+      makeForm({ deadline: "", accept_by: "", living_cost_per_year: "", scholarship_per_year: "" })
     );
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.deadline).toBeNull();
+      expect(result.data.accept_by).toBeNull();
       expect(result.data.living_cost_per_year).toBeNull();
       expect(result.data.scholarship_per_year).toBe(0);
     }
@@ -43,6 +46,7 @@ describe("validateApplicationForm", () => {
   it.each([
     ["status", "maybe", /Choose a status/],
     ["deadline", "2027-02-30", /valid date/],
+    ["accept_by", "2027-13-01", /valid date/],
     ["deadline", "next week", /valid date/],
     ["scholarship_per_year", "-1", /0 or more/],
     ["duration_years", "0", /more than 0/],

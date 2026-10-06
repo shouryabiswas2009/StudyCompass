@@ -62,7 +62,9 @@ Supabase (Auth + Database), and Framer Motion.
      in order: the hand-checked international universities.
    - Then run [`supabase/migration_012_country_info.sql`](supabase/migration_012_country_info.sql)
      and [`supabase/seed_country_info.sql`](supabase/seed_country_info.sql):
-     visa and post-study work guidance per country. (`npm run db:check` runs all of the SQL above on a
+     visa and post-study work guidance per country.
+   - Then run [`supabase/migration_013_offer_accept_by.sql`](supabase/migration_013_offer_accept_by.sql):
+     the optional "accept by" date on offers. (`npm run db:check` runs all of the SQL above on a
      scratch database first, if you want to be sure.) Each file, what
      breaks until it's run and a one-line check are in
      [`docs/PENDING-DB-STEPS.md`](docs/PENDING-DB-STEPS.md).
@@ -366,6 +368,7 @@ supabase/
   migration_011_international.sql  # Curated source, currencies, aliases, accent-free search
   seed_international/*.sql         # Generated from data/curated/ (upsert, safe to re-run)
   migration_012_country_info.sql   # country_info table: visa / post-study guidance (public read)
+  migration_013_offer_accept_by.sql # Optional "accept by" date per offer
   seed_country_info.sql            # Generated from data/curated/country_info.csv
 ```
 
@@ -601,6 +604,17 @@ is **Admitted** (or **Accepted**), it appears on `/offers`, ranked by
 - Every offer gets a plain-language reason built from the criteria that
   count most for that student, plus its weak spot. The page also names the
   best overall, cheapest and highest-ranked offer.
+- **How sure is the ranking?** The sliders are rough, so
+  `offerSensitivity()` re-ranks the offers 1,000 times with every non-zero
+  weight moved randomly by up to ±50% (a seeded random number generator,
+  so the same weights always give the same result). Each offer shows how
+  often it came first and its spread of positions. If the top offer wins
+  at least 75% of the time the page says **"Clear winner"**, otherwise
+  **"Close call"**, naming the two offers that trade places.
+- **Accept-by dates:** each application can store the date the offer must
+  be accepted by (`accept_by`, migration_013). The offers page shows it as
+  a badge: upcoming, due soon (within 7 days) or overdue; nothing once the
+  offer is accepted.
 
 ## Notes
 

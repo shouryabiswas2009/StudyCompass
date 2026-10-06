@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   BALANCED_OFFER_WEIGHTS,
+  CLEAR_WINNER_SHARE,
   DEFAULT_OFFER_WEIGHTS,
+  DUE_SOON_DAYS,
+  acceptByStatus,
+  jiggleWeights,
+  offerSensitivity,
+  offerVerdict,
+  seededRandom,
   FOCUS_OFFER_WEIGHTS,
   defaultOfferWeights,
   focusWeightsNote,
@@ -219,5 +226,97 @@ describe("summarizeOffers", () => {
 
   it("handles no offers", () => {
     expect(summarizeOffers([])).toEqual({ bestOverall: null, cheapest: null, highestRanked: null });
+  });
+});
+
+describe("seededRandom / jiggleWeights", () => {
+  it("gives the same numbers for the same seed, in [0, 1)", () => {
+    const a = seededRandom(42);
+    const b = seededRandom(42);
+    const first = Array.from({ length: 5 }, () => a());
+    expect(Array.from({ length: 5 }, () => b())).toEqual(first);
+    expect(first.every((x) => x >= 0 && x < 1)).toBe(true);
+    expect(seededRandom(43)()).not.toBe(first[0]);
+  });
+
+  it("keeps each weight within ±50% and leaves ignored (0) criteria at 0", () => {
+    const random = seededRandom(1);
+    for (let i = 0; i < 200; i++) {
+      const w = jiggleWeights({ ...BALANCED_OFFER_WEIGHTS, coop: 0 }, random);
+      expect(w.coop).toBe(0);
+      expect(w.cost).toBeGreaterThanOrEqual(2.5);
+      expect(w.cost).toBeLessThanOrEqual(7.5);
+    }
+  });
+});
+
+describe("offerSensitivity", () => {
+  it("is deterministic for a given seed", () => {
+    const offers = [offer({ id: "a", totalCost: 90000 }), offer({ id: "b", overallRank: 20 })];
+    const one = offerSensitivity(offers, BALANCED_OFFER_WEIGHTS, { seed: 7 });
+    const two = offerSensitivity(offers, BALANCED_OFFER_WEIGHTS, { seed: 7 });
+    expect(two).toEqual(one);
+  });
+
+  it("runs 1,000 times by default and each offer's rank shares add up to 1", () => {
+    const offers = [offer({ id: "a" }), offer({ id: "b", totalCost: 80000 }), offer({ id: "c", overallRank: 10 })];
+    const result = offerSensitivity(offers, BALANCED_OFFER_WEIGHTS);
+    expect(result.runs).toBe(1000);
+    for (const o of result.offers) {
+      expect(o.rankShares).toHaveLength(3);
+      expect(o.rankShares.reduce((a, b) => a + b, 0)).toBeCloseTo(1);
+    }
+    // Every run has exactly one winner.
+    expect(result.offers.reduce((sum, o) => sum + o.firstShare, 0)).toBeCloseTo(1);
+  });
+
+  it("calls an offer that's better on everything a clear winner", () => {
+    const offers = [
+      offer({ id: "best", totalCost: 60000, overallRank: 5, matchScore: 95 }),
+      offer({ id: "worse", totalCost: 120000, overallRank: 200, matchScore: 50 }),
+    ];
+    const result = offerSensitivity(offers, BALANCED_OFFER_WEIGHTS);
+    expect(result.offers[0]).toMatchObject({ id: "best", firstShare: 1, typicalRank: 1 });
+    expect(result.verdict?.kind).toBe("clear");
+    expect(result.verdict?.message).toMatch(/Clear winner: best comes first in 100% of 1,000/);
+  });
+
+  it("calls a trade-off between cost and ranking a close call when both weigh the same", () => {
+    const offers = [
+      offer({ id: "cheap", totalCost: 60000, overallRank: 100 }),
+      offer({ id: "famous", totalCost: 120000, overallRank: 10 }),
+    ];
+    const weights = { ...only("cost"), ranking: 10 };
+    const result = offerSensitivity(offers, weights);
+    expect(result.offers[0].firstShare).toBeLessThan(CLEAR_WINNER_SHARE);
+    expect(result.offers[1].firstShare).toBeGreaterThan(0);
+    expect(result.verdict?.kind).toBe("close");
+    expect(result.verdict?.message).toMatch(/^Close call: /);
+  });
+
+  it("has no verdict with a single offer", () => {
+    expect(offerSensitivity([offer({ id: "only" })], BALANCED_OFFER_WEIGHTS).verdict).toBeNull();
+    expect(offerVerdict([], 1000)).toBeNull();
+  });
+});
+
+describe("acceptByStatus", () => {
+  const today = new Date("2026-10-06T20:00:00Z");
+
+  it("is upcoming far ahead, due soon within a week, overdue after the date", () => {
+    expect(acceptByStatus("2026-11-01", "admitted", today)).toMatchObject({ state: "upcoming", daysLeft: 26 });
+    expect(acceptByStatus("2026-10-13", "admitted", today)).toMatchObject({ state: "due-soon", daysLeft: DUE_SOON_DAYS });
+    expect(acceptByStatus("2026-10-06", "admitted", today)?.label).toMatch(/\(today\)/);
+    expect(acceptByStatus("2026-10-07", "admitted", today)?.label).toMatch(/\(tomorrow\)/);
+    const overdue = acceptByStatus("2026-10-01", "admitted", today);
+    expect(overdue).toMatchObject({ state: "overdue", daysLeft: -5 });
+    expect(overdue?.label).toBe("Overdue: accept by Oct 1, 2026 (5 days ago)");
+  });
+
+  it("shows nothing without a date, with a bad date, or once accepted", () => {
+    expect(acceptByStatus(null, "admitted", today)).toBeNull();
+    expect(acceptByStatus(undefined, "admitted", today)).toBeNull();
+    expect(acceptByStatus("soon", "admitted", today)).toBeNull();
+    expect(acceptByStatus("2026-10-01", "accepted", today)).toBeNull();
   });
 });

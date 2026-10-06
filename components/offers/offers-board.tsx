@@ -2,13 +2,16 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { RotateCcw } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, RotateCcw, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/applications/status-badge";
 import {
   CRITERION_LABELS,
   DEFAULT_OFFER_WEIGHTS,
+  SENSITIVITY_SPREAD,
+  acceptByStatus,
   defaultOfferWeights,
+  offerSensitivity,
   focusWeightsNote,
   rankOffers,
   summarizeOffers,
@@ -26,6 +29,7 @@ export type OfferRow = OfferInput & {
   status: ApplicationStatus;
   netPerYear: number | null;
   durationYears: number;
+  acceptBy: string | null; // "YYYY-MM-DD", optional
 };
 
 const CRITERIA = Object.keys(DEFAULT_OFFER_WEIGHTS) as OfferCriterion[];
@@ -39,6 +43,10 @@ export function OffersBoard({ offers, focuses }: { offers: OfferRow[]; focuses: 
 
   const ranked = useMemo(() => rankOffers(offers, weights), [offers, weights]);
   const summary = useMemo(() => summarizeOffers(ranked), [ranked]);
+  // 1,000 re-rankings with jiggled weights (seeded, so stable between renders).
+  const sensitivity = useMemo(() => offerSensitivity(offers, weights), [offers, weights]);
+  const robustness = new Map(sensitivity.offers.map((o) => [o.id, o]));
+  const pct = (share: number) => `${Math.round(share * 100)}%`;
   const missingCost = offers.some((o) => o.totalCost === null);
 
   return (
@@ -100,8 +108,29 @@ export function OffersBoard({ offers, focuses }: { offers: OfferRow[]; focuses: 
           />
         </div>
 
+        {sensitivity.verdict && (
+          <div
+            className={
+              sensitivity.verdict.kind === "clear"
+                ? "flex gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-sm"
+                : "flex gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm"
+            }
+            aria-live="polite"
+          >
+            {sensitivity.verdict.kind === "clear" ? (
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+            ) : (
+              <Scale className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+            )}
+            <p>{sensitivity.verdict.message}</p>
+          </div>
+        )}
+
         <ol className="space-y-3">
-          {ranked.map(({ offer, position, score, reason }) => (
+          {ranked.map(({ offer, position, score, reason }) => {
+            const due = acceptByStatus(offer.acceptBy, offer.status);
+            const spread = robustness.get(offer.id);
+            return (
             <li key={offer.id} className="space-y-2 rounded-2xl border p-5">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="flex size-7 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
@@ -111,6 +140,24 @@ export function OffersBoard({ offers, focuses }: { offers: OfferRow[]; focuses: 
                   {offer.universityName}
                 </Link>
                 {offer.status === "accepted" && <StatusBadge status="accepted" />}
+                {due && (
+                  <span
+                    className={
+                      due.state === "overdue"
+                        ? "inline-flex items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-xs text-rose-600 dark:text-rose-400"
+                        : due.state === "due-soon"
+                          ? "inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-600 dark:text-amber-400"
+                          : "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs text-muted-foreground"
+                    }
+                  >
+                    {due.state === "overdue" ? (
+                      <AlertTriangle className="size-3" aria-hidden />
+                    ) : (
+                      <CalendarClock className="size-3" aria-hidden />
+                    )}
+                    {due.label}
+                  </span>
+                )}
                 <span className="text-sm font-semibold tabular-nums">{score}/100</span>
               </div>
               <p className="text-sm">{reason}</p>
@@ -123,8 +170,20 @@ export function OffersBoard({ offers, focuses }: { offers: OfferRow[]; focuses: 
                 {offer.subjectRank !== null && ` · #${offer.subjectRank} in ${offer.subjectLabel}`}
                 {` · ${offer.matchScore}% match`}
               </p>
+              {spread && offers.length > 1 && (
+                <p className="text-xs text-muted-foreground">
+                  First in {pct(spread.firstShare)} of {sensitivity.runs.toLocaleString("en-US")} variations · rank
+                  spread:{" "}
+                  {spread.rankShares
+                    .map((share, i) => ({ share, rank: i + 1 }))
+                    .filter(({ share }) => share > 0)
+                    .map(({ share, rank }) => `#${rank} ${pct(share)}`)
+                    .join(" · ")}
+                </p>
+              )}
             </li>
-          ))}
+            );
+          })}
         </ol>
 
         <p className="text-xs text-muted-foreground">
@@ -135,7 +194,11 @@ export function OffersBoard({ offers, focuses }: { offers: OfferRow[]; focuses: 
           optional or none) use fixed scales instead, and are only known for
           some schools. Anything unknown for an offer is left out of its score
           rather than counted as zero.
-          {missingCost && " Some offers are missing cost details, so cost can't separate them yet."}
+          {missingCost && " Some offers are missing cost details, so cost can't separate them yet."}{" "}
+          &ldquo;Clear winner&rdquo; / &ldquo;close call&rdquo;: the ranking is
+          re-run {sensitivity.runs.toLocaleString("en-US")} times with every
+          non-zero slider moved randomly by up to ±{Math.round(SENSITIVITY_SPREAD * 100)}%,
+          counting how often each offer comes first.
         </p>
       </div>
     </div>

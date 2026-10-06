@@ -23,7 +23,7 @@ verified: the migration_011 columns exist (search_text included); all
 levels; sources are College Scorecard 1,577, curated 42, illustrative 29
 (442 featured); Oxford was upgraded in place (£39,620 stored with its
 currency, illustrative ranking removed) and a search for "lse" finds the
-London School of Economics by its alias. **Steps 11–13 are pending.**
+London School of Economics by its alias. **Steps 11–14 are pending.**
 
 New migrations will be added to this table when they're written.
 
@@ -46,6 +46,7 @@ this order: the seed files need both migrations first.
 | 11 | `supabase/seed_international/00_link_existing.sql`, `01_universities.sql`, `02_universities.sql`, `90_coop.sql`, `91_rankings.sql` (regenerated, 111 universities) | **Not run yet** |
 | 12 | `supabase/migration_012_country_info.sql` | **Not run yet** |
 | 13 | `supabase/seed_country_info.sql` (right after step 12) | **Not run yet** |
+| 14 | `supabase/migration_013_offer_accept_by.sql` | **Not run yet** |
 
 All of them are safe to run again if you're not sure whether one went
 through.
@@ -319,6 +320,23 @@ could verify on an official page are left empty. Safe to re-run.
 select count(*) as countries, count(post_study_text) as post_study, count(funds_text) as funds, count(work_text) as work from public.country_info;
 ```
 Expect `27`, `16`, `7`, `16`.
+
+## 14. `migration_013_offer_accept_by.sql`
+
+**What it does:** adds `applications.accept_by` (a date, optional): the
+date an offer must be accepted by. The offers page shows it as an
+upcoming / due soon / overdue badge. The existing owner-only RLS policies
+on `applications` already cover the new column.
+
+**What's affected until it runs:** the Applications page still saves
+everything else, but the accept-by date isn't stored; the form says so in
+an amber note naming this file. The offers page shows no date badges.
+
+**Check:**
+```sql
+select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'applications' and column_name = 'accept_by';
+```
+Expect `1`.
 
 ---
 

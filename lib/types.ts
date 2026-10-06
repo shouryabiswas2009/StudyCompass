@@ -200,7 +200,10 @@ export type Application = {
   university_id: string;
   status: ApplicationStatus;
   program: string;
-  deadline: string | null; // "YYYY-MM-DD"
+  deadline: string | null; // "YYYY-MM-DD", the application deadline
+  // "YYYY-MM-DD": the date to accept an offer by (migration_013). Optional,
+  // and missing entirely until that migration is run.
+  accept_by?: string | null;
   tuition_per_year: number | null;
   scholarship_per_year: number;
   living_cost_per_year: number | null;
@@ -216,6 +219,7 @@ export type ApplicationInput = Pick<
   | "status"
   | "program"
   | "deadline"
+  | "accept_by"
   | "tuition_per_year"
   | "scholarship_per_year"
   | "living_cost_per_year"

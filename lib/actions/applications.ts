@@ -7,6 +7,7 @@ import {
   validateApplicationForm,
   type ApplicationFieldErrors,
 } from "@/lib/application-validation";
+import { skippedNotice, writeSkippingPendingColumns } from "@/lib/pending-migrations";
 import type { DegreeLevel, University } from "@/lib/types";
 
 // Typical program lengths, used only as a starting value the student edits.
@@ -98,6 +99,8 @@ export type ApplicationFormState =
       error?: string;
       fieldErrors?: ApplicationFieldErrors;
       saved?: boolean;
+      // Saved, but a field the database can't store yet was left out.
+      notice?: string;
     }
   | undefined;
 
@@ -115,17 +118,19 @@ export async function updateApplication(
     return { error: "Please fix the highlighted fields.", fieldErrors: result.errors };
   }
 
-  const { data, error } = await supabase
-    .from("applications")
-    .update(result.data)
-    .eq("id", id)
-    .select("id");
+  // accept_by needs migration_013; until it's run, save everything else.
+  const {
+    result: { data, error },
+    skipped,
+  } = await writeSkippingPendingColumns(result.data, (payload) =>
+    supabase.from("applications").update(payload).eq("id", id).select("id")
+  );
 
   if (error) return { error: error.message };
   if (!data || data.length === 0) return { error: "Application not found." };
 
   refresh();
-  return { saved: true };
+  return { saved: true, notice: skippedNotice(skipped) };
 }
 
 export async function removeApplication(id: string): Promise<{ error?: string }> {

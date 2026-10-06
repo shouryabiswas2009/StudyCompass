@@ -39,6 +39,9 @@ export function validateApplicationForm(formData: FormData): ApplicationValidati
   const deadlineRaw = readText(formData, "deadline");
   if (deadlineRaw && !isValidDate(deadlineRaw)) errors.deadline = "Enter a valid date.";
 
+  const acceptByRaw = readText(formData, "accept_by");
+  if (acceptByRaw && !isValidDate(acceptByRaw)) errors.accept_by = "Enter a valid date.";
+
   const tuition_per_year = readNumber(formData, "tuition_per_year");
   if (isBad(tuition_per_year) || (tuition_per_year !== null && tuition_per_year < 0)) {
     errors.tuition_per_year = "Tuition must be 0 or more (or leave it blank).";
@@ -70,6 +73,7 @@ export function validateApplicationForm(formData: FormData): ApplicationValidati
       status: status as ApplicationStatus,
       program,
       deadline: deadlineRaw || null,
+      accept_by: acceptByRaw || null,
       tuition_per_year,
       scholarship_per_year: scholarship,
       living_cost_per_year,

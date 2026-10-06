@@ -21,6 +21,7 @@ export const PENDING_COLUMNS: Record<string, string> = {
   tuition_currency: "migration_011_international.sql",
   tuition_basis: "migration_011_international.sql",
   fx_rate_date: "migration_011_international.sql",
+  accept_by: "migration_013_offer_accept_by.sql",
 };
 
 type DbError = { code?: string; message?: string } | null;
