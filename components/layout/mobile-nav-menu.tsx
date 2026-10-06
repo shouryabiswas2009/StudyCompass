@@ -15,16 +15,18 @@ const navLinks = [
   { href: "/universities", label: "Browse" },
   { href: "/compare", label: "Compare" },
   { href: "/saved", label: "Saved" },
+  { href: "/applications", label: "Applications" },
+  { href: "/offers", label: "Offers" },
   { href: "/profile", label: "Profile" },
 ];
 
-// Shown below the `md` breakpoint, once signed in, so the nav links that
-// are otherwise hidden on small screens are still reachable.
+// Shown below the `lg` breakpoint, once signed in, so the nav links that
+// don't fit in the bar on smaller screens are still reachable.
 export function MobileNavMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu">
+        <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu">
           <Menu className="size-4" />
         </Button>
       </DropdownMenuTrigger>

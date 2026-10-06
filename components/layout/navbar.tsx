@@ -10,6 +10,8 @@ const navLinks = [
   { href: "/universities", label: "Browse" },
   { href: "/compare", label: "Compare" },
   { href: "/saved", label: "Saved" },
+  { href: "/applications", label: "Applications" },
+  { href: "/offers", label: "Offers" },
 ];
 
 // Server component: reads the signed-in user (or null) and renders the
@@ -24,7 +26,8 @@ export function Navbar({ userEmail }: { userEmail: string | null }) {
         </Link>
 
         {userEmail && (
-          <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex">
+          // Six links only fit on wide screens; below `lg` they're in the menu.
+          <nav className="hidden items-center gap-5 text-sm font-medium text-muted-foreground lg:flex">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -41,8 +44,10 @@ export function Navbar({ userEmail }: { userEmail: string | null }) {
           <ThemeToggle />
           {userEmail ? (
             <>
-              <Button variant="ghost" asChild className="hidden md:inline-flex">
-                <Link href="/profile">{userEmail}</Link>
+              <Button variant="ghost" asChild className="hidden lg:inline-flex">
+                <Link href="/profile" title={userEmail}>
+                  Profile
+                </Link>
               </Button>
               <MobileNavMenu />
               <LogoutButton />

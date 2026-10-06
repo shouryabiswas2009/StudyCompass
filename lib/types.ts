@@ -71,6 +71,48 @@ export type UniversityInput = Pick<
   | "description"
 >;
 
+// Application tracker (migration_006). An "admitted" application doubles as
+// the record of the offer that the offers page ranks.
+export const APPLICATION_STATUSES = [
+  "planning",
+  "applied",
+  "admitted",
+  "waitlisted",
+  "rejected",
+  "accepted",
+] as const;
+
+export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
+
+export type Application = {
+  id: string;
+  user_id: string;
+  university_id: string;
+  status: ApplicationStatus;
+  program: string;
+  deadline: string | null; // "YYYY-MM-DD"
+  tuition_per_year: number | null;
+  scholarship_per_year: number;
+  living_cost_per_year: number | null;
+  duration_years: number;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+};
+
+// Fields the application details form edits.
+export type ApplicationInput = Pick<
+  Application,
+  | "status"
+  | "program"
+  | "deadline"
+  | "tuition_per_year"
+  | "scholarship_per_year"
+  | "living_cost_per_year"
+  | "duration_years"
+  | "notes"
+>;
+
 export type SavedUniversity = {
   id: string;
   user_id: string;

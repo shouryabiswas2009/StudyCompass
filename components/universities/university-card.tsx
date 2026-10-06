@@ -22,6 +22,8 @@ import {
   type MatchResult,
 } from "@/lib/matching";
 import { Badge } from "@/components/ui/badge";
+import { ApplicationStatusControl } from "@/components/applications/application-status-control";
+import type { ApplicationStatus } from "@/lib/types";
 import type { University } from "@/lib/types";
 
 const TIER_BORDER = {
@@ -38,6 +40,7 @@ export function UniversityCard({
   isSaved = false,
   index = 0,
   compare,
+  tracking,
 }: {
   university: University;
   match: MatchResult;
@@ -47,6 +50,9 @@ export function UniversityCard({
   index?: number;
   // Present when the card is shown in a board that supports comparing.
   compare?: { selected: boolean; disabled: boolean; onToggle: () => void };
+  // Present on the saved page: the application tracked for this school, or
+  // null if it isn't tracked yet.
+  tracking?: { application: { id: string; status: ApplicationStatus } | null };
 }) {
   return (
     <motion.div
@@ -106,13 +112,21 @@ export function UniversityCard({
               </div>
             )}
             <StrengthsConcerns explanation={explanation} limit={2} />
-            {/* Leaves room for the compare checkbox pinned to the corner. */}
-            {compare && <div className="h-6" />}
+            {/* Leaves room for the controls pinned to the bottom corners. */}
+            {(compare || tracking) && <div className="h-6" />}
           </CardContent>
         </Card>
       </Link>
 
-      {/* Like the save button: a sibling of the Link, not inside it. */}
+      {/* Like the save button, these are siblings of the Link, not inside it. */}
+      {tracking && (
+        <div className="absolute bottom-3 left-4 z-10">
+          <ApplicationStatusControl
+            universityId={university.id}
+            application={tracking.application}
+          />
+        </div>
+      )}
       {compare && (
         <label
           className={cn(

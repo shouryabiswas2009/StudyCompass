@@ -24,7 +24,7 @@ import {
   type SortKey,
   type UniversityFilters,
 } from "@/lib/university-filters";
-import { DEGREE_LEVELS, type DegreeLevel } from "@/lib/types";
+import { DEGREE_LEVELS, type ApplicationStatus, type DegreeLevel } from "@/lib/types";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "match", label: "Best match" },
@@ -53,6 +53,7 @@ export function UniversityBoard({
   savedIds,
   emptyMessage,
   showDegreeFilter = false,
+  applications,
 }: {
   matches: MatchEntry[];
   savedIds: Set<string>;
@@ -60,6 +61,9 @@ export function UniversityBoard({
   // Recommendations are already limited to the student's degree level, so
   // only the browse page needs this filter.
   showDegreeFilter?: boolean;
+  // Saved page only: tracked applications by university id. When given,
+  // each card shows a status dropdown (or a "Track" button).
+  applications?: Record<string, { id: string; status: ApplicationStatus }>;
 }) {
   const [filters, setFilters] = useState<UniversityFilters>(NO_FILTERS);
   // Raw text of the tuition boxes, so typing "1" on the way to "10000"
@@ -256,6 +260,11 @@ export function UniversityBoard({
                   !compareIds.includes(entry.university.id) && compareIds.length >= MAX_COMPARE,
                 onToggle: () => toggleCompare(entry.university.id),
               }}
+              tracking={
+                applications
+                  ? { application: applications[entry.university.id] ?? null }
+                  : undefined
+              }
             />
           ))}
         </div>

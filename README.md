@@ -39,6 +39,9 @@ Supabase (Auth + Database), and Framer Motion.
      It lets students add their own universities (with row-level security
      so only they can see and change them), makes the QS ranking optional,
      and adds 34 more illustrative universities (61 in total).
+   - Then run [`supabase/migration_006_applications.sql`](supabase/migration_006_applications.sql).
+     It adds the `applications` table (owner-only RLS) behind the
+     application tracker and the offers page.
    - Copy `.env.local.example` to `.env.local` and fill in your project's
      URL and anon/publishable key (Project Settings → API in the dashboard).
 
@@ -120,7 +123,9 @@ app/
   (dashboard)/universities/new      # Add your own university
   (dashboard)/universities/[id]     # University details (+ /edit for your own)
   (dashboard)/compare               # Side-by-side comparison
-  (dashboard)/saved                 # Bookmarked universities
+  (dashboard)/saved                 # Bookmarked universities (+ application status)
+  (dashboard)/applications          # Application tracker and offer details
+  (dashboard)/offers                # "Which offer should I accept?"
   auth/callback, auth/confirm       # Supabase email link handlers
 components/
   landing/    # Hero, feature cards, CTA
@@ -135,6 +140,7 @@ lib/
   matching.ts # Match score, breakdown, Reach/Match/Safety, explanations
   university-filters.ts # Search/filter/sort rules for the university board
   compare.ts  # Compare URL parsing, total cost, "best in row" highlighting
+  offers.ts   # Net cost, offer ranking with adjustable weights, reasons
   format.ts   # Shared number formatting
   *-validation.ts       # Form validation (profile, university)
   types.ts    # Shared TypeScript types
@@ -147,6 +153,7 @@ supabase/
   migration_003_scores_and_degree_levels.sql # SAT score, input checks, degree levels
   migration_004_admission_stats.sql # Illustrative admit GPA, SAT range, IELTS, living cost
   migration_005_browse_and_custom_universities.sql # Student-added schools + RLS, 34 more schools
+  migration_006_applications.sql   # Application tracker / offers (owner-only RLS)
 ```
 
 ## How matching works
@@ -212,6 +219,32 @@ when every school is ranked the same way, since a subject ranking and an
 overall ranking aren't on the same scale. The estimated total per year is
 tuition plus living cost, and shows as unknown when the living cost is
 missing rather than quietly showing tuition alone.
+
+## How offer ranking works
+
+Each tracked application is also the record of an offer. Once its status
+is **Admitted** (or **Accepted**), it appears on `/offers`, ranked by
+`rankOffers()` in [`lib/offers.ts`](lib/offers.ts):
+
+- **Net cost per year** = tuition + living cost − scholarship (never below
+  0). **Total cost** = net cost × program length. If tuition or living cost
+  is missing, the cost is unknown rather than tuition-only, so an offer
+  with missing details can't look cheaper than it is.
+- Each offer is scored 0–100 from five criteria, each weighted 0–10 by
+  sliders the student controls (defaults: cost 5, overall ranking 3,
+  subject ranking 3, match score 2, preferred country 1):
+  - **Cost and rankings are relative** to the student's own offers: the
+    best gets full marks and the worst gets none.
+  - **Rankings use a log scale**, because #5 vs #10 is a much bigger
+    difference than #205 vs #210.
+  - **Match score** (0–100 from matching) and **preferred country**
+    (yes/no) are used as they are.
+  - **Unknown values are left out**, as in matching: a criterion that's
+    unknown for an offer (e.g. no subject ranking) is excluded from that
+    offer's score instead of counting as zero.
+- Every offer gets a plain-language reason built from the criteria that
+  count most for that student, plus its weak spot. The page also names the
+  best overall, cheapest and highest-ranked offer.
 
 ## Notes
 

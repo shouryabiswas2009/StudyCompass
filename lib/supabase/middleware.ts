@@ -7,6 +7,8 @@ const PROTECTED_PATHS = [
   "/universities",
   "/compare",
   "/saved",
+  "/applications",
+  "/offers",
 ];
 const AUTH_PATHS = ["/login", "/signup"];
 

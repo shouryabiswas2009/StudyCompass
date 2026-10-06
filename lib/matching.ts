@@ -66,7 +66,7 @@ function isKnown(value: number | null | undefined): value is number {
 }
 
 
-function countryMatches(profile: Profile, university: University): boolean {
+export function countryMatches(profile: Profile, university: University): boolean {
   const country = university.country.trim().toLowerCase();
   return profile.preferred_countries.some(
     (preferred) => preferred.trim().toLowerCase() === country
