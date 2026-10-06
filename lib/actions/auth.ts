@@ -20,6 +20,14 @@ export async function login(
   });
 
   if (error) {
+    // Supabase's own message here ("Email not confirmed") doesn't tell the
+    // student what to do next.
+    if (error.code === "email_not_confirmed") {
+      return {
+        error:
+          "Please confirm your email first — check your inbox (and spam folder) for the confirmation link.",
+      };
+    }
     return { error: error.message };
   }
 

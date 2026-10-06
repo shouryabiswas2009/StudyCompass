@@ -33,6 +33,8 @@ Supabase (Auth + Database), and Framer Motion.
 3. (Optional, for faster local testing) In your Supabase dashboard, go to
    Authentication → Providers → Email and turn off "Confirm email" so new
    accounts can log in immediately without clicking a confirmation link.
+   To turn real confirmation emails on, see
+   [Email confirmation](#email-confirmation) below.
 
 4. Run the dev server:
 
@@ -41,6 +43,51 @@ Supabase (Auth + Database), and Framer Motion.
    ```
 
    Open [http://localhost:3000](http://localhost:3000).
+
+## Keeping the Supabase project awake
+
+Supabase pauses free-tier projects after about a week with no activity, and
+login fails until the project is restored from the dashboard.
+[`.github/workflows/keep-alive.yml`](.github/workflows/keep-alive.yml) runs
+a one-row read query every 3 days to prevent that. It needs two repository
+secrets (GitHub → Settings → Secrets and variables → Actions → New
+repository secret):
+
+- `SUPABASE_URL`: the same value as `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_ANON_KEY`: the same value as `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+You can run it by hand from the Actions tab ("Keep Supabase awake" → Run
+workflow) to check it works. GitHub turns off scheduled workflows in repos
+with no commits for 60 days and emails you first; one click re-enables it.
+
+## Email confirmation
+
+Supabase's built-in email sender only delivers to members of your Supabase
+team and is limited to a few emails per hour, so confirmation emails to
+real users need your own SMTP provider. Gmail works for free without
+owning a domain:
+
+1. Turn on 2-Step Verification for your Google account, then create an app
+   password at <https://myaccount.google.com/apppasswords>.
+2. Supabase dashboard → Authentication → Emails → SMTP Settings → enable
+   custom SMTP: host `smtp.gmail.com`, port `587`, username = your Gmail
+   address, password = the app password, sender email = your Gmail address.
+   (If you own a domain, Resend or Brevo also work and look more
+   professional; Resend's free plan only sends to your own address until a
+   domain is verified.)
+3. Authentication → URL Configuration: set Site URL to
+   `http://localhost:3000` (your deployed URL later) and add
+   `http://localhost:3000/**` to Redirect URLs.
+4. Authentication → Emails → Templates → "Confirm signup": change the link to
+
+   ```html
+   <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email">Confirm your email</a>
+   ```
+
+   This sends users to `app/auth/confirm/route.ts`, which verifies the
+   token directly, so the link works even when opened on a different device
+   than the one used to sign up.
+5. Authentication → Providers → Email: turn "Confirm email" back on.
 
 ## Project structure
 
