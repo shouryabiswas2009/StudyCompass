@@ -38,11 +38,15 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // IMPORTANT: do not run code between createServerClient and getUser().
+  // IMPORTANT: do not run code between createServerClient and getClaims().
   // A simple mistake here can cause hard-to-debug session refresh issues.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  //
+  // getClaims() verifies the session token's signature locally (the project
+  // uses asymmetric ES256 keys), so unlike getUser() it doesn't make a network
+  // call to Supabase Auth on every request. It still refreshes an expired
+  // session and writes the new cookies through setAll above.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims ?? null;
 
   const path = request.nextUrl.pathname;
   const isProtected = PROTECTED_PATHS.some((p) => path.startsWith(p));

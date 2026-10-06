@@ -6,15 +6,14 @@ import { scoreUniversity } from "@/lib/matching";
 import { UniversityBoard } from "@/components/universities/university-board";
 import { Button } from "@/components/ui/button";
 import type { Profile, University } from "@/lib/types";
+import { getCurrentUser } from "@/lib/auth";
 
 // Every university the student can see: the shared list plus any they added
 // themselves (RLS decides which rows come back). Unlike recommendations,
 // nothing is hidden by degree level here — that's a filter they can choose.
 export default async function BrowseUniversitiesPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) redirect("/login");
 

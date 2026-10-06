@@ -18,6 +18,7 @@ import { usd } from "@/lib/format";
 import { FOCUS_LABELS, RESEARCH_LABELS, focusOf } from "@/lib/focus";
 import { compareUrl } from "@/lib/compare";
 import type { Profile, University } from "@/lib/types";
+import { getCurrentUser } from "@/lib/auth";
 
 export default async function UniversityDetailsPage({
   params,
@@ -27,9 +28,7 @@ export default async function UniversityDetailsPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const { data: university } = await supabase
     .from("universities")

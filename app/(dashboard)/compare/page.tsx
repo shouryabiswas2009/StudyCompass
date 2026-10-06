@@ -5,6 +5,7 @@ import { CompareTable } from "@/components/universities/compare-table";
 import { MAX_COMPARE, parseCompareIds } from "@/lib/compare";
 import { scoreUniversity } from "@/lib/matching";
 import type { Profile, University } from "@/lib/types";
+import { getCurrentUser } from "@/lib/auth";
 
 export default async function ComparePage({
   searchParams,
@@ -14,9 +15,7 @@ export default async function ComparePage({
   const ids = parseCompareIds(await searchParams);
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase

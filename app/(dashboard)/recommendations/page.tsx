@@ -6,12 +6,11 @@ import { UniversityBoard } from "@/components/universities/university-board";
 import { Button } from "@/components/ui/button";
 import type { Profile, University } from "@/lib/types";
 import { FOCUS_LABELS, focusOf } from "@/lib/focus";
+import { getCurrentUser } from "@/lib/auth";
 
 export default async function RecommendationsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) redirect("/login");
 

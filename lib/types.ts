@@ -91,6 +91,24 @@ export type University = {
   has_coop?: boolean | null; // only ever set by a student, never imported
 };
 
+// What list pages need: everything except the detail-page-only figures.
+// Browse and recommendations load ~1,600 of these (lib/data/universities.ts),
+// so leaving out unused columns keeps that list small enough to cache.
+export type UniversitySummary = Omit<University, DetailOnlyField>;
+
+export const DETAIL_ONLY_FIELDS = [
+  "description",
+  "tuition_in_state",
+  "avg_net_price",
+  "student_size",
+  "ownership",
+  "us_region",
+  "scorecard_id",
+  "created_at",
+] as const;
+
+type DetailOnlyField = (typeof DETAIL_ONLY_FIELDS)[number];
+
 // Carnegie Classification research activity, as reported by College
 // Scorecard: R1, R2, other doctoral/professional, or not a doctoral school.
 export const RESEARCH_INTENSITIES = [

@@ -25,7 +25,7 @@ import { SourceBadge } from "@/components/universities/source-badge";
 import { ApplicationStatusControl } from "@/components/applications/application-status-control";
 import type { ApplicationStatus } from "@/lib/types";
 import type { AdmissionPrediction } from "@/lib/admission-model";
-import type { University } from "@/lib/types";
+import type { UniversitySummary } from "@/lib/types";
 
 const TIER_BORDER = {
   strong: "border-t-emerald-500",
@@ -44,7 +44,7 @@ export function UniversityCard({
   compare,
   tracking,
 }: {
-  university: University;
+  university: UniversitySummary;
   match: MatchResult;
   explanation: MatchExplanation;
   ranking?: DisplayRanking;

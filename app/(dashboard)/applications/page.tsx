@@ -6,6 +6,7 @@ import { ApplicationCard } from "@/components/applications/application-card";
 import { TrackUniversitySelect } from "@/components/applications/track-university-select";
 import { Button } from "@/components/ui/button";
 import type { Application, University } from "@/lib/types";
+import { getCurrentUser } from "@/lib/auth";
 
 type ApplicationRow = Application & {
   universities: Pick<University, "id" | "name" | "country">;
@@ -13,9 +14,7 @@ type ApplicationRow = Application & {
 
 export default async function ApplicationsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   const [{ data: applications }, { data: saved }] = await Promise.all([

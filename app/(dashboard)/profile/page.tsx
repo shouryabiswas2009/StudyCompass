@@ -1,12 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { ProfileForm } from "@/components/profile/profile-form";
 import type { Profile } from "@/lib/types";
+import { getCurrentUser } from "@/lib/auth";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   // Route protection already happens in proxy.ts, but `user` is still
   // typed as possibly-null here, so guard before querying with it.

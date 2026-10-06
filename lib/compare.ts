@@ -21,7 +21,9 @@ export function compareUrl(ids: string[]): string {
 
 // Tuition plus living costs. Unknown (null) when we don't know the living
 // cost, rather than quietly showing tuition alone as if it were the total.
-export function totalYearlyCost(university: University): number | null {
+export function totalYearlyCost(
+  university: Pick<University, "tuition" | "living_cost_per_year">
+): number | null {
   const living = university.living_cost_per_year;
   return living === null || living === undefined ? null : university.tuition + living;
 }

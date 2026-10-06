@@ -5,12 +5,11 @@ import { scoreUniversity } from "@/lib/matching";
 import { UniversityBoard } from "@/components/universities/university-board";
 import { Button } from "@/components/ui/button";
 import type { ApplicationStatus, Profile, University } from "@/lib/types";
+import { getCurrentUser } from "@/lib/auth";
 
 export default async function SavedPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) redirect("/login");
 

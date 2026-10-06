@@ -12,7 +12,7 @@ import {
   focusOf,
 } from "@/lib/focus";
 import scorecardReference from "@/lib/scorecard-reference.json";
-import type { PrimaryFocus, Profile, University } from "@/lib/types";
+import type { PrimaryFocus, Profile, UniversitySummary } from "@/lib/types";
 
 // ─── Scoring weights ─────────────────────────────────────────────────────
 // The one place the weights live. They add up to 100, so each reads as
@@ -90,7 +90,7 @@ function isKnown(value: number | null | undefined): value is number {
 }
 
 
-export function countryMatches(profile: Profile, university: University): boolean {
+export function countryMatches(profile: Profile, university: UniversitySummary): boolean {
   const country = university.country.trim().toLowerCase();
   return profile.preferred_countries.some(
     (preferred) => preferred.trim().toLowerCase() === country
@@ -102,7 +102,7 @@ export function countryMatches(profile: Profile, university: University): boolea
 // explanation, and the subject-specific ranking lookup.
 function findMatchingProgram(
   profile: Profile,
-  university: University
+  university: UniversitySummary
 ): { major: string; program: string } | null {
   for (const rawMajor of profile.intended_majors) {
     const major = rawMajor.trim().toLowerCase();
@@ -119,18 +119,18 @@ function findMatchingProgram(
 // A school that doesn't offer the student's degree level can't be a match,
 // however well it scores otherwise. An empty list means we don't know the
 // school's levels, so we don't rule it out.
-export function offersDegreeLevel(profile: Profile, university: University): boolean {
+export function offersDegreeLevel(profile: Profile, university: UniversitySummary): boolean {
   const levels = university.degree_levels ?? [];
   return levels.length === 0 || levels.includes(profile.preferred_degree_level);
 }
 
-function isMuchCheaperThanRange(profile: Profile, university: University): boolean {
+function isMuchCheaperThanRange(profile: Profile, university: UniversitySummary): boolean {
   return university.tuition < profile.budget_min * MUCH_CHEAPER_RATIO;
 }
 
 // ─── Factor fits: each returns 0..1, or null when unknown ────────────────
 
-function budgetFit(profile: Profile, university: University): number {
+function budgetFit(profile: Profile, university: UniversitySummary): number {
   if (university.tuition <= profile.budget_max) return 1;
   // Lose credit in proportion to how far over budget: 50% over → 0.5.
   const overBy = (university.tuition - profile.budget_max) / profile.budget_max;
@@ -139,7 +139,7 @@ function budgetFit(profile: Profile, university: University): number {
 
 // GPA gap in percentage points vs the typical admitted student:
 // +5 or more → 1, exactly average → 0.75, -10 → 0.25, -15 or worse → 0.
-function gpaFit(profile: Profile, university: University): number | null {
+function gpaFit(profile: Profile, university: UniversitySummary): number | null {
   if (!isKnown(university.avg_admitted_gpa)) return null;
   const gap = profile.gpa_percentage - university.avg_admitted_gpa;
   return clamp01(0.75 + gap / 20);
@@ -147,7 +147,7 @@ function gpaFit(profile: Profile, university: University): number | null {
 
 // Position within the middle-50% SAT range: at the 25th percentile → 0.5,
 // at the 75th or above → 1, one full range-width below the 25th → 0.
-function satFit(profile: Profile, university: University): number | null {
+function satFit(profile: Profile, university: UniversitySummary): number | null {
   if (!isKnown(profile.sat_score) || !isKnown(university.sat_25) || !isKnown(university.sat_75)) {
     return null;
   }
@@ -158,19 +158,19 @@ function satFit(profile: Profile, university: University): number | null {
 
 // Average of whichever academic signals we have. GPA is always on the
 // profile; SAT is optional and US-only, so it often drops out.
-function academicFit(profile: Profile, university: University): number | null {
+function academicFit(profile: Profile, university: UniversitySummary): number | null {
   const parts = [gpaFit(profile, university), satFit(profile, university)].filter(isKnown);
   if (parts.length === 0) return null;
   return parts.reduce((sum, x) => sum + x, 0) / parts.length;
 }
 
 // Meeting the minimum → 1; half a band short → 0.5; a full band short → 0.
-function englishFit(profile: Profile, university: University): number | null {
+function englishFit(profile: Profile, university: UniversitySummary): number | null {
   if (!isKnown(profile.ielts_score) || !isKnown(university.min_ielts)) return null;
   return clamp01(1 + (profile.ielts_score - university.min_ielts));
 }
 
-function acceptanceFit(university: University): number {
+function acceptanceFit(university: UniversitySummary): number {
   return clamp01(university.acceptance_rate / 100);
 }
 
@@ -198,7 +198,7 @@ export function earningsScore(earnings: number): number {
 
 // Tuition + living cost per year, or null when living cost is unknown —
 // tuition alone would make a school look cheaper than it is.
-function totalCostPerYear(university: University): number | null {
+function totalCostPerYear(university: UniversitySummary): number | null {
   const living = university.living_cost_per_year;
   return isKnown(living) ? university.tuition + living : null;
 }
@@ -209,7 +209,7 @@ function affordabilityScore(total: number, budgetMax: number): number {
   return clamp01(1.5 - total / budgetMax);
 }
 
-function subjectRanking(profile: Profile, university: University) {
+function subjectRanking(profile: Profile, university: UniversitySummary) {
   const match = findMatchingProgram(profile, university);
   const rank = match ? university.program_rankings?.[match.program] : undefined;
   return match && isKnown(rank) ? { program: match.program, rank } : null;
@@ -217,17 +217,17 @@ function subjectRanking(profile: Profile, university: University) {
 
 // Research intensity as a 0..1 signal with its label, or null if unknown.
 // Exported for the offers page.
-export function researchSignal(university: University): { value: number; label: string } | null {
+export function researchSignal(university: UniversitySummary): { value: number; label: string } | null {
   const level = university.research_intensity;
   return level ? { value: RESEARCH_SCORES[level], label: RESEARCH_LABELS[level] } : null;
 }
 
-const hasCoopKnown = (university: University) =>
+const hasCoopKnown = (university: UniversitySummary) =>
   university.has_coop === true || university.has_coop === false;
 
 // Career outcomes (co-op program + graduate earnings) as one 0..1 signal,
 // or null if neither is known. Exported for the offers page.
-export function careerSignal(university: University): number | null {
+export function careerSignal(university: UniversitySummary): number | null {
   const parts: number[] = [];
   if (hasCoopKnown(university)) parts.push(university.has_coop ? 1 : 0);
   if (isKnown(university.median_earnings_10yr)) {
@@ -239,7 +239,7 @@ export function careerSignal(university: University): number | null {
 export function focusSignals(
   focus: PrimaryFocus,
   profile: Profile,
-  university: University
+  university: UniversitySummary
 ): FocusSignal[] {
   const signals: FocusSignal[] = [];
   const add = (name: string, value: number | null | undefined) => {
@@ -274,7 +274,7 @@ export function focusSignals(
   return signals;
 }
 
-function focusFit(focus: PrimaryFocus, profile: Profile, university: University): number | null {
+function focusFit(focus: PrimaryFocus, profile: Profile, university: UniversitySummary): number | null {
   const signals = focusSignals(focus, profile, university);
   if (signals.length === 0) return null;
   return signals.reduce((sum, s) => sum + s.value, 0) / signals.length;
@@ -298,7 +298,7 @@ export function admissionChance(
 
 // How well a university fits a student: a 0-100 score plus the points
 // behind it, so the UI can show *why* and not just a number.
-export function computeMatchScore(profile: Profile, university: University): MatchResult {
+export function computeMatchScore(profile: Profile, university: UniversitySummary): MatchResult {
   const focus = focusOf(profile);
   const fits: Record<FactorKey, number | null> = {
     budget: budgetFit(profile, university),
@@ -347,7 +347,7 @@ export function computeMatchScore(profile: Profile, university: University): Mat
 
 // Says where a figure came from, so an official number and one a student
 // typed in never read the same.
-function fromWhere(university: University): string {
+function fromWhere(university: UniversitySummary): string {
   if (university.source === "College Scorecard") return "College Scorecard";
   if (university.source === "user-entered") return "entered by you";
   return "illustrative";
@@ -359,7 +359,7 @@ function fromWhere(university: University): string {
 function explainFocus(
   focus: PrimaryFocus,
   profile: Profile,
-  university: University
+  university: UniversitySummary
 ): MatchExplanation & { unavailable: string[] } {
   const strengths: string[] = [];
   const concerns: string[] = [];
@@ -453,7 +453,7 @@ function explainFocus(
 // Plain-language strengths and concerns built from the same factors as the
 // score, so the weak spots are visible and not just the good news. Some
 // concerns (like living costs) don't change the score but are worth knowing.
-export function explainMatch(profile: Profile, university: University): MatchExplanation {
+export function explainMatch(profile: Profile, university: UniversitySummary): MatchExplanation {
   if (!offersDegreeLevel(profile, university)) {
     return {
       strengths: [],
@@ -574,7 +574,7 @@ export type DisplayRanking = { rank: number | null; label: string };
 // when their intended major lines up with a ranked program, otherwise the
 // university-wide ranking — always labeled so it's never misleading.
 export function getDisplayRanking(
-  university: University,
+  university: UniversitySummary,
   profile: Profile
 ): DisplayRanking {
   const match = findMatchingProgram(profile, university);
@@ -598,7 +598,7 @@ export function formatRank(rank: number | null): string {
 // Everything a university card needs, computed in one place so every page
 // that lists universities scores them the same way.
 export type MatchEntry = {
-  university: University;
+  university: UniversitySummary;
   match: MatchResult;
   explanation: MatchExplanation;
   ranking: DisplayRanking;
@@ -613,7 +613,7 @@ export type MatchEntry = {
 // official College Scorecard figures — the synthetic training data was
 // built around those schools' real admission rates and SAT ranges, so
 // using it on illustrative or student-entered figures would be guesswork.
-export function scoreUniversity(profile: Profile, university: University): MatchEntry {
+export function scoreUniversity(profile: Profile, university: UniversitySummary): MatchEntry {
   const match = computeMatchScore(profile, university);
   const prediction =
     profile.preferred_degree_level === "Undergraduate" && university.source === "College Scorecard"
