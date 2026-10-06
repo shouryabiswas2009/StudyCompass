@@ -1,75 +1,237 @@
-import { formatRank, getDisplayRanking } from "@/lib/matching";
 import { Flag } from "@/components/flag";
-import type { Profile, University } from "@/lib/types";
+import { ChanceBadge } from "@/components/universities/chance-badge";
+import { MatchScoreBadge } from "@/components/universities/match-score-badge";
+import { StrengthsConcerns } from "@/components/universities/strengths-concerns";
+import { bestIndexes, totalYearlyCost } from "@/lib/compare";
+import { usd } from "@/lib/format";
+import { formatRank, type AdmissionChance, type MatchEntry } from "@/lib/matching";
+import { cn } from "@/lib/utils";
+import type { Profile } from "@/lib/types";
 
-const rows: {
+const CHANCE_ORDER: Record<AdmissionChance, number> = { Reach: 1, Match: 2, Safety: 3 };
+
+type Row = {
   label: string;
-  render: (university: University, profile: Profile | null) => React.ReactNode;
-}[] = [
+  render: (entry: MatchEntry, profile: Profile) => React.ReactNode;
+  // Rows where "best" has a clear meaning say which number to compare and
+  // which direction is better. Rows without these are never highlighted.
+  value?: (entry: MatchEntry, profile: Profile) => number | null;
+  better?: "higher" | "lower";
+  // Some rows are only fair to compare in certain cases (see ranking below).
+  comparable?: (entries: MatchEntry[]) => boolean;
+};
+
+const muted = (text: string) => <span className="text-muted-foreground">{text}</span>;
+
+const ROWS: Row[] = [
   {
     label: "Country",
-    render: (u) => (
+    render: ({ university }) => (
       <span className="flex items-center gap-1.5">
-        <Flag country={u.country} />
-        {u.country}
+        <Flag country={university.country} />
+        {university.country}
       </span>
     ),
   },
-  { label: "Tuition", render: (u) => `$${u.tuition.toLocaleString()}/yr` },
   {
-    label: "QS ranking",
-    render: (u, profile) => {
-      const ranking = profile
-        ? getDisplayRanking(u, profile)
-        : { rank: u.qs_ranking, label: "Overall" };
-      return `${formatRank(ranking.rank)} (${ranking.label})`;
+    label: "Match score",
+    render: ({ match }) => <MatchScoreBadge score={match.score} />,
+    value: ({ match }) => match.score,
+    better: "higher",
+  },
+  {
+    label: "Score breakdown",
+    render: ({ match }) => (
+      <ul className="space-y-0.5 text-xs text-muted-foreground">
+        {match.factors.map((f) => (
+          <li key={f.key}>
+            {f.label}: {f.points === null ? "unknown" : `${f.points}/${f.max}`}
+          </li>
+        ))}
+      </ul>
+    ),
+  },
+  {
+    label: "Admission chance",
+    render: ({ match }) => <ChanceBadge chance={match.chance} />,
+    value: ({ match }) => CHANCE_ORDER[match.chance],
+    better: "higher",
+  },
+  {
+    label: "Tuition",
+    render: ({ university }) => `${usd(university.tuition)}/yr`,
+    value: ({ university }) => university.tuition,
+    better: "lower",
+  },
+  {
+    label: "Living cost",
+    render: ({ university }) =>
+      university.living_cost_per_year != null
+        ? `about ${usd(university.living_cost_per_year)}/yr`
+        : muted("Unknown"),
+    value: ({ university }) => university.living_cost_per_year,
+    better: "lower",
+  },
+  {
+    label: "Estimated total per year",
+    render: ({ university }) => {
+      const total = totalYearlyCost(university);
+      return total !== null ? `about ${usd(total)}/yr` : muted("Unknown (no living cost)");
+    },
+    value: ({ university }) => totalYearlyCost(university),
+    better: "lower",
+  },
+  {
+    label: "Ranking",
+    render: ({ ranking }) => `${formatRank(ranking.rank)} (${ranking.label})`,
+    value: ({ ranking }) => ranking.rank,
+    better: "lower",
+    // A subject ranking (#15 in Computer Science) and an overall ranking
+    // (#30 overall) aren't the same scale, so only crown a winner when every
+    // school is ranked the same way.
+    comparable: (entries) => new Set(entries.map((e) => e.ranking.label)).size === 1,
+  },
+  {
+    label: "Acceptance rate",
+    render: ({ university }) => `${university.acceptance_rate}%`,
+    value: ({ university }) => university.acceptance_rate,
+    better: "higher",
+  },
+  {
+    label: "Typical admitted GPA vs. yours",
+    render: ({ university }, profile) => {
+      const avg = university.avg_admitted_gpa;
+      if (avg == null) return muted("Unknown");
+      const margin = profile.gpa_percentage - avg;
+      return (
+        <span>
+          {avg} · you {profile.gpa_percentage}{" "}
+          <span className={margin >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
+            ({margin >= 0 ? "+" : ""}
+            {Math.round(margin * 10) / 10})
+          </span>
+        </span>
+      );
+    },
+    value: ({ university }, profile) =>
+      university.avg_admitted_gpa != null ? profile.gpa_percentage - university.avg_admitted_gpa : null,
+    better: "higher",
+  },
+  {
+    label: "SAT middle 50% vs. yours",
+    render: ({ university }, profile) => {
+      const { sat_25, sat_75 } = university;
+      if (sat_25 == null || sat_75 == null) return muted("Not used / unknown");
+      const sat = profile.sat_score;
+      const status =
+        sat == null ? "no SAT on your profile" : sat >= sat_75 ? "above" : sat >= sat_25 ? "within" : "below";
+      return (
+        <span>
+          {sat_25}–{sat_75} · you {sat ?? "—"}{" "}
+          <span className="text-muted-foreground">({status})</span>
+        </span>
+      );
     },
   },
-  { label: "Acceptance rate", render: (u) => `${u.acceptance_rate}%` },
+  {
+    label: "Minimum IELTS vs. yours",
+    render: ({ university }, profile) => {
+      const min = university.min_ielts;
+      if (min == null) return muted("Unknown");
+      const ielts = profile.ielts_score;
+      if (ielts == null) return <span>{min.toFixed(1)} · {muted("no IELTS on your profile")}</span>;
+      return (
+        <span>
+          {min.toFixed(1)} · you {ielts.toFixed(1)}{" "}
+          <span className={ielts >= min ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
+            ({ielts >= min ? "meets it" : "below"})
+          </span>
+        </span>
+      );
+    },
+    value: ({ university }, profile) =>
+      university.min_ielts != null && profile.ielts_score != null
+        ? profile.ielts_score - university.min_ielts
+        : null,
+    better: "higher",
+  },
   {
     label: "Degree levels",
-    render: (u) =>
-      (u.degree_levels ?? []).length > 0 ? u.degree_levels.join(", ") : "Unknown",
+    render: ({ university }) =>
+      (university.degree_levels ?? []).length > 0 ? university.degree_levels.join(", ") : muted("Unknown"),
   },
   {
     label: "Popular programs",
-    render: (u) => u.popular_programs.join(", "),
+    render: ({ university }) => university.popular_programs.join(", "),
+  },
+  {
+    label: "Strengths & concerns",
+    render: ({ explanation }) => <StrengthsConcerns explanation={explanation} />,
   },
 ];
 
 export function CompareTable({
-  universityA,
-  universityB,
+  entries,
   profile,
 }: {
-  universityA: University;
-  universityB: University;
-  profile: Profile | null;
+  entries: MatchEntry[];
+  profile: Profile;
 }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b bg-muted/40">
-            <th className="w-32 p-4 text-left font-medium text-muted-foreground">
-              &nbsp;
-            </th>
-            <th className="p-4 text-left font-semibold">{universityA.name}</th>
-            <th className="p-4 text-left font-semibold">{universityB.name}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.label} className="border-b last:border-0">
-              <td className="p-4 font-medium text-muted-foreground">
-                {row.label}
-              </td>
-              <td className="p-4">{row.render(universityA, profile)}</td>
-              <td className="p-4">{row.render(universityB, profile)}</td>
+    <div className="space-y-2">
+      {/* Scrolls sideways on small screens; the row labels stay pinned. */}
+      <div className="overflow-x-auto rounded-2xl border">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b bg-muted/40">
+              <th className="sticky left-0 z-10 w-36 min-w-36 bg-muted p-3 text-left font-medium text-muted-foreground">
+                &nbsp;
+              </th>
+              {entries.map(({ university }) => (
+                <th key={university.id} className="min-w-48 p-3 text-left align-top font-semibold">
+                  {university.name}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {ROWS.map((row) => {
+              const highlight =
+                row.value && row.better && (row.comparable?.(entries) ?? true)
+                  ? bestIndexes(entries.map((e) => row.value!(e, profile)), row.better)
+                  : new Set<number>();
+
+              return (
+                <tr key={row.label} className="border-b last:border-0">
+                  <th
+                    scope="row"
+                    className="sticky left-0 z-10 bg-card p-3 text-left align-top font-medium text-muted-foreground"
+                  >
+                    {row.label}
+                  </th>
+                  {entries.map((entry, i) => (
+                    <td
+                      key={entry.university.id}
+                      className={cn(
+                        "p-3 align-top",
+                        highlight.has(i) &&
+                          "bg-emerald-500/10 font-semibold text-emerald-700 dark:text-emerald-300"
+                      )}
+                    >
+                      {row.render(entry, profile)}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Green cells are the best value in their row (lowest cost, highest
+        score, and so on). Rankings are only compared when every school is
+        ranked the same way. Figures are illustrative approximations.
+      </p>
     </div>
   );
 }

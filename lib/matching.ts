@@ -1,3 +1,4 @@
+import { usd } from "@/lib/format";
 import type { Profile, University } from "@/lib/types";
 
 // ─── Scoring weights ─────────────────────────────────────────────────────
@@ -64,8 +65,6 @@ function isKnown(value: number | null | undefined): value is number {
   return value !== null && value !== undefined && !Number.isNaN(value);
 }
 
-// Fixed locale so server and browser format numbers the same way.
-const usd = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 
 function countryMatches(profile: Profile, university: University): boolean {
   const country = university.country.trim().toLowerCase();

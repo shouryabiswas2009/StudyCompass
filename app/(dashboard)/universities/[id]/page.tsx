@@ -12,9 +12,9 @@ import { ChanceBadge } from "@/components/universities/chance-badge";
 import { FitBreakdown } from "@/components/universities/fit-breakdown";
 import { StrengthsConcerns } from "@/components/universities/strengths-concerns";
 import { Flag } from "@/components/flag";
+import { usd } from "@/lib/format";
+import { compareUrl } from "@/lib/compare";
 import type { Profile, University } from "@/lib/types";
-
-const usd = (n: number) => `$${n.toLocaleString("en-US")}`;
 
 export default async function UniversityDetailsPage({
   params,
@@ -222,7 +222,7 @@ export default async function UniversityDetailsPage({
 
       <div className="mt-10 flex gap-3">
         <Button asChild>
-          <Link href={`/compare?a=${university.id}`}>Compare</Link>
+          <Link href={compareUrl([university.id])}>Compare</Link>
         </Button>
       </div>
     </div>

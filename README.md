@@ -134,6 +134,8 @@ lib/
   actions/    # Server Actions (auth, profile, saved, universities)
   matching.ts # Match score, breakdown, Reach/Match/Safety, explanations
   university-filters.ts # Search/filter/sort rules for the university board
+  compare.ts  # Compare URL parsing, total cost, "best in row" highlighting
+  format.ts   # Shared number formatting
   *-validation.ts       # Form validation (profile, university)
   types.ts    # Shared TypeScript types
   *.test.ts   # Vitest unit tests
@@ -193,6 +195,23 @@ matched the student's major when we have that data (`program_rankings` on
 the university), and falls back to the university-wide ranking labeled
 "Overall" otherwise — so a ranking is never shown without saying what it's
 actually ranking.
+
+## How comparison works
+
+`/compare?ids=a,b,c` compares up to 4 universities. The URL is the only
+place the selection lives, so a comparison can be bookmarked or shared and
+the back button works. Tick "Compare" on any card, or add schools on the
+compare page.
+
+Each row highlights its best value using `bestIndexes()` in
+[`lib/compare.ts`](lib/compare.ts): lowest tuition, living cost and total
+cost; highest match score, acceptance rate and GPA margin; Safety over Match
+over Reach. Ties are all highlighted, unknown values are skipped, and a row
+with no real winner isn't highlighted at all. Rankings are only compared
+when every school is ranked the same way, since a subject ranking and an
+overall ranking aren't on the same scale. The estimated total per year is
+tuition plus living cost, and shows as unknown when the living cost is
+missing rather than quietly showing tuition alone.
 
 ## Notes
 

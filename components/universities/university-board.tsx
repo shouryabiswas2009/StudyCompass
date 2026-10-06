@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
+import { compareUrl, MAX_COMPARE } from "@/lib/compare";
 import { Compass, Search, SlidersHorizontal, X } from "lucide-react";
 import {
   Select,
@@ -64,6 +66,14 @@ export function UniversityBoard({
   // doesn't get reformatted under the student's cursor.
   const [tuitionMinText, setTuitionMinText] = useState("");
   const [tuitionMaxText, setTuitionMaxText] = useState("");
+  // Schools ticked for comparison (kept in order of ticking).
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+
+  function toggleCompare(id: string) {
+    setCompareIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id].slice(0, MAX_COMPARE)
+    );
+  }
 
   const countries = useMemo(
     () => Array.from(new Set(matches.map((m) => m.university.country))).sort(),
@@ -240,8 +250,37 @@ export function UniversityBoard({
               ranking={entry.ranking}
               isSaved={savedIds.has(entry.university.id)}
               index={i}
+              compare={{
+                selected: compareIds.includes(entry.university.id),
+                disabled:
+                  !compareIds.includes(entry.university.id) && compareIds.length >= MAX_COMPARE,
+                onToggle: () => toggleCompare(entry.university.id),
+              }}
             />
           ))}
+        </div>
+      )}
+
+      {/* Appears once something is ticked; stays visible while scrolling. */}
+      {compareIds.length > 0 && (
+        <div className="sticky bottom-4 z-20 mx-auto flex w-fit items-center gap-3 rounded-full border bg-background/95 px-4 py-2 shadow-lg backdrop-blur">
+          <span className="text-sm">
+            {compareIds.length} of {MAX_COMPARE} selected
+          </span>
+          {/* A link can't be "disabled", so show a plain disabled button
+              until there are at least two schools to compare. */}
+          {compareIds.length >= 2 ? (
+            <Button size="sm" asChild>
+              <Link href={compareUrl(compareIds)}>Compare</Link>
+            </Button>
+          ) : (
+            <Button size="sm" disabled>
+              Pick one more
+            </Button>
+          )}
+          <Button size="sm" variant="ghost" onClick={() => setCompareIds([])}>
+            Clear
+          </Button>
         </div>
       )}
 

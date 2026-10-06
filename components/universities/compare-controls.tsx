@@ -1,0 +1,72 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { compareUrl, MAX_COMPARE } from "@/lib/compare";
+
+type Option = { id: string; name: string };
+
+// The URL is the single source of truth for which schools are compared, so
+// links can be shared and the back button works. Adding or removing a
+// school just navigates to a new URL.
+export function CompareControls({
+  options,
+  selectedIds,
+}: {
+  options: Option[];
+  selectedIds: string[];
+}) {
+  const router = useRouter();
+  const nameOf = (id: string) => options.find((o) => o.id === id)?.name ?? "Unknown";
+  const full = selectedIds.length >= MAX_COMPARE;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        {selectedIds.map((id) => (
+          <Badge key={id} variant="secondary" className="gap-1 py-1 pr-1 pl-2.5">
+            {nameOf(id)}
+            <button
+              type="button"
+              aria-label={`Remove ${nameOf(id)} from comparison`}
+              onClick={() => router.push(compareUrl(selectedIds.filter((x) => x !== id)))}
+              className="rounded-full p-0.5 hover:bg-muted-foreground/20"
+            >
+              <X className="size-3" />
+            </button>
+          </Badge>
+        ))}
+      </div>
+
+      <Select
+        // Reset after each pick, so the dropdown is always ready to add another.
+        value=""
+        disabled={full}
+        onValueChange={(id) => router.push(compareUrl([...selectedIds, id]))}
+      >
+        <SelectTrigger className="w-full sm:w-80" aria-label="Add a university to compare">
+          <SelectValue
+            placeholder={full ? `Up to ${MAX_COMPARE} universities` : "Add a university to compare"}
+          />
+        </SelectTrigger>
+        <SelectContent>
+          {options
+            .filter((o) => !selectedIds.includes(o.id))
+            .map((o) => (
+              <SelectItem key={o.id} value={o.id}>
+                {o.name}
+              </SelectItem>
+            ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}

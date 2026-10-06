@@ -37,6 +37,7 @@ export function UniversityCard({
   ranking,
   isSaved = false,
   index = 0,
+  compare,
 }: {
   university: University;
   match: MatchResult;
@@ -44,6 +45,8 @@ export function UniversityCard({
   ranking?: DisplayRanking;
   isSaved?: boolean;
   index?: number;
+  // Present when the card is shown in a board that supports comparing.
+  compare?: { selected: boolean; disabled: boolean; onToggle: () => void };
 }) {
   return (
     <motion.div
@@ -103,9 +106,30 @@ export function UniversityCard({
               </div>
             )}
             <StrengthsConcerns explanation={explanation} limit={2} />
+            {/* Leaves room for the compare checkbox pinned to the corner. */}
+            {compare && <div className="h-6" />}
           </CardContent>
         </Card>
       </Link>
+
+      {/* Like the save button: a sibling of the Link, not inside it. */}
+      {compare && (
+        <label
+          className={cn(
+            "absolute right-4 bottom-3 z-10 flex items-center gap-1.5 text-xs text-muted-foreground",
+            compare.disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+          )}
+        >
+          <input
+            type="checkbox"
+            checked={compare.selected}
+            disabled={compare.disabled}
+            onChange={compare.onToggle}
+            className="size-3.5 accent-primary"
+          />
+          Compare
+        </label>
+      )}
     </motion.div>
   );
 }
