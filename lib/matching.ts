@@ -316,7 +316,15 @@ export function admissionChance(
 
 // How well a university fits a student: a 0-100 score plus the points
 // behind it, so the UI can show *why* and not just a number.
-export function computeMatchScore(profile: Profile, university: UniversitySummary): MatchResult {
+// `unknown`: factors to treat as "we don't know" for this student, e.g. the
+// landing-page quiz knows a guest's budget, country and major but not their
+// grades or English score. Unknown factors are left out and the score is
+// scaled over the rest, the same rule as a missing SAT.
+export function computeMatchScore(
+  profile: Profile,
+  university: UniversitySummary,
+  { unknown = [] }: { unknown?: FactorKey[] } = {}
+): MatchResult {
   const weights = focusWeights(focusesOf(profile));
   const fits: Record<FactorKey, number | null> = {
     budget: budgetFit(profile, university),
@@ -330,6 +338,7 @@ export function computeMatchScore(profile: Profile, university: UniversitySummar
     acceptance: acceptanceFit(profile, university),
     ...focusFits(profile, university),
   };
+  for (const key of unknown) fits[key] = null;
 
   // Factors worth 0 points for this student (a focus they didn't tick) are
   // left out of the breakdown entirely.

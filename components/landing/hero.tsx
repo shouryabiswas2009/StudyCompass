@@ -36,13 +36,13 @@ export function Hero({ stats }: { stats: LandingStats }) {
               </Link>
             </Button>
             <Link
-              href="#whats-new"
+              href="#try-it"
               className="group inline-flex items-center gap-3 rounded-full text-sm font-semibold focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
             >
               <span className="flex size-11 items-center justify-center rounded-full border bg-card shadow-sm transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                 <ArrowDown className="size-4" aria-hidden />
               </span>
-              See what it does
+              Try it, no account needed
             </Link>
           </div>
         </div>

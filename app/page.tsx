@@ -1,5 +1,6 @@
 import { Hero } from "@/components/landing/hero";
 import { WhatsNew } from "@/components/landing/whats-new";
+import { TryIt } from "@/components/landing/try-it";
 import { ScreenPreviews } from "@/components/landing/screen-previews";
 import { StatsBand } from "@/components/landing/stats-band";
 import { RealData } from "@/components/landing/real-data";
@@ -27,6 +28,7 @@ export default async function Home() {
     <>
       <Hero stats={stats} />
       <WhatsNew />
+      <TryIt />
       <ScreenPreviews match={topMatch ?? null} whatIf={exampleWhatIf(universities)} visa={visa} />
       <StatsBand stats={stats} />
       <RealData stats={stats} />

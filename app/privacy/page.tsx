@@ -35,6 +35,14 @@ export default function PrivacyPage() {
           </ul>
         </Section>
 
+        <Section title="If you use the site without an account">
+          <p>
+            The &ldquo;Try it&rdquo; quiz on the home page sends your three answers to the server
+            once to work out your matches. They aren&apos;t saved anywhere. University pages can be
+            read without an account; nothing about you is stored.
+          </p>
+        </Section>
+
         <Section title="Who can see it">
           <p>
             Only you. The database checks every request against your login (row-level security), so
