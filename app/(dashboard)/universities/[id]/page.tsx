@@ -131,7 +131,10 @@ export default async function UniversityDetailsPage({
     { label: "Type", value: university.ownership ? university.ownership[0].toUpperCase() + university.ownership.slice(1) : null },
     { label: "Undergraduates", value: university.student_size != null ? university.student_size.toLocaleString("en-US") : null },
     { label: "In-state tuition", value: university.tuition_in_state != null ? `${usd(university.tuition_in_state)}/yr` : null },
-    { label: "Average net price", value: university.avg_net_price != null ? `${usd(university.avg_net_price)}/yr` : null },
+    // Scorecard's net price: cost after grants, averaged over students who
+    // received US federal aid. International students can't get that aid,
+    // so it's shown separately and never used for scoring (see the note).
+    { label: "Net price for US aid recipients", value: university.avg_net_price != null ? `${usd(university.avg_net_price)}/yr` : null },
     { label: "Graduate within 6 years", value: university.completion_rate != null ? `${university.completion_rate}%` : null },
     { label: "Return for a 2nd year", value: university.retention_rate != null ? `${university.retention_rate}%` : null },
     {
@@ -265,7 +268,8 @@ export default async function UniversityDetailsPage({
               probability={entry.prediction?.probability}
             />
           </div>
-          <p className="-mt-2 mb-4 text-sm text-muted-foreground">
+          <p className="-mt-2 mb-2 text-sm font-medium">{entry.rank.reason}</p>
+          <p className="mb-4 text-sm text-muted-foreground">
             Scored with your focuses: <strong>{focusSummary(focusesOf(profile!))}</strong>.{" "}
             <Link href="/profile" className="underline">
               Change it
@@ -362,6 +366,13 @@ export default async function UniversityDetailsPage({
             College Scorecard, data year {university.data_year}. Earnings follow
             students who started several years earlier, so they describe an
             older group than the other figures.
+            {university.avg_net_price != null && (
+              <>
+                {" "}Net price is the average cost after grants for students who received US federal aid;
+                international students usually can&apos;t get that aid, so plan with the full tuition above
+                (that&apos;s what your budget is compared with).
+              </>
+            )}
           </p>
         </div>
       )}

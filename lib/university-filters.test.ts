@@ -10,6 +10,7 @@ import {
   parseBoardParams,
   searchable,
   topPicksByCountry,
+  GROUP_PREVIEW,
 } from "@/lib/university-filters";
 import type { AdmissionChance, MatchEntry } from "@/lib/matching";
 import type { University } from "@/lib/types";
@@ -18,7 +19,14 @@ import type { University } from "@/lib/types";
 function entry(
   name: string,
   overrides: Partial<University> = {},
-  extra: { score?: number; chance?: AdmissionChance; rank?: number | null } = {}
+  extra: {
+    score?: number;
+    chance?: AdmissionChance;
+    rank?: number | null;
+    quality?: number | null;
+    plausibility?: number;
+    passes?: boolean;
+  } = {}
 ): MatchEntry {
   const university = {
     id: name,
@@ -41,6 +49,15 @@ function entry(
     explanation: { strengths: [], concerns: [] },
     ranking: { rank: extra.rank === undefined ? 10 : extra.rank, label: "Overall" },
     prediction: null,
+    rank: {
+      quality: extra.quality === undefined ? 0.5 : extra.quality,
+      qualityParts: [],
+      plausibility: extra.plausibility ?? 1,
+      plausibilitySource: "rule",
+      gate: { passes: extra.passes ?? true, reasons: extra.passes === false ? ["outside the countries you chose"] : [] },
+      realistic: (extra.quality ?? 0.5) * (extra.plausibility ?? 1),
+      reason: "",
+    },
   };
 }
 
@@ -138,18 +155,29 @@ describe("board state in the URL", () => {
       },
       page: 3,
       showAll: true,
+      group: true,
+      groupDefault: false,
     };
     const query = boardQuery(state);
     expect(parseBoardParams(Object.fromEntries(new URLSearchParams(query)))).toEqual(state);
   });
 
   it("keeps default URLs clean", () => {
-    expect(boardQuery({ filters: NO_FILTERS, page: 1, showAll: false })).toBe("");
+    expect(boardQuery({ filters: NO_FILTERS, page: 1, showAll: false, group: false, groupDefault: false })).toBe("");
+    // On recommendations grouping is the default, so only "off" is written.
+    expect(boardQuery({ filters: NO_FILTERS, page: 1, showAll: false, group: true, groupDefault: true })).toBe("");
+    expect(boardQuery({ filters: NO_FILTERS, page: 1, showAll: false, group: false, groupDefault: true })).toBe("?group=0");
+  });
+
+  it("reads grouping with the page's own default", () => {
+    expect(parseBoardParams({}, { groupDefault: true }).group).toBe(true);
+    expect(parseBoardParams({ group: "0" }, { groupDefault: true }).group).toBe(false);
+    expect(parseBoardParams({}).group).toBe(false);
   });
 
   it("falls back to defaults for edited or junk values instead of erroring", () => {
     const state = parseBoardParams({ sort: "hack", degree: "Diploma", page: "-4", chance: "Maybe", min: "abc" });
-    expect(state).toEqual({ filters: NO_FILTERS, page: 1, showAll: false });
+    expect(state).toEqual({ filters: NO_FILTERS, page: 1, showAll: false, group: false, groupDefault: false });
   });
 });
 
@@ -172,7 +200,7 @@ describe("buildBoard", () => {
     entry(name, { is_featured: true, created_by: null, ...extra });
   const notFeatured = (name: string, extra: Partial<University> = {}) =>
     entry(name, { is_featured: false, created_by: null, ...extra });
-  const state = { filters: NO_FILTERS, page: 1, showAll: false };
+  const state = { filters: NO_FILTERS, page: 1, showAll: false, group: false, groupDefault: false };
 
   it("never sends more than one page of cards to the browser", () => {
     const many = Array.from({ length: 1624 }, (_, i) => featured(`School ${i}`));
@@ -250,3 +278,64 @@ describe("unknown tuition", () => {
     expect(names(applyFilters(withChances, { ...NO_FILTERS, chances: ["Not enough data"] }))).toEqual(["A"]);
   });
 });
+
+describe("ranking order", () => {
+  it("defaults to the best school you can realistically get into", () => {
+    expect(NO_FILTERS.sortBy).toBe("best");
+    const easyWeak = entry("Easy weak", {}, { score: 95, quality: 0.3, plausibility: 1 });
+    const strongReachable = entry("Strong reachable", {}, { score: 70, quality: 0.9, plausibility: 1 });
+    const longShot = entry("Long shot", {}, { score: 60, quality: 1, plausibility: 0.2 });
+    expect(names(applyFilters([easyWeak, longShot, strongReachable], NO_FILTERS))).toEqual([
+      "Strong reachable",
+      "Easy weak",
+      "Long shot",
+    ]);
+    // "Best match" keeps the old fit-score order.
+    expect(names(applyFilters([easyWeak, longShot, strongReachable], { ...NO_FILTERS, sortBy: "match" }))[0]).toBe("Easy weak");
+  });
+
+  it("puts schools failing the fit gate below every school that passes", () => {
+    const failing = entry("Wrong country", {}, { quality: 1, plausibility: 1, passes: false });
+    const passing = entry("Fits", {}, { quality: 0.2, plausibility: 0.5 });
+    expect(names(applyFilters([failing, passing], NO_FILTERS))).toEqual(["Fits", "Wrong country"]);
+  });
+
+  it("sorts safest first by likelihood, then strength", () => {
+    const likelyWeak = entry("Likely weak", {}, { quality: 0.3, plausibility: 1 });
+    const likelyStrong = entry("Likely strong", {}, { quality: 0.8, plausibility: 1 });
+    const reach = entry("Reach", {}, { quality: 1, plausibility: 0.3 });
+    expect(names(applyFilters([reach, likelyWeak, likelyStrong], { ...NO_FILTERS, sortBy: "safest" }))).toEqual([
+      "Likely strong",
+      "Likely weak",
+      "Reach",
+    ]);
+  });
+
+  it("uses the same order for top picks by country", () => {
+    const easyWeak = entry("Easy weak", {}, { score: 95, quality: 0.3 });
+    const strong = entry("Strong", {}, { score: 60, quality: 0.9 });
+    expect(names(topPicksByCountry([easyWeak, strong], ["Canada"], 1)[0].picks)).toEqual(["Strong"]);
+  });
+});
+
+describe("grouped view", () => {
+  const state = { filters: NO_FILTERS, page: 1, showAll: false, group: true, groupDefault: true };
+
+  it("shows the strongest few of each group, with totals, Reach first", () => {
+    const reaches = Array.from({ length: 9 }, (_, i) => entry(`Reach ${i}`, {}, { chance: "Reach", quality: i / 10 }));
+    const matches = [entry("Match A", {}, { chance: "Match", quality: 0.4 }), entry("Match B", {}, { chance: "Match", quality: 0.8 })];
+    const board = buildBoard([...matches, ...reaches], state, { withFeatured: false });
+    expect(board.groups?.map((g) => [g.chance, g.entries.length, g.total])).toEqual([
+      ["Reach", GROUP_PREVIEW, 9],
+      ["Match", 2, 2],
+    ]);
+    expect(names(board.groups![0].entries)[0]).toBe("Reach 8"); // strongest first
+    expect(names(board.groups![1].entries)).toEqual(["Match B", "Match A"]);
+  });
+
+  it("shows the plain list when one group is picked (“See all”)", () => {
+    const board = buildBoard([entry("A", {}, { chance: "Reach" })], { ...state, filters: { ...NO_FILTERS, chances: ["Reach"] } }, { withFeatured: false });
+    expect(board.groups).toBeUndefined();
+  });
+});
+

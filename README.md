@@ -444,18 +444,21 @@ supabase/
 
 ## How matching works
 
-`lib/matching.ts` scores each university 0–100. The weights live at the
-top of the file and always add up to 100 (a unit test checks every
+`lib/matching.ts` scores each university 0–100. The weights live in
+`lib/scoring-config.ts` and always add up to 100 (a unit test checks every
 combination). 80 points are the same for everyone:
 
 | Factor | Points | How it's judged |
 | --- | --- | --- |
 | Budget | 25 | Full points if tuition ≤ your max budget, losing points in proportion to how far over it is |
-| Major | 15 | One of your intended majors is among the school's popular programs |
+| Major | 20 | One of your intended majors is among the school's popular programs |
 | Academic fit | 15 | Your GPA vs. the typical admitted GPA, and your SAT vs. the middle-50% range (averaged when both are known) |
 | Country | 10 | The school is in one of your preferred countries |
 | English | 10 | Your IELTS vs. the school's minimum |
-| Acceptance rate | 5 | Higher acceptance rate, more points |
+
+(There used to be an "acceptance rate: higher is better" factor worth 5
+points. It rewarded schools that admit almost everyone, so it was removed;
+see "How ranking works".)
 
 The other 20 points follow what matters most to you (below).
 
@@ -568,6 +571,48 @@ real profile. Values snap to the profile form's ranges and steps; SAT and
 IELTS can be switched off ("not taken"). It's labeled a demo estimate
 (the admission model is trained on simulated applicants) and nothing is
 saved. Logic and tests: `lib/what-if.ts`.
+
+## How ranking works (best you can get into)
+
+The match score answers "does this school work for me?". It isn't enough
+on its own to order a list: an easy school that fits your budget would beat
+a strong one. So recommendations combine three separate things
+([`lib/ranking.ts`](lib/ranking.ts); every number is in
+[`lib/scoring-config.ts`](lib/scoring-config.ts)):
+
+1. **Fit gate.** Schools that don't offer your degree level, cost more than
+   1.25× your maximum budget, or are outside the countries you chose sort
+   below every school that passes.
+2. **Quality** (0 to 1, [`lib/quality.ts`](lib/quality.ts)) is a weighted
+   average of the published figures a school has: rankings entered from the
+   public ranking pages, and College Scorecard's SAT midpoint, graduation
+   and retention rates, earnings ten years after entry (log scale), research
+   level and, counting little, selectivity. It needs at least one direct
+   undergraduate signal; otherwise it's "not available". The illustrative
+   rankings left on the original sample schools are not used.
+3. **Plausibility** from the admission estimate *P*:
+   `0.25 + 0.75 × min(P / 0.5, 1)`. A 50% chance or better counts fully;
+   long shots keep a quarter of their weight. Without a model estimate the
+   Reach/Match/Safety rule is used; with no admission data at all, the
+   school counts as typical for your list (the median quality and chance of
+   the schools you do have figures for), and the card says so.
+
+**"Best you can get into"** (the default order) = fit gate, then
+quality × plausibility. Other orders: "Safest first", "Best match" (the fit
+score alone), tuition and ranking. Recommendations are grouped by
+**Reach / Match / Safety** by default, each group strongest first, with a
+note on a balanced list. Top picks by country use the same order.
+
+The acceptance-rate factor was removed from the fit score: it gave more
+points to schools that admit almost everyone. Its 5 points went to the
+major. Very selective schools are labelled Reach for everyone, with a line
+saying so; nothing here is a promise.
+
+Tests on the real Scorecard file (`lib/ranking-realistic.test.ts`) check
+three sample students, missing SAT/IELTS, non-US schools without admission
+data, and that an open-admission school never outranks a stronger school a
+strong student is likely to get into. `SHOW_TOP10=1 npx vitest run
+lib/ranking-realistic.test.ts --silent=false` prints each student's top 10.
 
 ## How comparison works
 

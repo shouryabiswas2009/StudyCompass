@@ -50,7 +50,7 @@ export function parseQuizAnswers(input: { country: unknown; budget: unknown; maj
 // level (and the country, if they said "Anywhere"). These are left out of
 // the score instead of counting against anyone.
 export function unknownFactors(answers: QuizAnswers): FactorKey[] {
-  const unknown: FactorKey[] = ["academic", "english", "acceptance"];
+  const unknown: FactorKey[] = ["academic", "english"];
   if (answers.country === ANY_COUNTRY) unknown.push("country");
   return unknown;
 }

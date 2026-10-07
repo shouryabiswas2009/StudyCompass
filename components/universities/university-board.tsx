@@ -27,8 +27,11 @@ import {
   type UniversityFilters,
 } from "@/lib/university-filters";
 import { DEGREE_LEVELS, type ApplicationStatus, type DegreeLevel } from "@/lib/types";
+import { LIST_MIX } from "@/lib/scoring-config";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: "best", label: "Best you can get into" },
+  { value: "safest", label: "Safest first" },
   { value: "match", label: "Best match" },
   { value: "tuition-asc", label: "Lowest tuition" },
   { value: "tuition-desc", label: "Highest tuition" },
@@ -36,6 +39,14 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
 ];
 
 const CHANCES: AdmissionChance[] = ["Reach", "Match", "Safety", "Not enough data"];
+
+// One line under each group heading in the grouped view.
+const GROUP_NOTES: Record<AdmissionChance, string> = {
+  Reach: "Long shots. Worth applying to a few, but don't count on any of them.",
+  Match: "Your chances look reasonable.",
+  Safety: "Likely admits. Make sure you'd be happy to go.",
+  "Not enough data": "No admission figures to judge your chances (common outside the US).",
+};
 
 // Radix Select can't use "" as a value, so "any" stands for "no filter".
 const ANY = "any";
@@ -71,6 +82,8 @@ export function UniversityBoard({
   emptyMessage,
   showDegreeFilter = false,
   applications,
+  groups,
+  groupable = false,
 }: {
   entries: MatchEntry[]; // this page only
   state: BoardState;
@@ -87,6 +100,10 @@ export function UniversityBoard({
   // Saved page only: tracked applications by university id. When given,
   // each card shows a status dropdown (or a "Track" button).
   applications?: Record<string, { id: string; status: ApplicationStatus }>;
+  // Grouped view (recommendations): the top of each Reach / Match / Safety
+  // group, and whether the page offers the "group" switch at all.
+  groups?: { chance: AdmissionChance; entries: MatchEntry[]; total: number }[];
+  groupable?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -151,6 +168,33 @@ export function UniversityBoard({
 
   if (!featured && matchingCount === 0 && !hasActiveFilters(filters)) {
     return <EmptyState message={emptyMessage} />;
+  }
+
+
+  function renderCards(list: MatchEntry[]) {
+    return (
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {list.map((entry, i) => (
+          <UniversityCard
+            key={entry.university.id}
+            university={entry.university}
+            match={entry.match}
+            explanation={entry.explanation}
+            ranking={entry.ranking}
+            prediction={entry.prediction}
+            rank={entry.rank}
+            isSaved={savedIds.has(entry.university.id)}
+            index={i}
+            compare={{
+              selected: compareIds.includes(entry.university.id),
+              disabled: !compareIds.includes(entry.university.id) && compareIds.length >= MAX_COMPARE,
+              onToggle: () => toggleCompare(entry.university.id),
+            }}
+            tracking={applications ? { application: applications[entry.university.id] ?? null } : undefined}
+          />
+        ))}
+      </div>
+    );
   }
 
   return (
@@ -290,36 +334,54 @@ export function UniversityBoard({
         </div>
       </div>
 
+      {groupable && (
+        <label className="flex w-fit cursor-pointer items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={state.group}
+            onChange={() => navigate({ ...state, group: !state.group, page: 1 })}
+            className="size-4 accent-primary"
+          />
+          Group by Reach / Match / Safety
+        </label>
+      )}
+
       {entries.length === 0 ? (
         <EmptyState message="No universities match these filters — try clearing one." />
-      ) : (
-        <div
-          className={`grid gap-6 transition-opacity sm:grid-cols-2 lg:grid-cols-3 ${isPending ? "opacity-60" : ""}`}
-          aria-busy={isPending}
-        >
-          {entries.map((entry, i) => (
-            <UniversityCard
-              key={entry.university.id}
-              university={entry.university}
-              match={entry.match}
-              explanation={entry.explanation}
-              ranking={entry.ranking}
-              prediction={entry.prediction}
-              isSaved={savedIds.has(entry.university.id)}
-              index={i}
-              compare={{
-                selected: compareIds.includes(entry.university.id),
-                disabled:
-                  !compareIds.includes(entry.university.id) && compareIds.length >= MAX_COMPARE,
-                onToggle: () => toggleCompare(entry.university.id),
-              }}
-              tracking={
-                applications
-                  ? { application: applications[entry.university.id] ?? null }
-                  : undefined
-              }
-            />
+      ) : groups ? (
+        <div className={`space-y-10 transition-opacity ${isPending ? "opacity-60" : ""}`} aria-busy={isPending}>
+          <p className="rounded-xl bg-tint p-4 text-sm text-tint-foreground">
+            A balanced list often has {LIST_MIX.reach} reach, {LIST_MIX.match} match and {LIST_MIX.safety} safety
+            schools. The labels come from a demo estimate, not a prediction: very selective schools are a reach for
+            almost everyone, even strong applicants, and nothing here is a promise.
+          </p>
+          {groups.map((group) => (
+            <section key={group.chance} aria-labelledby={`group-${group.chance}`} className="space-y-4">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h2 id={`group-${group.chance}`} className="text-lg font-semibold">
+                    {group.chance} <span className="text-muted-foreground">({group.total})</span>
+                  </h2>
+                  <p className="text-sm text-muted-foreground">{GROUP_NOTES[group.chance]}</p>
+                </div>
+                {group.total > group.entries.length && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate({ ...state, filters: { ...filters, chances: [group.chance] }, page: 1 })}
+                  >
+                    See all {group.total}
+                    <ChevronRight className="size-4" aria-hidden />
+                  </Button>
+                )}
+              </div>
+              {renderCards(group.entries)}
+            </section>
           ))}
+        </div>
+      ) : (
+        <div className={`transition-opacity ${isPending ? "opacity-60" : ""}`} aria-busy={isPending}>
+          {renderCards(entries)}
         </div>
       )}
 

@@ -423,7 +423,8 @@ describe("data that isn't available (most non-US schools)", () => {
   it("labels the chance 'Not enough data' and leaves the admission factors out", () => {
     const result = computeMatchScore(makeProfile({ preferred_countries: ["Germany"] }), noAdmissionData);
     expect(result.chance).toBe("Not enough data");
-    expect(pointsFor(result, "acceptance")).toBeNull();
+    // There is no acceptance-rate factor at all (it rewarded easy admission).
+    expect(result.factors.map((f) => f.key as string)).not.toContain("acceptance");
     expect(pointsFor(result, "academic")).toBeNull();
     expect(Number.isFinite(result.score)).toBe(true);
   });
@@ -445,7 +446,8 @@ describe("graduate students", () => {
   it("doesn't judge a Masters applicant on undergraduate admission figures", () => {
     const result = computeMatchScore(masters(), makeUniversity({ acceptance_rate: 5 }));
     expect(pointsFor(result, "academic")).toBeNull();
-    expect(pointsFor(result, "acceptance")).toBeNull();
+    // There is no acceptance-rate factor at all (it rewarded easy admission).
+    expect(result.factors.map((f) => f.key as string)).not.toContain("acceptance");
     expect(result.chance).toBe("Not enough data"); // not "Reach" from an undergraduate rate
     const { concerns } = explainMatch(masters(), makeUniversity());
     expect(concerns.some((c) => c.startsWith("Admission figures and tuition here are undergraduate figures"))).toBe(true);

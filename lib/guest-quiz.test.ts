@@ -78,7 +78,7 @@ describe("parseQuizAnswers", () => {
 
 describe("guest scoring", () => {
   it("doesn't count grades, English or admission rate for a guest", () => {
-    expect(unknownFactors(answers())).toEqual(["academic", "english", "acceptance"]);
+    expect(unknownFactors(answers())).toEqual(["academic", "english"]);
     expect(unknownFactors(answers({ country: ANY_COUNTRY }))).toContain("country");
     const selective = featured({ id: "hard", sat_25: 1550, sat_75: 1600, acceptance_rate: 4, min_ielts: 8.5 });
     const open = featured({ id: "easy", sat_25: 900, sat_75: 1000, acceptance_rate: 90, min_ielts: 5 });

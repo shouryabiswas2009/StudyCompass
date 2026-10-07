@@ -133,7 +133,6 @@ export const DETAIL_ONLY_FIELDS = [
   "us_region",
   "scorecard_id",
   "created_at",
-  "median_earnings_10yr", // information only, on the details page
   "curated_id",
   "tuition_year",
   "tuition_source_url",

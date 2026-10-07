@@ -19,7 +19,8 @@ export default async function RecommendationsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const state = parseBoardParams(await searchParams);
+  // Grouped by Reach / Match / Safety unless the student switches it off.
+  const state = parseBoardParams(await searchParams, { groupDefault: true });
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -48,11 +49,12 @@ export default async function RecommendationsPage({
       <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold">Your recommendations</h1>
-          <p className="text-muted-foreground">
-            Matched to your budget, preferred countries, and intended majors
-            {focuses.length === 0
-              ? "."
-              : `, with extra weight on what matters most to you: ${joinFocuses(focuses)}.`}
+          <p className="max-w-2xl text-muted-foreground">
+            The strongest schools you can realistically get into come first: each one is checked against your
+            budget, countries and subjects
+            {focuses.length === 0 ? "" : ` (with extra weight on ${joinFocuses(focuses)})`}, then ordered by
+            how strong it is and how likely you are to be admitted. Admission chances are demo estimates, not
+            promises.
           </p>
         </div>
         <Button variant="outline" asChild>
@@ -74,6 +76,8 @@ export default async function RecommendationsPage({
         featured={board.featured}
         savedIds={new Set((saved ?? []).map((row) => row.university_id))}
         emptyMessage={`No universities offering ${profile.preferred_degree_level} programs yet. Try a different degree level on your profile.`}
+        groups={board.groups}
+        groupable
       />
     </div>
   );

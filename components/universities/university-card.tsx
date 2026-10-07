@@ -26,6 +26,7 @@ import { tuitionDisplay } from "@/lib/money";
 import { ApplicationStatusControl } from "@/components/applications/application-status-control";
 import type { ApplicationStatus } from "@/lib/types";
 import type { AdmissionPrediction } from "@/lib/admission-model";
+import type { RankInfo } from "@/lib/ranking";
 import type { UniversitySummary } from "@/lib/types";
 
 const TIER_BORDER = {
@@ -40,6 +41,7 @@ export function UniversityCard({
   explanation,
   ranking,
   prediction,
+  rank,
   isSaved = false,
   index = 0,
   compare,
@@ -50,6 +52,8 @@ export function UniversityCard({
   explanation: MatchExplanation;
   ranking?: DisplayRanking;
   prediction?: AdmissionPrediction | null;
+  // Quality, chance and the one-line reason (lib/ranking.ts).
+  rank?: RankInfo;
   isSaved?: boolean;
   index?: number;
   // Present when the card is shown in a board that supports comparing.
@@ -110,6 +114,17 @@ export function UniversityCard({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            {rank && (
+              <div className="space-y-1 rounded-xl bg-muted/60 p-3 text-sm">
+                {match.chanceSource === "model" && prediction && (
+                  <p className="font-medium">
+                    ~{Math.round(prediction.probability * 100)}% chance{" "}
+                    <span className="font-normal text-muted-foreground">(estimate, not a promise)</span>
+                  </p>
+                )}
+                <p className="text-muted-foreground">{rank.reason}</p>
+              </div>
+            )}
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Data</span>
               <SourceBadge university={university} />

@@ -1,8 +1,13 @@
 import { canonicalCountry } from "@/lib/countries";
 import type { AdmissionChance, MatchEntry } from "@/lib/matching";
+import { compareBest, compareSafest, groupByChance, withNeutralUnknowns } from "@/lib/ranking";
 import { DEGREE_LEVELS, type DegreeLevel, type UniversitySummary } from "@/lib/types";
 
-export type SortKey = "match" | "tuition-asc" | "tuition-desc" | "ranking";
+// "best": the best school you can realistically get into (lib/ranking.ts),
+// the default. "match": the fit score alone ("Best match").
+export type SortKey = "best" | "safest" | "match" | "tuition-asc" | "tuition-desc" | "ranking";
+
+export const DEFAULT_SORT: SortKey = "best";
 
 // null / empty always means "don't filter on this".
 export type UniversityFilters = {
@@ -22,7 +27,7 @@ export const NO_FILTERS: UniversityFilters = {
   tuitionMin: null,
   tuitionMax: null,
   chances: [],
-  sortBy: "match",
+  sortBy: DEFAULT_SORT,
 };
 
 // Kept as a plain function (not inside the React component) so the
@@ -81,8 +86,12 @@ function sortEntries(entries: MatchEntry[], sortBy: SortKey): MatchEntry[] {
         if (b.ranking.rank === null) return -1;
         return a.ranking.rank - b.ranking.rank;
       });
-    default:
+    case "match":
       return sorted.sort((a, b) => b.match.score - a.match.score);
+    case "safest":
+      return sorted.sort(compareSafest);
+    default:
+      return sorted.sort(compareBest);
   }
 }
 
@@ -122,11 +131,14 @@ export type BoardState = {
   filters: UniversityFilters;
   page: number; // 1-based
   showAll: boolean; // include schools that aren't featured
+  // Group by Reach / Match / Safety (on by default on recommendations).
+  group: boolean;
+  groupDefault: boolean; // what "group" is when the URL doesn't say
 };
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-const SORT_KEYS: SortKey[] = ["match", "tuition-asc", "tuition-desc", "ranking"];
+const SORT_KEYS: SortKey[] = ["best", "safest", "match", "tuition-asc", "tuition-desc", "ranking"];
 const CHANCES: AdmissionChance[] = ["Reach", "Match", "Safety", "Not enough data"];
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
@@ -138,7 +150,7 @@ function bound(value: string): number | null {
 
 // Reads the board state from the URL. Anything unrecognised falls back to
 // the default rather than erroring: URLs get edited and shared.
-export function parseBoardParams(params: SearchParams): BoardState {
+export function parseBoardParams(params: SearchParams, { groupDefault = false } = {}): BoardState {
   const sort = first(params.sort) as SortKey;
   const degree = first(params.degree) as DegreeLevel;
   const page = Number(first(params.page));
@@ -152,16 +164,18 @@ export function parseBoardParams(params: SearchParams): BoardState {
       chances: first(params.chance)
         .split(",")
         .filter((c): c is AdmissionChance => CHANCES.includes(c as AdmissionChance)),
-      sortBy: SORT_KEYS.includes(sort) ? sort : "match",
+      sortBy: SORT_KEYS.includes(sort) ? sort : DEFAULT_SORT,
     },
     page: Number.isInteger(page) && page > 1 ? page : 1,
     showAll: first(params.all) === "1",
+    group: first(params.group) === "" ? groupDefault : first(params.group) === "1",
+    groupDefault,
   };
 }
 
 // The query string for a board state ("" when everything is default), so
 // default URLs stay clean.
-export function boardQuery({ filters, page, showAll }: BoardState): string {
+export function boardQuery({ filters, page, showAll, group, groupDefault }: BoardState): string {
   const params = new URLSearchParams();
   if (filters.query.trim()) params.set("q", filters.query.trim());
   if (filters.country) params.set("country", filters.country);
@@ -169,8 +183,9 @@ export function boardQuery({ filters, page, showAll }: BoardState): string {
   if (filters.tuitionMin !== null) params.set("min", String(filters.tuitionMin));
   if (filters.tuitionMax !== null) params.set("max", String(filters.tuitionMax));
   if (filters.chances.length > 0) params.set("chance", filters.chances.join(","));
-  if (filters.sortBy !== "match") params.set("sort", filters.sortBy);
+  if (filters.sortBy !== DEFAULT_SORT) params.set("sort", filters.sortBy);
   if (showAll) params.set("all", "1");
+  if (group !== groupDefault) params.set("group", group ? "1" : "0");
   if (page > 1) params.set("page", String(page));
   const query = params.toString();
   return query ? `?${query}` : "";
@@ -212,22 +227,51 @@ export type BoardData = {
   // Every school in the pool (before filters). Server-side only, for the
   // "top picks by country" section; never sent to the browser in full.
   pool: MatchEntry[];
+  // In the grouped view: the strongest few of each group and how many the
+  // group has in total (the rest are one "See all" click away).
+  groups?: { chance: AdmissionChance; entries: MatchEntry[]; total: number }[];
 };
+
+// How many schools each Reach / Match / Safety group shows before "See all".
+export const GROUP_PREVIEW = 6;
 
 // From every scored school to one page of cards: pick the pool (featured
 // only, unless the student asked for all), filter and sort it, then cut out
 // the requested page. `withFeatured: false` (the saved page) skips the
 // featured step: a student's saved schools are always shown.
 export function buildBoard(
-  scored: MatchEntry[],
+  scoredAll: MatchEntry[],
   state: BoardState,
   { withFeatured, searchIds }: { withFeatured: boolean; searchIds?: Set<string> }
 ): BoardData {
+  // Unknown quality / chance count as typical for this student's schools.
+  const scored = withNeutralUnknowns(scoredAll);
   const ready = featuredReady(scored.map((e) => e.university));
   const defaultPool = scored.filter((e) => isShownByDefault(e.university));
   const pool = !withFeatured || state.showAll || !ready ? scored : defaultPool;
 
   const filtered = applyFilters(pool, state.filters, searchIds);
+
+  // Grouped view: no pages, just the top of each group. A filter on one
+  // chance (from "See all") shows the plain list instead.
+  if (state.group && state.filters.chances.length === 0) {
+    const groups = groupByChance(filtered).map((g) => ({
+      chance: g.chance,
+      entries: g.entries.slice(0, GROUP_PREVIEW),
+      total: g.entries.length,
+    }));
+    return {
+      entries: groups.flatMap((g) => g.entries),
+      page: 1,
+      totalPages: 1,
+      matchingCount: filtered.length,
+      countries: Array.from(new Set(pool.map((e) => canonicalCountry(e.university.country)))).sort(),
+      featured: withFeatured ? { featuredCount: defaultPool.length, allCount: scored.length, ready } : undefined,
+      pool,
+      groups,
+    };
+  }
+
   const { items, page, totalPages } = paginate(filtered, state.page);
 
   return {
@@ -252,7 +296,9 @@ export function topPicksByCountry(
   perCountry = 3
 ): { country: string; picks: MatchEntry[] }[] {
   // Canonical names, so a student who typed "UK" still sees UK schools.
-  const best = [...entries].sort((a, b) => b.match.score - a.match.score);
+  // Same order as the main list ("Best you can get into"), so a weak but
+  // easy school can't top a country.
+  const best = [...entries].sort(compareBest);
   return [...new Set(preferredCountries.map(canonicalCountry))].map((country) => ({
     country,
     picks: best.filter((e) => canonicalCountry(e.university.country) === country).slice(0, perCountry),

@@ -13,22 +13,16 @@ import {
   focusesOf,
 } from "@/lib/focus";
 import { canonicalCountry } from "@/lib/countries";
+import { BASE_WEIGHTS, FOCUS_POINTS } from "@/lib/scoring-config";
+import { rankUniversity, type RankInfo } from "@/lib/ranking";
 import { FOCUSES, type Focus, type Profile, type UniversitySummary } from "@/lib/types";
 
 // ─── Scoring weights ─────────────────────────────────────────────────────
-// The one place the weights live. They always add up to 100, so each reads
-// as "how many points out of 100 this factor is worth".
-//
-// 80 points are the same for everyone. Budget is heaviest because a school
-// a student can't afford isn't a real option.
-export const BASE_WEIGHTS = {
-  budget: 25,
-  major: 15,
-  academic: 15,
-  country: 10,
-  english: 10,
-  acceptance: 5,
-} as const;
+// The weights live in lib/scoring-config.ts (with every other ranking
+// constant). They always add up to 100, so each reads as "how many points
+// out of 100 this factor is worth". Budget is heaviest because a school a
+// student can't afford isn't a real option.
+export { BASE_WEIGHTS, FOCUS_POINTS };
 
 // The other 20 points follow "what matters most to me". Each focus has its
 // own factor:
@@ -38,8 +32,6 @@ const FOCUS_FACTOR = {
   research: "research",
   affordability: "affordability",
 } as const satisfies Record<Focus, string>;
-
-export const FOCUS_POINTS = 20;
 
 export type FactorKey = keyof typeof BASE_WEIGHTS | (typeof FOCUS_FACTOR)[Focus];
 
@@ -67,7 +59,6 @@ const FACTOR_LABELS: Record<FactorKey, string> = {
   academic: "Academic fit",
   country: "Country",
   english: "English",
-  acceptance: "Acceptance rate",
   reputation: "Academic reputation",
   coop: "Co-op / internships",
   research: "Research",
@@ -215,11 +206,6 @@ function englishFit(profile: Profile, university: UniversitySummary): number | n
   return clamp01(1 + (profile.ielts_score - university.min_ielts));
 }
 
-function acceptanceFit(profile: Profile, university: UniversitySummary): number | null {
-  if (!usesUndergradAdmissions(profile) || !isKnown(university.acceptance_rate)) return null;
-  return clamp01(university.acceptance_rate / 100);
-}
-
 // ─── Focus factors ───────────────────────────────────────────────────────
 // One fit per focus, each 0..1 or null. A fit only uses figures we
 // actually have, and is null (left out of the score) when none are known.
@@ -249,7 +235,7 @@ function affordabilityScore(total: number, budgetMax: number): number {
   return clamp01(1.5 - total / budgetMax);
 }
 
-function subjectRanking(profile: Profile, university: UniversitySummary) {
+export function subjectRanking(profile: Profile, university: UniversitySummary) {
   const match = findMatchingProgram(profile, university);
   const rank = match ? university.program_rankings?.[match.program] : undefined;
   return match && isKnown(rank) ? { program: match.program, rank } : null;
@@ -335,7 +321,6 @@ export function computeMatchScore(
     academic: academicFit(profile, university),
     country: countryMatches(profile, university) ? 1 : 0,
     english: englishFit(profile, university),
-    acceptance: acceptanceFit(profile, university),
     ...focusFits(profile, university),
   };
   for (const key of unknown) fits[key] = null;
@@ -649,6 +634,9 @@ export type MatchEntry = {
   // Estimated admission probability from the trained model, or null when
   // it doesn't apply (see below).
   prediction: AdmissionPrediction | null;
+  // Quality, plausibility and the "Best you can get into" score
+  // (lib/ranking.ts).
+  rank: RankInfo;
 };
 
 // The trained model only replaces the rule-based Reach/Match/Safety label
@@ -677,5 +665,8 @@ export function scoreUniversity(profile: Profile, university: UniversitySummary)
     explanation: explainMatch(profile, university),
     ranking: getDisplayRanking(university, profile),
     prediction,
+    // The model's probability only drives plausibility when it also drives
+    // the Reach/Match/Safety label, so the two never disagree.
+    rank: rankUniversity(profile, university, match, match.chanceSource === "model" ? prediction!.probability : null),
   };
 }
