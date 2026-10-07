@@ -286,3 +286,128 @@
   color: var(--foreground);
   background: var(--muted);
 }
+
+/* ── Motion ────────────────────────────────────────────────────────────────
+   Small, purposeful animations, defined once here. Rules:
+   - only transform and opacity (cheap for the browser, no layout jumps);
+   - 150-600 ms;
+   - never hide content: if an animation can't run, the content just shows;
+   - switched off entirely for people who ask for reduced motion (the
+     catch-all at the end), and framer-motion follows the same setting
+     (MotionConfig reducedMotion="user" in the root layout). */
+
+/* Hero entrance: the text rises into place, one line after another. It
+   only moves (no fade), so the page's largest paint isn't delayed. */
+@keyframes rise {
+  from {
+    transform: translateY(14px);
+  }
+}
+.rise {
+  animation: rise 500ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--rise-delay, 0ms);
+}
+
+/* Fade + rise, used for things that appear after an action (quiz results). */
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+.appear {
+  animation: appear 350ms ease-out both;
+  animation-delay: var(--appear-delay, 0ms);
+}
+
+/* Sections fade up as they scroll into view, using the browser's own
+   scroll-driven animations (no JavaScript). Browsers without support skip
+   it and simply show the section. */
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+}
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: reveal linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 40%;
+  }
+}
+
+/* Bars that fill from the left (score and factor bars). */
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+.animate-grow-x {
+  transform-origin: left center;
+  animation: grow-x 600ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--grow-delay, 0ms);
+}
+.animate-grow-x-from-right {
+  transform-origin: right center;
+  animation: grow-x 600ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* A quick "pop" (the save button when a school is saved). */
+@keyframes pop {
+  40% {
+    transform: scale(1.25);
+  }
+}
+.animate-pop {
+  animation: pop 260ms ease-out;
+}
+
+/* Gentle lift on hover for cards. */
+.lift {
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+}
+.lift:hover {
+  transform: translateY(-4px);
+}
+
+/* Loading skeletons: a soft highlight sweeping across the grey shape. */
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--muted);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--card) 60%, transparent), transparent);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* Reduced motion: no animations or transitions anywhere, content shown in
+   its final place straight away. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .skeleton::after {
+    display: none;
+  }
+  /* Scroll-driven animations ignore duration, so turn this one off. */
+  .reveal {
+    animation: none !important;
+  }
+}

@@ -49,8 +49,8 @@ export function AdmissionEstimate({
               <div
                 className={
                   points >= 0
-                    ? "absolute inset-y-0 left-1/2 rounded-r-full bg-emerald-500"
-                    : "absolute inset-y-0 right-1/2 rounded-l-full bg-amber-500"
+                    ? "animate-grow-x absolute inset-y-0 left-1/2 rounded-r-full bg-emerald-500"
+                    : "animate-grow-x-from-right absolute inset-y-0 right-1/2 rounded-l-full bg-amber-500"
                 }
                 style={{ width: `${(Math.abs(points) / biggest) * 50}%` }}
               />

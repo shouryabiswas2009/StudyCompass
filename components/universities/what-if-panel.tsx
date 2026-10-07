@@ -15,6 +15,7 @@ import {
   type WhatIfValues,
 } from "@/lib/what-if";
 import type { Profile, UniversitySummary } from "@/lib/types";
+import { useTweenedNumber } from "@/components/motion/use-tweened-number";
 
 // "What if?" sliders on the details page. Everything runs in the browser
 // with the same pure scoring functions as the server (lib/what-if.ts), so
@@ -28,6 +29,9 @@ export function WhatIfPanel({ profile, university }: { profile: Profile; univers
     setValues((current) => ({ ...current, [key]: value === null ? null : snapToStep(key, value) }));
 
   const percent = (p: number | null) => (p === null ? null : Math.round(p * 100));
+  // The headline numbers glide to their new values while a slider moves.
+  const shownScore = Math.round(useTweenedNumber(result.whatIf.score));
+  const shownPercent = Math.round(useTweenedNumber((result.whatIf.probability ?? 0) * 100));
 
   return (
     <div className="space-y-5">
@@ -96,7 +100,7 @@ export function WhatIfPanel({ profile, university }: { profile: Profile; univers
         <div className="rounded-xl border p-3">
           <p className="text-xs text-muted-foreground">Match score</p>
           <div className="mt-1 flex items-center gap-2">
-            <MatchScoreBadge score={result.whatIf.score} />
+            <MatchScoreBadge score={shownScore} />
             {result.changed && (
               <span className="text-sm text-muted-foreground">
                 {signed(result.scoreChange)} vs. your profile ({result.actual.score})
@@ -114,7 +118,7 @@ export function WhatIfPanel({ profile, university }: { profile: Profile; univers
             />
             {result.whatIf.probability !== null ? (
               <span className="text-sm">
-                ~{percent(result.whatIf.probability)}%
+                ~{shownPercent}%
                 {result.changed && result.probabilityChange !== null && (
                   <span className="text-muted-foreground">
                     {" "}

@@ -16,11 +16,15 @@ export function SaveButton({
   className?: string;
 }) {
   const [saved, setSaved] = useState(initiallySaved);
+  // Counts saves made on this page, so the "pop" plays when the student
+  // saves, not when a page loads with schools already saved.
+  const [pops, setPops] = useState(0);
   const [isPending, startTransition] = useTransition();
 
   function handleClick() {
     const wasSaved = saved;
     setSaved(!wasSaved); // optimistic update
+    if (!wasSaved) setPops((n) => n + 1);
     startTransition(async () => {
       try {
         await toggleSavedUniversity(universityId, wasSaved);
@@ -41,7 +45,7 @@ export function SaveButton({
       className={cn("rounded-full shadow-sm", className)}
     >
       {saved ? (
-        <BookmarkCheck className="size-4 text-primary" />
+        <BookmarkCheck key={pops} className={cn("size-4 text-primary", pops > 0 && "animate-pop")} />
       ) : (
         <Bookmark className="size-4" />
       )}

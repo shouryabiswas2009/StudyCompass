@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 export function CtaSection() {
   return (
     <section aria-labelledby="cta-heading" className="page-container pb-[var(--section-y)]">
-      <div className="flex flex-col items-start gap-6 rounded-3xl bg-band px-6 py-10 text-band-foreground sm:flex-row sm:items-center sm:px-10">
+      <div className="reveal flex flex-col items-start gap-6 rounded-3xl bg-band px-6 py-10 text-band-foreground sm:flex-row sm:items-center sm:px-10">
         <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-sand text-sand-foreground">
           <LogoMark size={28} />
         </span>

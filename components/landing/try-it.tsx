@@ -25,7 +25,7 @@ export function TryIt() {
 
   return (
     <section id="try-it" aria-labelledby="try-it-heading" className="page-container section-y scroll-mt-16 pt-0">
-      <div className="grid gap-8 rounded-3xl border bg-card p-6 sm:p-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
+      <div className="reveal grid gap-8 rounded-3xl border bg-card p-6 sm:p-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
         <div>
           <SectionHeading
             id="try-it-heading"
@@ -82,9 +82,10 @@ export function TryIt() {
 
           {state?.matches ? (
             <>
-              <ol className="space-y-3">
+              {/* New key per result set, so each new answer replays the fade-in. */}
+              <ol key={state.matches.map((m) => m.id).join()} className="space-y-3">
                 {state.matches.map((match, i) => (
-                  <li key={match.id}>
+                  <li key={match.id} className="appear" style={{ "--appear-delay": `${i * 60}ms` } as React.CSSProperties}>
                     <Link
                       href={`/universities/${match.id}`}
                       className="flex items-center gap-4 rounded-2xl border bg-background p-4 transition-colors hover:border-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
@@ -105,6 +106,12 @@ export function TryIt() {
                         <span className="block font-heading text-2xl font-extrabold text-primary tabular-nums">{match.score}</span>
                         <span className="block text-xs text-muted-foreground">
                           {match.knownFactors} of {match.totalFactors} factors
+                        </span>
+                        <span className="mt-1 block h-1 w-14 overflow-hidden rounded-full bg-muted" aria-hidden>
+                          <span
+                            className="animate-grow-x block h-full rounded-full bg-primary"
+                            style={{ width: `${match.score}%`, "--grow-delay": `${150 + i * 60}ms` } as React.CSSProperties}
+                          />
                         </span>
                       </span>
                     </Link>

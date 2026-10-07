@@ -19,7 +19,7 @@ export function FitBreakdown({ factors }: { factors: FactorScore[] }) {
           <div className="h-1.5 overflow-hidden rounded-full bg-muted">
             {factor.points !== null && (
               <div
-                className="h-full rounded-full bg-primary"
+                className="animate-grow-x h-full rounded-full bg-primary"
                 style={{ width: `${(factor.points / factor.max) * 100}%` }}
               />
             )}

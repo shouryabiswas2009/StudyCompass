@@ -1,5 +1,6 @@
 import { BadgeCheck, Building2, Globe2, Search } from "lucide-react";
 import type { LandingStats } from "@/lib/landing";
+import { CountUp } from "@/components/motion/count-up";
 
 // The dark green band of numbers. Every number is counted from the database
 // on the server (lib/landing.ts), never typed in.
@@ -13,12 +14,14 @@ export function StatsBand({ stats }: { stats: LandingStats }) {
   ];
   return (
     <section aria-label="The data in numbers" className="page-container">
-      <ul className="grid gap-6 rounded-3xl bg-band px-6 py-8 text-band-foreground sm:grid-cols-2 sm:px-10 lg:grid-cols-4 lg:divide-x lg:divide-band-muted/25">
+      <ul className="reveal grid gap-6 rounded-3xl bg-band px-6 py-8 text-band-foreground sm:grid-cols-2 sm:px-10 lg:grid-cols-4 lg:divide-x lg:divide-band-muted/25">
         {items.map((item) => (
           <li key={item.label} className="flex items-center gap-4 lg:px-6 lg:first:pl-0">
             <item.icon className="size-9 shrink-0 text-band-muted" strokeWidth={1.5} aria-hidden />
             <div>
-              <p className="font-heading text-3xl font-extrabold tabular-nums">{item.value.toLocaleString("en-US")}</p>
+              <p className="font-heading text-3xl font-extrabold">
+                <CountUp value={item.value} />
+              </p>
               <p className="text-sm text-band-muted">{item.label}</p>
             </div>
           </li>

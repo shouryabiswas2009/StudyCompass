@@ -19,16 +19,18 @@ export function Hero({ stats }: { stats: LandingStats }) {
     <section className="relative overflow-hidden">
       <div className="page-container grid items-center gap-10 py-12 lg:min-h-[34rem] lg:grid-cols-2 lg:py-20">
         <div className="relative z-10 space-y-6">
-          <p className="eyebrow">Welcome to {BRAND_NAME}</p>
-          <h1 className="text-display font-extrabold text-balance">
+          {/* "rise": each line moves into place a little after the one above
+              (CSS only, see globals.css; nothing waits on JavaScript). */}
+          <p className="eyebrow rise">Welcome to {BRAND_NAME}</p>
+          <h1 className="rise text-display font-extrabold text-balance" style={{ "--rise-delay": "60ms" } as React.CSSProperties}>
             <AccentTitle title="Find the university that actually fits you." accent="fits you." />
           </h1>
-          <p className="max-w-md text-muted-foreground text-pretty">
+          <p className="rise max-w-md text-muted-foreground text-pretty" style={{ "--rise-delay": "120ms" } as React.CSSProperties}>
             {BRAND_NAME}{" "}matches you to universities by budget, grades, major
             and what matters most to you, using official US figures and fees
             checked on each university&apos;s own website.
           </p>
-          <div className="flex flex-wrap items-center gap-5">
+          <div className="rise flex flex-wrap items-center gap-5" style={{ "--rise-delay": "180ms" } as React.CSSProperties}>
             <Button size="lg" asChild>
               <Link href="/signup">
                 Get started
@@ -63,7 +65,10 @@ export function Hero({ stats }: { stats: LandingStats }) {
 
       {stats.universities > 0 && (
         <div className="page-container pointer-events-none relative -mt-24 flex justify-end pb-6 lg:absolute lg:inset-x-0 lg:bottom-10 lg:mt-0 lg:pb-0">
-          <div className="pointer-events-auto mr-3 w-44 rounded-2xl bg-band p-5 text-band-foreground shadow-xl sm:mr-6">
+          <div
+            className="appear pointer-events-auto mr-3 w-44 rounded-2xl bg-band p-5 text-band-foreground shadow-xl sm:mr-6"
+            style={{ "--appear-delay": "300ms" } as React.CSSProperties}
+          >
             <span className="mb-3 flex size-10 items-center justify-center rounded-full border border-band-muted/40">
               <Building2 className="size-5" aria-hidden />
             </span>

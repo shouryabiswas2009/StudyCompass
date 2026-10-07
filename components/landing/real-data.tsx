@@ -39,7 +39,7 @@ export function RealData({ stats }: { stats: LandingStats }) {
         />
         <ul className="grid gap-4 sm:grid-cols-2">
           {sources.map((source) => (
-            <li key={source.title} className="rounded-2xl border bg-card p-6">
+            <li key={source.title} className="reveal lift rounded-2xl border bg-card p-6 hover:shadow-md">
               <source.icon className="mb-4 size-6 text-primary" aria-hidden />
               <h3 className="font-semibold">{source.title}</h3>
               <p className="mt-2 text-sm text-muted-foreground">{source.text}</p>

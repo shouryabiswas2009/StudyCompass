@@ -40,7 +40,7 @@ const FEATURES: Feature[] = [
 export function WhatsNew() {
   return (
     <section id="whats-new" aria-labelledby="whats-new-heading" className="page-container section-y scroll-mt-16">
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+      <div className="reveal flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <SectionHeading
           id="whats-new-heading"
           eyebrow="What's new"
@@ -61,7 +61,7 @@ export function WhatsNew() {
       </div>
       <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {FEATURES.map((feature) => (
-          <li key={feature.title} className="flex flex-col rounded-2xl border bg-card p-5 transition-shadow hover:shadow-md">
+          <li key={feature.title} className="reveal lift flex flex-col rounded-2xl border bg-card p-5 hover:shadow-md">
             <span className="mb-4 flex size-12 items-center justify-center rounded-full bg-secondary text-primary">
               <feature.icon className="size-5" aria-hidden />
             </span>

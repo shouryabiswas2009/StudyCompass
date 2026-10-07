@@ -38,7 +38,7 @@ export function ScreenPreviews({
       />
       <ul className="mt-8 grid gap-5 md:grid-cols-3">
         {cards.map((card) => (
-          <li key={card.title} className="flex flex-col overflow-hidden rounded-2xl border bg-card">
+          <li key={card.title} className="reveal lift flex flex-col overflow-hidden rounded-2xl border bg-card hover:shadow-md">
             <div className="bg-muted p-4 sm:p-5">
               <div className="rounded-xl border bg-card p-4 shadow-sm" aria-hidden>
                 <div className="mb-3 flex gap-1.5">
@@ -79,7 +79,7 @@ function MatchScreen({ match }: { match: ExampleMatch }) {
       </div>
       <div className="flex items-center gap-2">
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-primary" style={{ width: `${match.score}%` }} />
+          <div className="animate-grow-x h-full rounded-full bg-primary" style={{ width: `${match.score}%` }} />
         </div>
         <span className="font-heading text-base font-extrabold tabular-nums">{match.score}</span>
       </div>
@@ -111,7 +111,7 @@ function WhatIfScreen({ whatIf }: { whatIf: ExampleWhatIf }) {
           <span className="font-semibold text-foreground tabular-nums">{whatIf.satFrom} → {whatIf.satTo}</span>
         </div>
         <div className="relative h-2 rounded-full bg-muted">
-          <div className="absolute inset-y-0 left-0 rounded-full bg-primary" style={{ width: position(whatIf.satTo) }} />
+          <div className="animate-grow-x absolute inset-y-0 left-0 rounded-full bg-primary" style={{ width: position(whatIf.satTo) }} />
           <span className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-card" style={{ left: position(whatIf.satTo) }} />
         </div>
       </div>

@@ -30,7 +30,7 @@ export function DeleteAccount() {
           Delete my account…
         </Button>
       ) : (
-        <form action={formAction} className="mt-4 space-y-3">
+        <form action={formAction} className="appear mt-4 space-y-3">
           <div className="space-y-1.5">
             <Label htmlFor="confirm-delete">
               Type <strong>{DELETE_CONFIRMATION_WORD}</strong> to confirm

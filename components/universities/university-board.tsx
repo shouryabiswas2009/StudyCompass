@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { MotionConfig } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { compareUrl, MAX_COMPARE } from "@/lib/compare";
@@ -183,7 +184,10 @@ export function UniversityBoard({
 
 
   function renderCards(list: MatchEntry[]) {
+    // MotionConfig: the cards' animations (entrance, sliding to a new place
+    // after sorting) follow the visitor's "reduce motion" setting.
     return (
+      <MotionConfig reducedMotion="user">
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {list.map((entry, i) => (
           <UniversityCard
@@ -210,6 +214,7 @@ export function UniversityBoard({
           />
         ))}
       </div>
+      </MotionConfig>
     );
   }
 

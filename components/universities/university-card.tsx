@@ -73,6 +73,10 @@ export function UniversityCard({
     // never waits on its own animation; skipped entirely for students who
     // turned on "reduce motion" in their operating system.
     <motion.div
+      // When sorting or filtering reorders the list, the first screenful of
+      // cards slides to its new place (framer-motion animates the move with
+      // transforms). Further down it isn't worth the work.
+      layout={index < 9 ? "position" : false}
       initial={reduceMotion ? false : { opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.05 }}
