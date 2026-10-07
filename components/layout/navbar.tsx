@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, Compass } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
 import { BRAND_NAME } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -21,9 +22,8 @@ export function Navbar({ userEmail }: { userEmail: string | null }) {
   return (
     <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="page-container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-heading text-lg font-bold">
-          <Compass className="size-5 text-primary" />
-          <span>{BRAND_NAME}</span>
+        <Link href="/" aria-label={`${BRAND_NAME} home`} className="rounded-md focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none">
+          <Logo size={26} markClassName="text-primary" />
         </Link>
 
         {userEmail && (

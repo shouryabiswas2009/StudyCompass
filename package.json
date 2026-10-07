@@ -19,7 +19,8 @@
     "data:build-international": "node scripts/curated/build-international-sql.mjs",
     "data:report": "node scripts/data-report.mjs",
     "data:validate-country-info": "node scripts/curated/build-country-info-sql.mjs --check",
-    "data:build-country-info": "node scripts/curated/build-country-info-sql.mjs"
+    "data:build-country-info": "node scripts/curated/build-country-info-sql.mjs",
+    "brand:icons": "node scripts/brand/build-icons.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

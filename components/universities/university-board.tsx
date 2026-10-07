@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { compareUrl, MAX_COMPARE } from "@/lib/compare";
-import { ChevronLeft, ChevronRight, Compass, Search, SlidersHorizontal, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, SlidersHorizontal, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -437,7 +437,7 @@ function EmptyState({ message }: { message: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed py-16 text-center">
       <div className="flex size-12 items-center justify-center rounded-full bg-muted">
-        <Compass className="size-5 text-muted-foreground" />
+        <Search className="size-5 text-muted-foreground" aria-hidden />
       </div>
       <p className="max-w-sm text-muted-foreground">{message}</p>
     </div>

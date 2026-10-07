@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Compass } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
 import { BRAND_NAME } from "@/lib/brand";
 
 const CREDITS_URL = "https://github.com/shouryabiswas2009/StudyCompass/blob/main/docs/CREDITS.md";
@@ -39,9 +39,8 @@ export function Footer() {
     <footer className="bg-footer text-footer-foreground">
       <div className="page-container grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div className="space-y-3">
-          <Link href="/" className="inline-flex items-center gap-2 font-heading text-lg font-bold">
-            <Compass className="size-5" aria-hidden />
-            {BRAND_NAME}
+          <Link href="/" aria-label={`${BRAND_NAME} home`} className="inline-flex rounded-md">
+            <Logo size={28} />
           </Link>
           <p className="max-w-xs text-sm text-footer-muted">
             Find the university that fits you, not just the ranking. Free to use, built on sourced data.

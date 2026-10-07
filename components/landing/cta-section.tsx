@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, Compass } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 
 // The closing call to action: a dark green banner with a sand-coloured button.
@@ -8,7 +9,7 @@ export function CtaSection() {
     <section aria-labelledby="cta-heading" className="page-container pb-[var(--section-y)]">
       <div className="flex flex-col items-start gap-6 rounded-3xl bg-band px-6 py-10 text-band-foreground sm:flex-row sm:items-center sm:px-10">
         <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-sand text-sand-foreground">
-          <Compass className="size-6" aria-hidden />
+          <LogoMark size={28} />
         </span>
         <div className="flex-1 space-y-1">
           <h2 id="cta-heading" className="text-2xl font-bold sm:text-3xl">

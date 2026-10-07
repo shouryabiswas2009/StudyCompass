@@ -4,6 +4,15 @@ Everything the site shows that wasn't written for this project, with its
 licence. Keep this file up to date when adding a font, icon set, image or
 data source.
 
+## Logo
+
+The Unicelerate logo (a graduation cap lifted by an upward swoosh) is
+**original, made for this project**. It's hand-drawn as SVG paths in
+[`components/brand/mark.ts`](../components/brand/mark.ts) and doesn't copy or
+adapt any other brand's logo or a stock icon. The tab icon, app icons and
+share image are generated from it (`npm run brand:icons`, and
+`app/opengraph-image.tsx`).
+
 ## Images
 
 | What | Where it's used | Source | Licence |
