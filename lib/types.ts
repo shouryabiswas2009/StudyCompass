@@ -113,6 +113,29 @@ export type University = {
   fx_rate_date?: string | null;
   acceptance_source_url?: string | null;
   programs_source_url?: string | null;
+
+  // Research impact (migration_015), from the Leiden Ranking; null when the
+  // school isn't in it. See lib/research-impact.ts.
+  research_impact?: ResearchImpact | null;
+};
+
+export type ResearchFieldKey = "biomedical" | "life_earth" | "math_cs" | "physical_eng" | "social_humanities";
+
+// One school's value in universities.research_impact (written by
+// scripts/research-impact/build.mjs). Percentiles are 0-100 among all
+// universities in the ranking; a field is missing when the school has too
+// few publications in it.
+export type ResearchImpact = {
+  overall: number;
+  pp_top10: number; // share of its publications among the 10% most cited
+  publications: number; // fractionally counted, in data_year
+  fields: Partial<Record<ResearchFieldKey, number>>;
+  ror: string;
+  source: string;
+  source_url: string;
+  data_year: string;
+  licence: string;
+  checked_on: string;
 };
 
 export const COOP_PROGRAMS = ["mandatory", "optional", "none", "unknown"] as const;

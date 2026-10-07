@@ -15,6 +15,7 @@ import {
 import { canonicalCountry } from "@/lib/countries";
 import { BASE_WEIGHTS, FOCUS_POINTS } from "@/lib/scoring-config";
 import { rankUniversity, type RankInfo } from "@/lib/ranking";
+import { researchImpactFor } from "@/lib/research-impact";
 import { FOCUSES, type Focus, type Profile, type UniversitySummary } from "@/lib/types";
 
 // ─── Scoring weights ─────────────────────────────────────────────────────
@@ -248,6 +249,13 @@ export function researchSignal(university: UniversitySummary): { value: number; 
   return level ? { value: RESEARCH_SCORES[level], label: RESEARCH_LABELS[level] } : null;
 }
 
+// Research impact (Leiden Ranking / OpenAlex) as 0..1, in the student's
+// field when there is one; null when the school isn't in the ranking.
+function researchImpactScore(profile: Profile, university: UniversitySummary): number | null {
+  const impact = researchImpactFor(profile, university);
+  return impact ? impact.percentile / 100 : null;
+}
+
 // The school's co-op / internship program as a 0..1 signal, or null when
 // unknown. "Work experience" means these programs only — not employment
 // rates or graduate earnings, which say nothing about whether the school
@@ -271,7 +279,7 @@ function focusFits(profile: Profile, university: UniversitySummary): Record<(typ
       isKnown(retention_rate) ? retention_rate / 100 : null,
     ]),
     coop: coopSignal(university)?.value ?? null,
-    research: average([researchSignal(university)?.value, subjectScore]),
+    research: average([researchSignal(university)?.value, subjectScore, researchImpactScore(profile, university)]),
     affordability: total === null ? null : affordabilityScore(total, profile.budget_max),
   };
 }

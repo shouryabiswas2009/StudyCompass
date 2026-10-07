@@ -23,7 +23,7 @@ export const LIST_COLUMNS = [
   "internship_support_url", "is_featured", "aliases", "tuition_local", "tuition_currency",
   "tuition_basis", "fx_rate_date",
   // Used by the quality score (lib/quality.ts).
-  "median_earnings_10yr",
+  "median_earnings_10yr", "research_impact",
 ] as const;
 
 // Supabase's default limit on rows per API response.
@@ -114,7 +114,7 @@ const loadSharedCached = unstable_cache(
     if (result.missing.length > 0) throw new Error("pending migration");
     return result.rows;
   },
-  ["shared-universities", "v2"], // bump the version when LIST_COLUMNS changes
+  ["shared-universities", "v3"], // bump the version when LIST_COLUMNS changes
   { revalidate: 86400, tags: ["universities"] }
 );
 

@@ -60,6 +60,22 @@ if (existsSync(COUNTRY_SQL)) {
   console.log(`OK  seed_country_info.sql run twice: ${rows[0].n} countries`);
 }
 
+// Research impact (migration_015): run twice; every accepted match must land
+// on exactly one row.
+const IMPACT_SQL = join(import.meta.dirname, "..", "supabase", "seed_research_impact.sql");
+if (existsSync(IMPACT_SQL)) {
+  const text = readFileSync(IMPACT_SQL, "utf8");
+  await db.exec(text);
+  await db.exec(text);
+  const expectedImpact = Number(text.match(/\((\d+) accepted\)/)[1]);
+  const { rows } = await db.query("select count(*)::int as n from public.universities where research_impact is not null");
+  console.log(`OK  seed_research_impact.sql run twice: ${rows[0].n} universities with research impact (expected ${expectedImpact})`);
+  if (rows[0].n !== expectedImpact) {
+    console.error("FAIL some accepted research-impact matches didn't find their university.");
+    process.exit(1);
+  }
+}
+
 // The featured rule exists twice (SQL for the database, JavaScript for counts
 // and tests). Run the SQL and check both agree on the Scorecard schools.
 const FEATURED_SQL = join(import.meta.dirname, "..", "supabase", "featured", "featured.sql");

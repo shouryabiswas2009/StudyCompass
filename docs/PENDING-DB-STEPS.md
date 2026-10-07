@@ -29,7 +29,7 @@ illustrative rows left); `country_info` has row level security on and 27
 countries (16 post-study, 7 proof of funds, 16 work-hour figures); and
 `applications.accept_by` exists. Step 15 was run on 2026-10-07 (reported
 done; check: `delete_my_account` exists as a security-definer function).
-**Nothing pending.**
+**Pending: steps 16–17** (research impact).
 
 New migrations will be added to this table when they're written.
 
@@ -54,6 +54,8 @@ this order: the seed files need both migrations first.
 | 13 | `supabase/seed_country_info.sql` (right after step 12) | Done, verified 2026-10-06 (27 countries) |
 | 14 | `supabase/migration_013_offer_accept_by.sql` | Done, verified 2026-10-06 |
 | 15 | `supabase/migration_014_delete_my_account.sql` | Done 2026-10-07 |
+| 16 | `supabase/migration_015_research_impact.sql` | **To do** |
+| 17 | `supabase/seed_research_impact.sql` (right after step 16; check: `select count(*) from universities where research_impact is not null` → 350) | **To do** |
 
 All of them are safe to run again if you're not sure whether one went
 through.

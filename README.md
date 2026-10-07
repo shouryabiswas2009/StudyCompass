@@ -111,11 +111,21 @@ every school in a structured form. Elsewhere, figures are copied by hand
 from each university's own fees, co-op and program pages into
 [`data/curated/international_universities.csv`](data/curated/international_universities.csv),
 with the page URL, the year and exactly what the figure is
-(`tuition_basis`). Ranking sites aren't scraped (their terms don't allow
-it); if you want rankings, copy them by hand into
-[`data/curated/international_rankings.csv`](data/curated/international_rankings.csv).
+(`tuition_basis`). Commercial rankings (QS, THE, U.S. News,
+ShanghaiRanking) are neither scraped nor copied in; to compare strength
+across countries the site uses open data instead (next section).
 Anything that couldn't be verified is left empty and shows as "not
 available", and the CSV's `notes` column says why.
+
+### Research impact (Leiden Ranking / OpenAlex)
+
+A percentile of how often a university's 2020–2023 papers are among the
+world's 10% most cited, from the CWTS Leiden Ranking Open Edition 2025
+(CC0, built from OpenAlex, CC0), overall and per field. 350 of our 1,688
+universities have one: 241 in the US and 109 of the 111 elsewhere
+([coverage by country](data/research-impact/coverage.md)). Used in the
+quality score, offers and compare; how it works and why:
+[docs/RESEARCH-IMPACT.md](docs/RESEARCH-IMPACT.md).
 
 ### Curated data: how it gets in
 

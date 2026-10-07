@@ -43,6 +43,10 @@ export type OfferInput = {
   // the school has no figure for it.
   researchScore: number | null;
   researchLabel: string | null;
+  // Research impact percentile as 0..1 (Leiden Ranking / OpenAlex, in the
+  // student's field when there is one), and its text, e.g. "88th percentile".
+  researchImpact: number | null;
+  researchImpactLabel: string | null;
   coopScore: number | null;
   coopLabel: string | null;
 };
@@ -54,6 +58,7 @@ export type OfferCriterion =
   | "match"
   | "country"
   | "research"
+  | "researchImpact"
   | "coop";
 
 // How much each criterion matters, 0-10 (the sliders on the offers page).
@@ -64,14 +69,14 @@ export type OfferWeights = Record<OfferCriterion, number>;
 // used before focuses existed, with the two newer criteria at a low 1. Each
 // focus raises the criteria it's about.
 export const BALANCED_OFFER_WEIGHTS: OfferWeights = {
-  cost: 5, ranking: 3, subjectRanking: 3, match: 2, country: 1, research: 1, coop: 1,
+  cost: 5, ranking: 3, subjectRanking: 3, match: 2, country: 1, research: 1, researchImpact: 3, coop: 1,
 };
 
 export const FOCUS_OFFER_WEIGHTS: Record<Focus, OfferWeights> = {
-  academic: { cost: 3, ranking: 7, subjectRanking: 7, match: 2, country: 1, research: 2, coop: 1 },
-  work_experience: { cost: 4, ranking: 2, subjectRanking: 2, match: 2, country: 1, research: 1, coop: 8 },
-  research: { cost: 3, ranking: 2, subjectRanking: 7, match: 2, country: 1, research: 8, coop: 1 },
-  affordability: { cost: 9, ranking: 2, subjectRanking: 2, match: 2, country: 1, research: 1, coop: 1 },
+  academic: { cost: 3, ranking: 7, subjectRanking: 7, match: 2, country: 1, research: 2, researchImpact: 6, coop: 1 },
+  work_experience: { cost: 4, ranking: 2, subjectRanking: 2, match: 2, country: 1, research: 1, researchImpact: 2, coop: 8 },
+  research: { cost: 3, ranking: 2, subjectRanking: 7, match: 2, country: 1, research: 8, researchImpact: 8, coop: 1 },
+  affordability: { cost: 9, ranking: 2, subjectRanking: 2, match: 2, country: 1, research: 1, researchImpact: 2, coop: 1 },
 };
 
 export const DEFAULT_OFFER_WEIGHTS: OfferWeights = BALANCED_OFFER_WEIGHTS;
@@ -97,7 +102,8 @@ export function focusWeightsNote(focuses: Focus[]): string {
   const weights = defaultOfferWeights(ordered);
   const boosted = (Object.keys(weights) as OfferCriterion[])
     .filter((key) => weights[key] > BALANCED_OFFER_WEIGHTS[key])
-    .map((key) => CRITERION_LABELS[key].toLowerCase());
+    // Lowercase the first letter only, so names keep their capitals.
+    .map((key) => CRITERION_LABELS[key][0].toLowerCase() + CRITERION_LABELS[key].slice(1));
   const list =
     boosted.length <= 1 ? boosted.join("") : `${boosted.slice(0, -1).join(", ")} and ${boosted[boosted.length - 1]}`;
   const verb = boosted.length === 1 ? "counts" : "count";
@@ -113,6 +119,7 @@ export const CRITERION_LABELS: Record<OfferCriterion, string> = {
   match: "Match score",
   country: "Preferred country",
   research: "Research intensity",
+  researchImpact: "Research impact (Leiden Ranking / OpenAlex)",
   coop: "Co-op / internships",
 };
 
@@ -183,6 +190,7 @@ function scoreOffers<T extends OfferInput>(
       // Already on a fixed 0..1 scale (not relative to the other offers),
       // so an offer only gets full marks for an actual R1 / mandatory co-op.
       research: offer.researchScore,
+      researchImpact: offer.researchImpact,
       coop: offer.coopScore,
     };
 
@@ -227,6 +235,8 @@ function strongPhrase(key: OfferCriterion, offer: OfferInput, value: number): st
       return "being in one of your preferred countries";
     case "research":
       return `its research intensity (${offer.researchLabel})`;
+    case "researchImpact":
+      return `its research impact (${offer.researchImpactLabel})`;
     case "coop":
       return `its co-op program (${offer.coopLabel?.toLowerCase()})`;
   }
@@ -246,6 +256,8 @@ function weakPhrase(key: OfferCriterion, offer: OfferInput): string {
       return "not being in your preferred countries";
     case "research":
       return `its lower research intensity (${offer.researchLabel})`;
+    case "researchImpact":
+      return `its lower research impact (${offer.researchImpactLabel})`;
     case "coop":
       return `its co-op situation (${offer.coopLabel?.toLowerCase()})`;
   }

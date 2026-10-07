@@ -3,6 +3,8 @@ import { ChanceBadge } from "@/components/universities/chance-badge";
 import { MatchScoreBadge } from "@/components/universities/match-score-badge";
 import { StrengthsConcerns } from "@/components/universities/strengths-concerns";
 import { SourceBadge } from "@/components/universities/source-badge";
+import { ResearchImpactValue } from "@/components/universities/research-impact";
+import { RESEARCH_IMPACT_LABEL, researchImpactFor } from "@/lib/research-impact";
 import { bestIndexes, totalYearlyCost } from "@/lib/compare";
 import { usd } from "@/lib/format";
 import { livingCostDisplay, tuitionDisplay, type MoneyDisplay } from "@/lib/money";
@@ -26,7 +28,7 @@ type Row = {
   value?: (entry: MatchEntry, profile: Profile) => number | null;
   better?: "higher" | "lower";
   // Some rows are only fair to compare in certain cases (see ranking below).
-  comparable?: (entries: MatchEntry[]) => boolean;
+  comparable?: (entries: MatchEntry[], profile: Profile) => boolean;
 };
 
 const muted = (text: string) => <span className="text-muted-foreground">{text}</span>;
@@ -110,6 +112,14 @@ const ROWS: Row[] = [
     // (#30 overall) aren't the same scale, so only crown a winner when every
     // school is ranked the same way.
     comparable: (entries) => new Set(entries.map((e) => e.ranking.label)).size === 1,
+  },
+  {
+    label: RESEARCH_IMPACT_LABEL,
+    render: ({ university }, profile) => <ResearchImpactValue university={university} profile={profile} />,
+    value: ({ university }, profile) => researchImpactFor(profile, university)?.percentile ?? null,
+    better: "higher",
+    // A field percentile and an overall one aren't the same comparison.
+    comparable: (entries, profile) => new Set(entries.map((e) => researchImpactFor(profile, e.university)?.field ?? "overall")).size === 1,
   },
   {
     label: "Acceptance rate",
@@ -218,7 +228,7 @@ export function CompareTable({
           <tbody>
             {ROWS.map((row) => {
               const highlight =
-                row.value && row.better && (row.comparable?.(entries) ?? true)
+                row.value && row.better && (row.comparable?.(entries, profile) ?? true)
                   ? bestIndexes(entries.map((e) => row.value!(e, profile)), row.better)
                   : new Set<number>();
 

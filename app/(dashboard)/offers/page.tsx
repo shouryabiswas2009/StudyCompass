@@ -5,6 +5,7 @@ import { Award } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { OffersBoard, type OfferRow } from "@/components/offers/offers-board";
 import { coopSignal, countryMatches, researchSignal, scoreUniversity } from "@/lib/matching";
+import { describeImpact, researchImpactFor } from "@/lib/research-impact";
 import { focusesOf } from "@/lib/focus";
 import { netCostPerYear, totalProgramCost } from "@/lib/offers";
 import type { Application, Profile, University } from "@/lib/types";
@@ -48,6 +49,7 @@ export default async function OffersPage() {
     const { match, ranking } = scoreUniversity(profile, university);
     const hasSubjectRank = ranking.label !== "Overall";
     const research = researchSignal(university);
+    const impact = researchImpactFor(profile, university);
     const coop = coopSignal(university);
 
     return {
@@ -66,6 +68,8 @@ export default async function OffersPage() {
       inPreferredCountry: countryMatches(profile, university),
       researchScore: research?.value ?? null,
       researchLabel: research?.label ?? null,
+      researchImpact: impact ? impact.percentile / 100 : null,
+      researchImpactLabel: impact ? describeImpact(impact) : null,
       coopScore: coop?.value ?? null,
       coopLabel: coop?.label ?? null,
     };

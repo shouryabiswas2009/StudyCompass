@@ -118,6 +118,27 @@ describe("qualityScore", () => {
   });
 });
 
+describe("qualityScore with research impact", () => {
+  const impact = { overall: 90, pp_top10: 0.17, publications: 9000, fields: { math_cs: 70 }, ror: "x", source: "Leiden", source_url: "", data_year: "2020–2023", licence: "CC0 1.0", checked_on: "2026-10-07" };
+  const onlyImpact = makeUniversity({ source: "curated", qs_ranking: null, sat_25: null, sat_75: null, completion_rate: null, retention_rate: null, research_intensity: null, acceptance_rate: null, program_rankings: {}, research_impact: impact });
+
+  it("gives a school with nothing but research impact a quality score (so schools outside the US compare)", () => {
+    const q = qualityScore(makeProfile({ intended_majors: ["History"] }), onlyImpact);
+    expect(q.score).toBeCloseTo(0.9);
+    expect(q.parts.map((p) => p.label)).toEqual(["Research impact"]);
+  });
+
+  it("uses the student's field when the school has a figure for it", () => {
+    const q = qualityScore(makeProfile({ intended_majors: ["Computer Science"] }), onlyImpact);
+    expect(q.score).toBeCloseTo(0.7);
+    expect(q.parts[0].label).toBe("Research impact in mathematics and computer science");
+  });
+
+  it("is still 'not available' for a school outside the ranking", () => {
+    expect(qualityScore(makeProfile(), { ...onlyImpact, research_impact: null }).score).toBeNull();
+  });
+});
+
 describe("fitGate", () => {
   it("passes a school that fits", () => {
     const u = makeUniversity();

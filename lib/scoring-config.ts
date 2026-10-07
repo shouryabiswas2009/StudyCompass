@@ -40,6 +40,10 @@ export const QUALITY_WEIGHTS = {
   retention: 1, // % of first-years coming back
   earnings: 1.5, // median earnings 10 years after entry (log scale)
   research: 1.5, // Carnegie research level
+  // Research impact percentile (Leiden Ranking / OpenAlex), in the student's
+  // field when there is one. The one strength signal that exists for
+  // universities everywhere, so schools outside the US can be compared.
+  researchImpact: 3,
   selectivity: 0.5, // 1 - admission rate: a small, rough proxy only
 } as const;
 
@@ -55,14 +59,18 @@ export const QUALITY_RANGES = {
 // only the admission rate) we say "quality not available" instead.
 export const QUALITY_MIN_KNOWN_WEIGHT = 3;
 
-// ...and at least one of these direct signals of undergraduate quality.
-// (Research level and earnings alone also describe graduate-only places.)
+// ...and at least one of these direct signals. (Research level and
+// earnings alone also describe graduate-only places.) Research impact
+// counts: outside the US it's often the only figure there is, and schools
+// that don't teach the student's degree level are already left out by the
+// fit gate.
 export const QUALITY_UNDERGRADUATE_SIGNALS: readonly (keyof typeof QUALITY_WEIGHTS)[] = [
   "ranking",
   "subjectRanking",
   "sat",
   "completion",
   "retention",
+  "researchImpact",
 ];
 
 // What an unknown quality counts as when ranking: the middle, so schools

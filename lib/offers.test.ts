@@ -31,6 +31,8 @@ function offer(overrides: Partial<OfferInput> & { id: string }): OfferInput {
     inPreferredCountry: true,
     researchScore: null,
     researchLabel: null,
+    researchImpact: null,
+    researchImpactLabel: null,
     coopScore: null,
     coopLabel: null,
     ...overrides,
@@ -44,6 +46,7 @@ const only = (key: keyof OfferWeights): OfferWeights => ({
   match: 0,
   country: 0,
   research: 0,
+  researchImpact: 0,
   coop: 0,
   [key]: 10,
 });
@@ -111,7 +114,7 @@ describe("rankOffers", () => {
   });
 
   it("scores everything 0 when every weight is 0, without crashing", () => {
-    const zero = { cost: 0, ranking: 0, subjectRanking: 0, match: 0, country: 0, research: 0, coop: 0 };
+    const zero = { cost: 0, ranking: 0, subjectRanking: 0, match: 0, country: 0, research: 0, researchImpact: 0, coop: 0 };
     const ranked = rankOffers([cheapLowRanked, pricyTopRanked], zero);
     expect(ranked.every((r) => r.score === 0)).toBe(true);
   });
@@ -192,10 +195,10 @@ describe("focuses and the default weights", () => {
 
   it("names every ticked focus and what counts more because of them", () => {
     expect(focusWeightsNote(["research"])).toBe(
-      "Because you prioritize research, subject ranking and research intensity count more."
+      "Because you prioritize research, subject ranking, research intensity and research impact (Leiden Ranking / OpenAlex) count more."
     );
     expect(focusWeightsNote(["work_experience", "research"])).toBe(
-      "Because you prioritize work experience and research, subject ranking, research intensity and co-op / internships count more."
+      "Because you prioritize work experience and research, subject ranking, research intensity, research impact (Leiden Ranking / OpenAlex) and co-op / internships count more."
     );
     expect(focusWeightsNote([])).toBe("You chose Balanced, so no single criterion is boosted.");
   });

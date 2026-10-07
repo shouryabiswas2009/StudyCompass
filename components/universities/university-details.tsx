@@ -3,6 +3,7 @@ import Link from "next/link";
 import { TrendingUp, Percent, DollarSign } from "lucide-react";
 import { SourceBadge } from "@/components/universities/source-badge";
 import { CountryGuidance } from "@/components/universities/country-guidance";
+import { ResearchImpactPanel } from "@/components/universities/research-impact";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Flag } from "@/components/flag";
@@ -11,6 +12,7 @@ import { usd } from "@/lib/format";
 import { livingCostDisplay, tuitionDisplay } from "@/lib/money";
 import { COOP_LABELS, RESEARCH_LABELS } from "@/lib/focus";
 import { compareUrl } from "@/lib/compare";
+import { ordinal, RESEARCH_IMPACT_LABEL } from "@/lib/research-impact";
 import { canonicalCountry } from "@/lib/countries";
 import type { CountryInfoResult } from "@/lib/data/country-info";
 import type { University } from "@/lib/types";
@@ -115,11 +117,19 @@ export function UniversityDetails({
       label: tuition.approximate ? "Tuition (approximate)" : "Tuition",
       value: tuition.text,
     },
-    {
-      icon: TrendingUp,
-      label: `QS Ranking — ${ranking.label}`,
-      value: formatRank(ranking.rank),
-    },
+    // Research impact where we have it (open data, every country); otherwise
+    // a ranking the student entered for their own school.
+    university.research_impact || ranking.rank === null
+      ? {
+          icon: TrendingUp,
+          label: RESEARCH_IMPACT_LABEL,
+          value: university.research_impact ? `${ordinal(university.research_impact.overall)} percentile` : "Not available",
+        }
+      : {
+          icon: TrendingUp,
+          label: `Ranking (entered by you) — ${ranking.label}`,
+          value: formatRank(ranking.rank),
+        },
     {
       icon: Percent,
       label: "Acceptance rate",
@@ -254,6 +264,8 @@ export function UniversityDetails({
           </p>
         </div>
       )}
+
+      <ResearchImpactPanel university={university} />
 
       <div className="mt-8 space-y-2">
         <h2 className="font-medium">Research and work experience</h2>

@@ -133,3 +133,35 @@ describe("migration_014 (delete my account)", () => {
     await db.exec(sql("migration_014_delete_my_account.sql"));
   }, 30_000);
 });
+
+describe("migration_015 (research impact)", () => {
+  const value = (fields) =>
+    JSON.stringify({ overall: 80, source: "CWTS Leiden Ranking Open Edition 2025", data_year: "2020–2023", licence: "CC0 1.0", ...fields });
+
+  it("stores a value with its source on a shared school, and is safe to re-run", async () => {
+    const { db } = await createInMemoryDb();
+    await db.exec(sql("migration_015_research_impact.sql"));
+    const { rows } = await db.query("select id from public.universities where created_by is null order by id limit 1");
+    await db.query("update public.universities set research_impact = $1::jsonb where id = $2", [value({}), rows[0].id]);
+    const { rows: back } = await db.query("select research_impact->>'licence' as licence from public.universities where id = $1", [rows[0].id]);
+    expect(back[0].licence).toBe("CC0 1.0");
+  }, 30_000);
+
+  it("rejects a value without its source, and any value on a student's own school", async () => {
+    const { db } = await createInMemoryDb();
+    const { rows } = await db.query("select id from public.universities where created_by is null order by id limit 1");
+    await expect(
+      db.query("update public.universities set research_impact = '{\"overall\": 80}'::jsonb where id = $1", [rows[0].id])
+    ).rejects.toThrow(/universities_research_impact_check/);
+
+    const student = "00000000-0000-0000-0000-0000000000cc";
+    await db.query("insert into auth.users (id) values ($1)", [student]);
+    await expect(
+      db.query(
+        `insert into public.universities (name, country, tuition, acceptance_rate, description, created_by, source, research_impact)
+          values ('Mine', 'Canada', 1, 50, '', $1, 'user-entered', $2::jsonb)`,
+        [student, value({})]
+      )
+    ).rejects.toThrow(/universities_research_impact_check/);
+  }, 30_000);
+});

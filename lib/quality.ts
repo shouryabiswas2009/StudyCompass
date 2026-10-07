@@ -1,5 +1,6 @@
 import { rankScore, subjectRanking } from "@/lib/matching";
 import { RESEARCH_SCORES } from "@/lib/focus";
+import { RESEARCH_FIELD_LABELS, researchImpactFor } from "@/lib/research-impact";
 import {
   QUALITY_MIN_KNOWN_WEIGHT,
   QUALITY_RANGES,
@@ -52,6 +53,12 @@ export function qualityScore(profile: Profile, university: UniversitySummary): Q
   const { low, high } = QUALITY_RANGES.earnings;
   add("earnings", "Graduate earnings", earnings === null ? null : (Math.log(earnings) - Math.log(low)) / (Math.log(high) - Math.log(low)));
   add("research", "Research activity", research_intensity ? RESEARCH_SCORES[research_intensity] : null);
+  const impact = researchImpactFor(profile, university);
+  add(
+    "researchImpact",
+    impact?.field ? `Research impact in ${RESEARCH_FIELD_LABELS[impact.field].toLowerCase()}` : "Research impact",
+    impact ? impact.percentile / 100 : null
+  );
   // A small, rough proxy: schools that turn most applicants away tend to be
   // stronger, but selectivity isn't quality, so it counts little.
   add("selectivity", "Selectivity", isKnown(acceptance_rate) ? 1 - acceptance_rate / 100 : null);

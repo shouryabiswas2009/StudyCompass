@@ -58,6 +58,7 @@ describe("LIST_COLUMNS", () => {
       curated_id: null, aliases: [], tuition_local: null, tuition_currency: null, tuition_basis: null,
       tuition_year: null, tuition_source_url: null, living_cost_local: null, living_cost_currency: null,
       living_cost_source_url: null, fx_rate_date: null, acceptance_source_url: null, programs_source_url: null,
+      research_impact: null,
     };
     const summaryFields = Object.keys(everyField).filter(
       (f) => !(DETAIL_ONLY_FIELDS as readonly string[]).includes(f)

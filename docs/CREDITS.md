@@ -45,3 +45,15 @@ See the README's "Where the data comes from": U.S. Department of Education
 College Scorecard (public domain, U.S. government work), each university's
 own website (figures linked to their page), government immigration websites
 for visa guidance, and European Central Bank reference exchange rates.
+
+### Research impact (Leiden Ranking / OpenAlex)
+
+| Source | What we use | Licence |
+| --- | --- | --- |
+| [CWTS Leiden Ranking Open Edition 2025](https://open.leidenranking.com) ([data on Zenodo](https://doi.org/10.5281/zenodo.17473224)) | PP(top 10%) per university and main field, 2020–2023, turned into percentiles | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| [OpenAlex](https://openalex.org) institutions | Websites and other names, to match universities; the Leiden Ranking is itself built from OpenAlex | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| [Wikidata](https://www.wikidata.org) | Which ROR id belongs to which US (IPEDS) school id, to match US universities | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| [ROR](https://ror.org) (Research Organization Registry) ids, as listed in the sources above | The shared identifier that links them | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+
+No commercial ranking (QS, Times Higher Education, U.S. News,
+ShanghaiRanking) is copied into the site or its database.
