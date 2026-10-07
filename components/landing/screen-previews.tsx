@@ -1,6 +1,5 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowRight, Check, Minus } from "lucide-react";
+import { Check, Minus } from "lucide-react";
 import { Flag } from "@/components/flag";
 import { SectionHeading } from "@/components/landing/section-heading";
 import { checkAge, guidanceItems, type CountryInfo } from "@/lib/country-info";
@@ -20,10 +19,12 @@ export function ScreenPreviews({
   whatIf: ExampleWhatIf | null;
   visa: CountryInfo | null;
 }) {
-  const cards: { title: string; tag: string; href: string; screen: ReactNode }[] = [];
-  if (match) cards.push({ title: "Matches, with the reasons", tag: "Recommendations", href: "/recommendations", screen: <MatchScreen match={match} /> });
-  if (whatIf) cards.push({ title: "What if? sliders", tag: "University details", href: "/universities", screen: <WhatIfScreen whatIf={whatIf} /> });
-  if (visa) cards.push({ title: "Visas and post-study work", tag: "Country guidance", href: "/universities", screen: <VisaScreen info={visa} /> });
+  // Plain cards (no links): these screens are members-only, and the landing
+  // page keeps just three ways in.
+  const cards: { title: string; tag: string; screen: ReactNode }[] = [];
+  if (match) cards.push({ title: "Matches, with the reasons", tag: "Recommendations", screen: <MatchScreen match={match} /> });
+  if (whatIf) cards.push({ title: "What if? sliders", tag: "University details", screen: <WhatIfScreen whatIf={whatIf} /> });
+  if (visa) cards.push({ title: "Visas and post-study work", tag: "Country guidance", screen: <VisaScreen info={visa} /> });
   if (cards.length === 0) return null;
 
   return (
@@ -53,13 +54,6 @@ export function ScreenPreviews({
                 <h3 className="font-semibold">{card.title}</h3>
                 <p className="text-sm text-muted-foreground">{card.tag}</p>
               </div>
-              <Link
-                href={card.href}
-                className="flex size-10 shrink-0 items-center justify-center rounded-full border transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-              >
-                <ArrowRight className="size-4" aria-hidden />
-                <span className="sr-only">Open {card.tag.toLowerCase()}</span>
-              </Link>
             </div>
           </li>
         ))}

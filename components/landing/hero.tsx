@@ -31,7 +31,7 @@ export function Hero({ stats }: { stats: LandingStats }) {
           <div className="flex flex-wrap items-center gap-5">
             <Button size="lg" asChild>
               <Link href="/signup">
-                Create free account
+                Get started
                 <ArrowRight aria-hidden />
               </Link>
             </Button>

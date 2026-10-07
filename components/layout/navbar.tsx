@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { BRAND_NAME } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
@@ -55,14 +54,11 @@ export function Navbar({ userEmail }: { userEmail: string | null }) {
             </>
           ) : (
             <>
-              <Button variant="ghost" asChild>
+              {/* Visitors: just "Log in". Signing up starts from the landing
+                  page (Get started, Try it, the closing banner) or the
+                  prompts on browse and university pages. */}
+              <Button variant="outline" asChild>
                 <Link href="/login">Log in</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/signup">
-                  Get started
-                  <ArrowRight aria-hidden className="hidden sm:block" />
-                </Link>
               </Button>
             </>
           )}

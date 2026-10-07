@@ -3,41 +3,37 @@ import { ArrowRight, Briefcase, ClipboardList, Gauge, Scale, Target, type Lucide
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/landing/section-heading";
 
-type Feature = { icon: LucideIcon; title: string; description: string; href: string };
+type Feature = { icon: LucideIcon; title: string; description: string };
 
-// What the app can do, in plain words. Keep these accurate to what exists:
-// each one links to the page where it lives (logged-out visitors are asked
-// to log in first, then sent there).
+// What the app can do, in plain words. Keep these accurate to what exists.
+// They're plain cards on purpose: the features live on members-only pages,
+// and the landing page keeps just three ways in (Get started, Try it, and
+// the closing banner).
 const FEATURES: Feature[] = [
   {
     icon: Gauge,
     title: "Admission estimate",
     description: "For US schools with official figures, a demo model estimates your chance and shows what moved it.",
-    href: "/recommendations",
   },
   {
     icon: Target,
     title: "What matters most",
     description: "Tick reputation, work experience, research or affordability, and the scoring leans that way.",
-    href: "/profile",
   },
   {
     icon: Briefcase,
     title: "Co-op and internships",
     description: "Co-op programs taken only from the university's own pages (a few schools so far).",
-    href: "/universities",
   },
   {
     icon: ClipboardList,
     title: "Application tracker",
     description: "Status, deadline, costs and scholarship for every application, in one place.",
-    href: "/applications",
   },
   {
     icon: Scale,
     title: "Compare your offers",
     description: "Rank offers by what matters to you, spot a clear winner or a close call, and track accept-by dates.",
-    href: "/offers",
   },
 ];
 
@@ -70,14 +66,7 @@ export function WhatsNew() {
               <feature.icon className="size-5" aria-hidden />
             </span>
             <h3 className="font-semibold">{feature.title}</h3>
-            <p className="mt-1.5 flex-1 text-sm text-muted-foreground">{feature.description}</p>
-            <Link
-              href={feature.href}
-              className="mt-4 inline-flex items-center gap-1.5 self-start rounded-sm text-sm font-semibold hover:text-primary hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-            >
-              Learn more <span className="sr-only">about {feature.title.toLowerCase()}</span>
-              <ArrowRight className="size-4" aria-hidden />
-            </Link>
+            <p className="mt-1.5 text-sm text-muted-foreground">{feature.description}</p>
           </li>
         ))}
       </ul>

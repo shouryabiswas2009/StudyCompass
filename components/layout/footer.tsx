@@ -2,33 +2,29 @@ import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { BRAND_NAME } from "@/lib/brand";
 
-// Columns of links. Only real pages: no contact details or social links
-// that don't exist.
+// Columns of links: public pages only, so a visitor never lands on a login
+// screen they didn't ask for. No contact details or social links that
+// don't exist.
 const COLUMNS: { title: string; links: { href: string; label: string; external?: boolean }[] }[] = [
   {
     title: "Explore",
     links: [
-      { href: "/recommendations", label: "Recommendations" },
       { href: "/universities", label: "Browse universities" },
-      { href: "/compare", label: "Compare" },
-      { href: "/offers", label: "Offers" },
-    ],
-  },
-  {
-    title: "Your account",
-    links: [
-      { href: "/signup", label: "Sign up" },
-      { href: "/login", label: "Log in" },
-      { href: "/profile", label: "Your profile" },
-      { href: "/applications", label: "Applications" },
+      { href: "/#real-data", label: "Where the data comes from" },
     ],
   },
   {
     title: "About",
     links: [
-      { href: "/#real-data", label: "Where the data comes from" },
       { href: "/privacy", label: "Privacy" },
       { href: "/credits", label: "Credits and licences" },
+    ],
+  },
+  {
+    title: "Account",
+    links: [
+      { href: "/login", label: "Log in" },
+      { href: "/signup", label: "Sign up" },
     ],
   },
 ];
