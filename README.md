@@ -288,6 +288,23 @@ with the same functions the app uses, labelled "Example".
   app finds no such university after it has started loading, Next.js keeps
   status 200 but shows the not-found page and marks it `noindex`.)
 
+## Privacy and deleting an account
+
+- [`/privacy`](app/privacy/page.tsx) says in plain words what's stored, who
+  can see it (only the student, enforced by row-level security), which
+  services help run the site, and how to delete everything.
+- **Delete my account and data** (bottom of the profile page) asks the
+  student to type DELETE, then calls the database function
+  `delete_my_account()` from `migration_014`. That function can only delete
+  the caller's own account, so **no service-role key is needed anywhere**;
+  the app keeps using only the public anon key and the student's session.
+  Every table cascades from the login, so the profile, saved schools,
+  applications and schools they added go with it.
+- **Visitor statistics:** Vercel Web Analytics (`<Analytics />` in the root
+  layout), free on the Hobby plan (50,000 page views a month; collection
+  pauses rather than charging). It uses no cookies. It only collects once
+  it's switched on in the Vercel dashboard (project → Analytics → Enable).
+
 ## Putting it online
 
 Step-by-step guide for Vercel (free) with your own domain, including the
@@ -421,6 +438,7 @@ supabase/
   seed_international/*.sql         # Generated from data/curated/ (upsert, safe to re-run)
   migration_012_country_info.sql   # country_info table: visa / post-study guidance (public read)
   migration_013_offer_accept_by.sql # Optional "accept by" date per offer
+  migration_014_delete_my_account.sql # delete_my_account(): a student deletes their own account
   seed_country_info.sql            # Generated from data/curated/country_info.csv
 ```
 

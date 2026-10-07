@@ -1,0 +1,107 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { BRAND_NAME } from "@/lib/brand";
+
+export const metadata: Metadata = {
+  title: "Privacy",
+  description: `What ${BRAND_NAME} stores about you, who can see it, and how to delete it.`,
+};
+
+const UPDATED = "7 October 2026";
+
+// Plain-language privacy page. Keep it in line with what the code actually
+// does: if you add something that stores or shares data, update this page.
+export default function PrivacyPage() {
+  return (
+    <article className="page-container max-w-3xl py-12 sm:py-16">
+      <p className="eyebrow">Privacy</p>
+      <h1 className="mt-3 text-section font-bold">Your data on {BRAND_NAME}</h1>
+      <p className="mt-2 text-sm text-muted-foreground">Last updated {UPDATED}.</p>
+
+      <div className="mt-8 space-y-8 leading-relaxed">
+        <Section title="In short">
+          <p>
+            {BRAND_NAME} is a free, non-commercial project. It stores only what it needs to match you
+            with universities, only you can see your data, nothing is sold or shared, there are no ads,
+            and you can delete everything at any time.
+          </p>
+        </Section>
+
+        <Section title="What is stored when you create an account">
+          <ul className="ml-5 list-disc space-y-1.5">
+            <li>Your email address and password. Logins are handled by Supabase Auth; the password is stored only as a secure hash, and {BRAND_NAME} never sees it.</li>
+            <li>Your profile: name, country, intended majors, grades and test scores you enter, budget, preferred countries and degree level, and what matters most to you.</li>
+            <li>Universities you save, applications and offers you track (status, deadlines, costs, scholarships, notes, accept-by dates), and any universities you add yourself.</li>
+          </ul>
+        </Section>
+
+        <Section title="Who can see it">
+          <p>
+            Only you. The database checks every request against your login (row-level security), so
+            other users can&apos;t read your profile, saved schools, applications or the universities
+            you added. Your data isn&apos;t sold, rented or shared with anyone, and isn&apos;t used for
+            advertising.
+          </p>
+        </Section>
+
+        <Section title="Where it's kept, and who helps run the site">
+          <ul className="ml-5 list-disc space-y-1.5">
+            <li><strong>Supabase</strong>: the database and logins.</li>
+            <li><strong>Vercel</strong>: hosts the website.</li>
+            <li><strong>Resend</strong>: sends the sign-up confirmation email.</li>
+          </ul>
+          <p className="mt-3">They process data only to provide these services.</p>
+        </Section>
+
+        <Section title="Cookies and your browser">
+          <p>
+            The site sets only the cookies needed to keep you logged in. Your light or dark theme choice
+            is remembered in your own browser. There are no advertising or tracking cookies.
+          </p>
+        </Section>
+
+        <Section title="Visitor statistics">
+          <p>
+            Vercel Web Analytics counts page views so we can see which pages are used. It doesn&apos;t
+            use cookies; visitors are told apart only by a hash of the request that&apos;s discarded
+            after 24 hours. It records the page address, the referring site, an approximate location
+            (country, region, city), browser, operating system and device type, and only shows totals.
+          </p>
+        </Section>
+
+        <Section title="Deleting your account">
+          <p>
+            Go to <Link href="/profile" className="font-medium text-primary underline">your profile</Link> and
+            choose &ldquo;Delete my account and data&rdquo;. It permanently deletes your login and
+            everything listed above, straight away. You can also change or clear any profile answer at any
+            time.
+          </p>
+        </Section>
+
+        <Section title="Questions">
+          <p>
+            Open an issue on the project&apos;s{" "}
+            <a
+              href="https://github.com/shouryabiswas2009/StudyCompass/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-primary underline"
+            >
+              GitHub page
+            </a>
+            . Please don&apos;t include personal details in it, as issues are public.
+          </p>
+        </Section>
+      </div>
+    </article>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h2 className="mb-2 text-lg font-semibold">{title}</h2>
+      <div className="text-muted-foreground">{children}</div>
+    </section>
+  );
+}

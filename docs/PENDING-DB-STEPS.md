@@ -27,7 +27,7 @@ London School of Economics by its alias. Steps 11–14 were run the same
 day and verified: sources are College Scorecard 1,577 and curated 111 (no
 illustrative rows left); `country_info` has row level security on and 27
 countries (16 post-study, 7 proof of funds, 16 work-hour figures); and
-`applications.accept_by` exists. **Nothing pending.**
+`applications.accept_by` exists. **Step 15 is pending.**
 
 New migrations will be added to this table when they're written.
 
@@ -51,6 +51,7 @@ this order: the seed files need both migrations first.
 | 12 | `supabase/migration_012_country_info.sql` | Done, verified 2026-10-06 (RLS on) |
 | 13 | `supabase/seed_country_info.sql` (right after step 12) | Done, verified 2026-10-06 (27 countries) |
 | 14 | `supabase/migration_013_offer_accept_by.sql` | Done, verified 2026-10-06 |
+| 15 | `supabase/migration_014_delete_my_account.sql` | **Not run yet** |
 
 All of them are safe to run again if you're not sure whether one went
 through.
@@ -341,6 +342,27 @@ an amber note naming this file. The offers page shows no date badges.
 select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'applications' and column_name = 'accept_by';
 ```
 Expect `1`.
+
+## 15. `migration_014_delete_my_account.sql`
+
+**What it does:** adds a database function, `delete_my_account()`, that
+deletes the account of whoever calls it, and nothing else. Deleting the
+login removes the student's profile, saved schools, applications and the
+universities they added (every table cascades from it). It runs with the
+database owner's rights but only ever uses the caller's own id, so the app
+never needs the secret service-role key. Only signed-in users may call it.
+Supabase may warn it's "destructive" because the function contains a
+`delete`; running the file itself deletes nothing.
+
+**What's affected until it runs:** "Delete my account and data" on the
+profile page says deletion isn't set up yet, and nothing is deleted.
+Everything else works.
+
+**Check:**
+```sql
+select proname, prosecdef from pg_proc where proname = 'delete_my_account';
+```
+Expect one row: `delete_my_account`, `true`.
 
 ---
 

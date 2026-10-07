@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileForm } from "@/components/profile/profile-form";
+import { DeleteAccount } from "@/components/profile/delete-account";
 import type { Profile } from "@/lib/types";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -31,6 +32,8 @@ export default async function ProfilePage() {
       </div>
 
       <ProfileForm existingProfile={profile} />
+
+      {user && <DeleteAccount />}
     </div>
   );
 }

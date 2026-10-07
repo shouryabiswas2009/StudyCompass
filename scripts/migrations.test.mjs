@@ -81,3 +81,55 @@ describe("migration_011 (curated international data)", () => {
     ).rejects.toThrow(/universities_money_check/);
   }, 30_000);
 });
+
+describe("migration_014 (delete my account)", () => {
+  const A = "00000000-0000-0000-0000-0000000000aa";
+  const B = "00000000-0000-0000-0000-0000000000bb";
+
+  async function seedTwoStudents() {
+    const { db } = await createInMemoryDb();
+    for (const id of [A, B]) {
+      await db.query("insert into auth.users (id) values ($1)", [id]);
+      await db.query(
+        `insert into public.profiles (id, full_name, country, intended_majors, gpa_percentage,
+          budget_min, budget_max, preferred_countries, preferred_degree_level)
+          values ($1, 'Student', 'India', '{CS}', 90, 0, 40000, '{Canada}', 'Undergraduate')`,
+        [id]
+      );
+      // Each student adds a school, saves a shared one and tracks an application.
+      await db.query(
+        `insert into public.universities (name, country, tuition, acceptance_rate, description, created_by, source)
+          values ($1, 'Canada', 20000, 50, '', $2, 'user-entered')`,
+        [`School of ${id.slice(-2)}`, id]
+      );
+      const { rows } = await db.query("select id from public.universities where created_by is null order by id limit 1");
+      await db.query("insert into public.saved_universities (user_id, university_id) values ($1, $2)", [id, rows[0].id]);
+      await db.query("insert into public.applications (user_id, university_id) values ($1, $2)", [id, rows[0].id]);
+    }
+    return db;
+  }
+
+  const count = async (db, sql, params = []) => (await db.query(sql, params)).rows[0].n;
+
+  it("deletes only the caller's account and everything that belongs to them", async () => {
+    const db = await seedTwoStudents();
+    const sharedBefore = await count(db, "select count(*)::int as n from public.universities where created_by is null");
+
+    await db.exec(`set test.uid = '${A}'`); // act as student A
+    await db.query("select public.delete_my_account()");
+
+    for (const [table, column] of [["auth.users", "id"], ["public.profiles", "id"], ["public.saved_universities", "user_id"], ["public.applications", "user_id"], ["public.universities", "created_by"]]) {
+      expect(await count(db, `select count(*)::int as n from ${table} where ${column} = $1`, [A])).toBe(0);
+      expect(await count(db, `select count(*)::int as n from ${table} where ${column} = $1`, [B])).toBe(1);
+    }
+    expect(await count(db, "select count(*)::int as n from public.universities where created_by is null")).toBe(sharedBefore);
+  }, 30_000);
+
+  it("refuses when nobody is signed in, and is safe to re-run", async () => {
+    const db = await seedTwoStudents();
+    await db.exec("set test.uid = ''");
+    await expect(db.query("select public.delete_my_account()")).rejects.toThrow(/must be signed in/);
+    expect(await count(db, "select count(*)::int as n from auth.users")).toBe(2);
+    await db.exec(sql("migration_014_delete_my_account.sql"));
+  }, 30_000);
+});

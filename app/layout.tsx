@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Toaster } from "@/components/ui/sonner";
+import { Analytics } from "@vercel/analytics/next";
 import { getCurrentUser } from "@/lib/auth";
 
 const geistSans = Geist({
@@ -61,6 +62,9 @@ export default async function RootLayout({
           <main className="flex-1">{children}</main>
           <Footer />
           <Toaster />
+          {/* Vercel Web Analytics: cookie-less page-view counts (see /privacy).
+              Only sends data once it's switched on in the Vercel dashboard. */}
+          <Analytics />
         </ThemeProvider>
       </body>
     </html>
