@@ -319,3 +319,38 @@ Local check of the landing page (production build, same mobile preset):
 TBT 110 ms (was 339 ms). LCP isn't comparable locally (the local image
 optimizer fetches the photo from Unsplash on first use), so the "after"
 table below is measured on the live site, like the "before".
+
+### After (live site, commit 972e4ff, same tools and conditions)
+
+**Headers:** `/`, `/credits`, `/privacy`, `/signup` and the sitemap answer
+`x-vercel-cache: HIT` (the first request after a deploy says `PRERENDER`,
+then `HIT`). A shared university page is a `MISS` on its first visits while
+it's built, then `HIT`. `/universities` and members' pages stay per request,
+now in `sin1` (`x-vercel-id: yul1::sin1::...`). Members' pages still redirect
+to `/login?next=...` when logged out, `/api/universities/<id>/me` answers
+`{"signedIn":false}` with `private, no-store`, and `/api/revalidate`
+answers 401 without the secret.
+
+**Time to first byte from Montreal** (curl, 5 requests each, after warm-up):
+`/` 0.11-0.15 s (was 0.24-0.44 s, and 2.1 s on a cold start), `/credits`
+0.12-0.13 s, a university page 0.11-0.14 s, `/universities` 0.36-0.40 s
+(rendered in Singapore, so it includes the trip there and back).
+
+**Lighthouse, mobile preset (throttled), median of 3 runs:**
+
+| Page | LCP | CLS | TBT | FCP | Weight | Scripts | JS execution |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `/` | 2,393 ms (was 3,000) | 0.000 | 126 ms (was 339) | 1,445 ms | 350 KB (was 393) | 16 (191 KB, was 227) | 710 ms (was 947) |
+| `/universities` | 2,733 ms (was 2,571) | 0.000 | 387 ms (was 754) | 1,033 ms | 431 KB (was 408) | 22 (294 KB, was 278) | 1,215 ms (was 1,589) |
+| `/credits` | 2,177 ms (was 2,658) | 0.004 | 72 ms (was 363) | 960 ms | 318 KB (was 328) | 15 (188 KB, was 211) | 542 ms (was 750) |
+
+Notes, honestly:
+- `/universities` LCP: the three "before" runs were 2,132 / 2,571 / 3,002 ms
+  and the "after" runs 2,646 / 2,733 / 2,820 ms, so the difference is within
+  run-to-run noise rather than a regression. Its LCP is a line of text whose
+  time is mostly render delay on the throttled CPU; blocking time halved.
+  It gained a few KB: the Speed Insights script (4.9 KB) and the small
+  loader for the members' menu. Nothing was reverted.
+- Signed-in timings weren't measured (no test login for the tooling).
+- Speed Insights' real-visitor numbers appear in the Vercel dashboard once
+  it's enabled there and visitors arrive.
