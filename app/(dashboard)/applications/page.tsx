@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ClipboardList } from "lucide-react";
@@ -7,6 +8,8 @@ import { TrackUniversitySelect } from "@/components/applications/track-universit
 import { Button } from "@/components/ui/button";
 import type { Application, University } from "@/lib/types";
 import { getCurrentUser } from "@/lib/auth";
+
+export const metadata: Metadata = { title: "Applications" };
 
 type ApplicationRow = Application & {
   universities: Pick<University, "id" | "name" | "country">;

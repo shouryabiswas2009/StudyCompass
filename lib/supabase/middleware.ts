@@ -1,15 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isProtectedPath } from "@/lib/route-access";
 
-const PROTECTED_PATHS = [
-  "/profile",
-  "/recommendations",
-  "/universities",
-  "/compare",
-  "/saved",
-  "/applications",
-  "/offers",
-];
 const AUTH_PATHS = ["/login", "/signup"];
 
 // Called from proxy.ts (Next.js 16's renamed middleware) on every request.
@@ -49,7 +41,7 @@ export async function updateSession(request: NextRequest) {
   const user = data?.claims ?? null;
 
   const path = request.nextUrl.pathname;
-  const isProtected = PROTECTED_PATHS.some((p) => path.startsWith(p));
+  const isProtected = isProtectedPath(path);
   const isAuthPath = AUTH_PATHS.some((p) => path.startsWith(p));
 
   if (!user && isProtected) {

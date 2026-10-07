@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { LogoMark } from "@/components/brand/logo";
 import { LoginForm } from "@/components/auth/login-form";
+
+export const metadata: Metadata = { title: "Log in" };
 
 // Set by the /auth/callback and /auth/confirm routes when a link fails.
 const LINK_ERRORS: Record<string, string> = {

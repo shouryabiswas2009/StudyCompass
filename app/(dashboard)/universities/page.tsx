@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
@@ -9,6 +10,8 @@ import { buildBoard, parseBoardParams } from "@/lib/university-filters";
 import { UniversityBoard } from "@/components/universities/university-board";
 import { Button } from "@/components/ui/button";
 import type { Profile } from "@/lib/types";
+
+export const metadata: Metadata = { title: "Browse universities" };
 
 // Every university the student can see: the shared list plus any they added
 // themselves. Unlike recommendations, nothing is hidden by degree level here

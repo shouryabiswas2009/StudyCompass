@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Award } from "lucide-react";
@@ -11,6 +12,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { canonicalCountry } from "@/lib/countries";
 import { getCountryInfo } from "@/lib/data/country-info";
 import { CountryGuidance } from "@/components/universities/country-guidance";
+
+export const metadata: Metadata = { title: "Compare your offers" };
 
 type OfferApplication = Application & { universities: University };
 

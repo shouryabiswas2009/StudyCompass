@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { siteUrl } from "@/lib/site-url";
-import { BRAND_DESCRIPTION, BRAND_TITLE } from "@/lib/brand";
+import { BRAND_DESCRIPTION, BRAND_NAME, BRAND_TITLE } from "@/lib/brand";
 import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import "flag-icons/css/flag-icons.min.css";
@@ -30,8 +30,10 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   // Lets link previews (and any relative metadata URL) use the real domain.
   metadataBase: new URL(siteUrl()),
-  title: BRAND_TITLE,
+  // Pages set their own title ("Compare your offers"); this adds the name.
+  title: { default: BRAND_TITLE, template: `%s · ${BRAND_NAME}` },
   description: BRAND_DESCRIPTION,
+  openGraph: { siteName: BRAND_NAME, type: "website" },
 };
 
 export default async function RootLayout({

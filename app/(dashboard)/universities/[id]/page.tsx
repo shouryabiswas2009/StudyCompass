@@ -1,3 +1,5 @@
+import { cache } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, TrendingUp, Percent, DollarSign, Pencil } from "lucide-react";
@@ -25,6 +27,25 @@ import { getCountryInfo } from "@/lib/data/country-info";
 import { CountryGuidance } from "@/components/universities/country-guidance";
 import { WhatIfPanel } from "@/components/universities/what-if-panel";
 
+// One read per request, shared by the page title and the page (React cache).
+// Logged-out visitors can open this page: RLS lets anyone read shared
+// schools, and a school a student added stays visible only to them.
+const getUniversity = cache(async (id: string) => {
+  const supabase = await createClient();
+  const { data } = await supabase.from("universities").select("*").eq("id", id).maybeSingle<University>();
+  return data;
+});
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const university = await getUniversity((await params).id);
+  if (!university) return { title: "University not found" };
+  const place = [university.city, university.country].filter(Boolean).join(", ");
+  return {
+    title: university.name,
+    description: `${university.name}${place ? ` (${place})` : ""}: tuition, admission figures and where each number comes from.`,
+  };
+}
+
 export default async function UniversityDetailsPage({
   params,
 }: {
@@ -35,11 +56,7 @@ export default async function UniversityDetailsPage({
 
   const user = await getCurrentUser();
 
-  const { data: university } = await supabase
-    .from("universities")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle<University>();
+  const university = await getUniversity(id);
 
   if (!university) notFound();
 
@@ -157,9 +174,9 @@ export default async function UniversityDetailsPage({
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
       <Button variant="ghost" size="sm" asChild className="mb-6 -ml-2">
-        <Link href="/recommendations">
+        <Link href={user ? "/recommendations" : "/"}>
           <ArrowLeft className="size-4" />
-          Back to recommendations
+          {user ? "Back to recommendations" : "Back to home"}
         </Link>
       </Button>
 
@@ -176,8 +193,27 @@ export default async function UniversityDetailsPage({
             </span>
           </p>
         </div>
-        <SaveButton universityId={university.id} initiallySaved={!!savedRow} />
+        {user ? (
+          <SaveButton universityId={university.id} initiallySaved={!!savedRow} />
+        ) : (
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/login?next=/universities/${university.id}`}>Log in to save</Link>
+          </Button>
+        )}
       </div>
+
+      {/* Visitors without an account see the facts; their own fit needs a profile. */}
+      {!user && (
+        <div className="mt-6 flex flex-col gap-3 rounded-2xl border bg-tint p-5 sm:flex-row sm:items-center">
+          <p className="flex-1 text-sm text-tint-foreground">
+            <strong>How well does it fit you?</strong> Create a free profile to see your match score,
+            admission estimate and the What if? sliders for this university.
+          </p>
+          <Button asChild size="sm">
+            <Link href="/signup">Create free account</Link>
+          </Button>
+        </div>
+      )}
 
       {/* Only schools a student added can be changed; RLS also enforces this. */}
       {university.created_by && (

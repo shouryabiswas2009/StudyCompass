@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CompareControls } from "@/components/universities/compare-controls";
@@ -8,6 +9,8 @@ import type { Profile, University } from "@/lib/types";
 import { getCurrentUser } from "@/lib/auth";
 import { getVisibleUniversities } from "@/lib/data/universities";
 import { featuredReady, isShownByDefault } from "@/lib/university-filters";
+
+export const metadata: Metadata = { title: "Compare universities" };
 
 export default async function ComparePage({
   searchParams,

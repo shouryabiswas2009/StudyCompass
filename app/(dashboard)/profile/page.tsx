@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileForm } from "@/components/profile/profile-form";
 import type { Profile } from "@/lib/types";
 import { getCurrentUser } from "@/lib/auth";
+
+export const metadata: Metadata = { title: "Your profile" };
 
 export default async function ProfilePage() {
   const supabase = await createClient();

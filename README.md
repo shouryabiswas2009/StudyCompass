@@ -271,6 +271,23 @@ The landing page's numbers and examples are computed from the database
 the example match and "What if?" previews score a made-up sample student
 with the same functions the app uses, labelled "Example".
 
+## Public pages and search engines
+
+- **Public:** the landing page, log in / sign up, and each university's own
+  page (`/universities/<id>`). Logged-out visitors see the facts and
+  sources; their match score, admission estimate and What if? sliders need
+  a profile. Everything else (browse, recommendations, compare, saved,
+  applications, offers, profile, adding or editing a school) needs a login.
+  The rule is in [`lib/route-access.ts`](lib/route-access.ts), with tests.
+- **Search engines:** `app/sitemap.ts` lists the public pages and every
+  featured university (refreshed hourly); `app/robots.ts` asks crawlers to
+  skip the members-only pages. Each page has its own title, and links
+  shared on social media show `app/opengraph-image.tsx`.
+- **Errors:** `not-found.tsx` and `error.tsx` at the root and in the app
+  show friendly pages instead of a blank screen. (When a page inside the
+  app finds no such university after it has started loading, Next.js keeps
+  status 200 but shows the not-found page and marks it `noindex`.)
+
 ## Putting it online
 
 Step-by-step guide for Vercel (free) with your own domain, including the

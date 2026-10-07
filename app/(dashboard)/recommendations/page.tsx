@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -10,6 +11,8 @@ import { UniversityBoard } from "@/components/universities/university-board";
 import { TopPicks } from "@/components/universities/top-picks";
 import { Button } from "@/components/ui/button";
 import type { Profile } from "@/lib/types";
+
+export const metadata: Metadata = { title: "Your recommendations" };
 
 export default async function RecommendationsPage({
   searchParams,

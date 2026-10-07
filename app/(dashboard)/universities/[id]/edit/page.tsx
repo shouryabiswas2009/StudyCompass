@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -6,6 +7,8 @@ import { updateUniversity } from "@/lib/actions/universities";
 import { UniversityForm } from "@/components/universities/university-form";
 import { Button } from "@/components/ui/button";
 import type { University } from "@/lib/types";
+
+export const metadata: Metadata = { title: "Edit university" };
 
 export default async function EditUniversityPage({
   params,

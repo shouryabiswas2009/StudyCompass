@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -7,6 +8,8 @@ import { buildBoard, parseBoardParams } from "@/lib/university-filters";
 import { Button } from "@/components/ui/button";
 import type { ApplicationStatus, Profile, University } from "@/lib/types";
 import { getCurrentUser } from "@/lib/auth";
+
+export const metadata: Metadata = { title: "Saved universities" };
 
 export default async function SavedPage({
   searchParams,
