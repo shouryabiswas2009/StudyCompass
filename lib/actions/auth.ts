@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { siteUrl } from "@/lib/site-url";
 import { safeRedirectPath } from "@/lib/safe-redirect";
+import { validateSignup, type SignupFieldErrors } from "@/lib/signup-validation";
 
 export type AuthFormState = { error?: string; message?: string } | undefined;
 
@@ -38,12 +39,24 @@ export async function login(
   redirect(safeRedirectPath(formData.get("next") as string | null, "/recommendations"));
 }
 
+export type SignupFormState =
+  | { error?: string; message?: string; fieldErrors?: SignupFieldErrors }
+  | undefined;
+
 export async function signup(
-  _prevState: AuthFormState,
+  _prevState: SignupFormState,
   formData: FormData
-): Promise<AuthFormState> {
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
+): Promise<SignupFormState> {
+  // Checked here on the server too: the browser check can be bypassed.
+  // The result never contains the passwords, so they're never sent back
+  // to the page or logged.
+  const result = validateSignup(
+    String(formData.get("email") ?? ""),
+    String(formData.get("password") ?? ""),
+    String(formData.get("confirmPassword") ?? "")
+  );
+  if (!result.ok) return { error: "Please fix the highlighted fields.", fieldErrors: result.errors };
+  const { email, password } = result;
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
