@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Flag } from "@/components/flag";
 import { MatchScoreBadge } from "@/components/universities/match-score-badge";
 import type { MatchEntry } from "@/lib/matching";
+import { universityPath } from "@/lib/university-path";
 
 // "Top picks by country": the best few matches in each preferred country,
 // side by side, above the full ranked list. One country with far more
@@ -27,7 +28,7 @@ export function TopPicks({ groups }: { groups: { country: string; picks: MatchEn
                 {picks.map(({ university, match }, i) => (
                   <li key={university.id} className="flex items-center gap-2 text-sm">
                     <span className="w-4 text-muted-foreground">{i + 1}.</span>
-                    <Link href={`/universities/${university.id}`} className="mr-auto hover:underline">
+                    <Link href={universityPath(university)} className="mr-auto hover:underline">
                       {university.name}
                     </Link>
                     <MatchScoreBadge score={match.score} />

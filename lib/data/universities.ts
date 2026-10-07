@@ -1,7 +1,7 @@
 import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { PENDING_COLUMNS } from "@/lib/pending-migrations";
-import type { UniversitySummary } from "@/lib/types";
+import type { University, UniversitySummary } from "@/lib/types";
 
 // Loading the university list for browse, recommendations and the compare
 // picker. Three problems this solves (measured in docs/PERFORMANCE.md):
@@ -101,7 +101,10 @@ async function loadShared() {
   );
 }
 
-// Cached for up to 15 minutes, or until revalidateTag("universities").
+// Cached for a day (the data only changes when an import is run), or until
+// POST /api/revalidate after an import. When it expires, the old list is
+// served while the new one loads in the background (stale-while-revalidate),
+// so no visitor waits for it.
 const loadSharedCached = unstable_cache(
   async () => {
     const result = await loadShared();
@@ -112,7 +115,7 @@ const loadSharedCached = unstable_cache(
     return result.rows;
   },
   ["shared-universities", "v2"], // bump the version when LIST_COLUMNS changes
-  { revalidate: 900, tags: ["universities"] }
+  { revalidate: 86400, tags: ["universities"] }
 );
 
 export async function getSharedUniversities(): Promise<UniversitySummary[]> {
@@ -187,3 +190,24 @@ export async function searchUniversityIds(
   }
   return new Set(ids);
 }
+
+// One shared university (all columns) for its public page, without cookies,
+// so the page can be cached for everyone. Student-added schools are never
+// returned here (they're private; see /universities/mine/[id]). Cached a day,
+// or until revalidateTag("universities") after an import.
+export const getPublicUniversity = unstable_cache(
+  async (id: string): Promise<University | null> => {
+    // Not a valid id → not found (Postgres would reject it with an error).
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+    const { data, error } = await anonClient()
+      .from("universities")
+      .select("*")
+      .eq("id", id)
+      .is("created_by", null)
+      .maybeSingle<University>();
+    if (error) throw new Error(error.message); // don't cache a failure as "not found"
+    return data;
+  },
+  ["public-university", "v1"],
+  { revalidate: 86400, tags: ["universities"] }
+);

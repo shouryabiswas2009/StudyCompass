@@ -4,7 +4,7 @@ import { BRAND_NAME } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { LogoutButton } from "@/components/layout/logout-button";
-import { MobileNavMenu } from "@/components/layout/mobile-nav-menu";
+import { MemberMenu } from "@/components/layout/member-menu";
 
 const navLinks = [
   { href: "/recommendations", label: "Recommendations" },
@@ -15,9 +15,12 @@ const navLinks = [
   { href: "/offers", label: "Offers" },
 ];
 
-// Server component: reads the signed-in user (or null) and renders the
-// right side of the navbar accordingly.
-export function Navbar({ userEmail }: { userEmail: string | null }) {
+// Rendered the same for everyone (so public pages can be cached): both the
+// member links and the visitor's "Log in" are in the HTML, and CSS shows one
+// of them based on <html data-auth>, which a tiny script sets from the login
+// cookie before the page paints (lib/auth-cookie.ts). Members-only pages
+// still check the session on the server.
+export function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="page-container flex h-16 items-center justify-between">
@@ -25,43 +28,32 @@ export function Navbar({ userEmail }: { userEmail: string | null }) {
           <Logo size={26} markClassName="text-primary" />
         </Link>
 
-        {userEmail && (
-          // Six links only fit on wide screens; below `lg` they're in the menu.
-          <nav className="hidden items-center gap-5 text-sm font-medium text-muted-foreground lg:flex">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="transition-colors hover:text-foreground"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-        )}
+        {/* Six links only fit on wide screens; below `lg` they're in the menu. */}
+        <nav className="member-only hidden items-center gap-5 text-sm font-medium text-muted-foreground lg:flex">
+          {navLinks.map((link) => (
+            <Link key={link.href} href={link.href} data-members-only className="transition-colors hover:text-foreground">
+              {link.label}
+            </Link>
+          ))}
+        </nav>
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          {userEmail ? (
-            <>
-              <Button variant="ghost" asChild className="hidden lg:inline-flex">
-                <Link href="/profile" title={userEmail}>
-                  Profile
-                </Link>
-              </Button>
-              <MobileNavMenu />
-              <LogoutButton />
-            </>
-          ) : (
-            <>
-              {/* Visitors: just "Log in". Signing up starts from the landing
-                  page (Get started, Try it, the closing banner) or the
-                  prompts on browse and university pages. */}
-              <Button variant="outline" asChild>
-                <Link href="/login">Log in</Link>
-              </Button>
-            </>
-          )}
+          <div className="member-only flex items-center gap-2">
+            <Button variant="ghost" asChild className="hidden lg:inline-flex">
+              <Link href="/profile" data-members-only>Profile</Link>
+            </Button>
+            <MemberMenu />
+            <LogoutButton />
+          </div>
+          {/* Visitors: just "Log in". Signing up starts from the landing page
+              (Get started, Try it, the closing banner) or the prompts on
+              browse and university pages. */}
+          <div className="guest-only">
+            <Button variant="outline" asChild>
+              <Link href="/login">Log in</Link>
+            </Button>
+          </div>
         </div>
       </div>
     </header>

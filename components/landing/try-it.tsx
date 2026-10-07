@@ -8,7 +8,7 @@ import { Flag } from "@/components/flag";
 import { SectionHeading } from "@/components/landing/section-heading";
 import { guestMatches } from "@/lib/actions/quiz";
 import { COUNTRY_OPTIONS } from "@/lib/countries";
-import { ANY_COUNTRY, QUIZ_BUDGETS, QUIZ_MAJORS } from "@/lib/guest-quiz";
+import { ANY_COUNTRY, QUIZ_BUDGETS, QUIZ_MAJORS } from "@/lib/quiz-options";
 
 const selectClass =
   "h-11 w-full rounded-xl border bg-background px-3 text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none";

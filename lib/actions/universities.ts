@@ -90,7 +90,7 @@ export async function createUniversity(
 
   refreshListings();
   if (skipped.length > 0) return { notice: skippedNotice(skipped), savedId: data.id };
-  redirect(`/universities/${data.id}`);
+  redirect(`/universities/mine/${data.id}`); // a school a student adds is private
 }
 
 // `id` is bound in the edit page: updateUniversity.bind(null, id).
@@ -130,9 +130,9 @@ export async function updateUniversity(
   }
 
   refreshListings();
-  revalidatePath(`/universities/${id}`);
+  revalidatePath(`/universities/mine/${id}`);
   if (skipped.length > 0) return { notice: skippedNotice(skipped), savedId: id };
-  redirect(`/universities/${id}`);
+  redirect(`/universities/mine/${id}`);
 }
 
 export async function deleteUniversity(id: string): Promise<{ error: string } | void> {

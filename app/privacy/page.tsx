@@ -73,7 +73,9 @@ export default function PrivacyPage() {
             Vercel Web Analytics counts page views so we can see which pages are used. It doesn&apos;t
             use cookies; visitors are told apart only by a hash of the request that&apos;s discarded
             after 24 hours. It records the page address, the referring site, an approximate location
-            (country, region, city), browser, operating system and device type, and only shows totals.
+            (country, region, city), browser, operating system and device type, and only shows totals. Vercel Speed Insights also records how
+            fast pages load (timings such as how long the largest image took), with the page address and
+            device type, the same way: no cookies, totals only.
           </p>
         </Section>
 

@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { siteUrl } from "@/lib/site-url";
@@ -34,7 +33,6 @@ export async function login(
     return { error: error.message };
   }
 
-  revalidatePath("/", "layout");
   // Back to the page they were trying to open, if any (only paths on this site).
   redirect(safeRedirectPath(formData.get("next") as string | null, "/recommendations"));
 }
@@ -81,13 +79,11 @@ export async function signup(
     };
   }
 
-  revalidatePath("/", "layout");
   redirect("/profile");
 }
 
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  revalidatePath("/", "layout");
   redirect("/");
 }

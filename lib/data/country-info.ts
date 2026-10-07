@@ -35,7 +35,7 @@ const loadCached = unstable_cache(
     return result.rows;
   },
   ["country-info", "v1"],
-  { revalidate: 3600, tags: ["country-info"] }
+  { revalidate: 86400, tags: ["country-info"] } // a day, or POST /api/revalidate
 );
 
 export async function getCountryInfo(): Promise<CountryInfoResult> {

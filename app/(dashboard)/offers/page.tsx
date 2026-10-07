@@ -22,16 +22,12 @@ export default async function OffersPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle<Profile>();
-  if (!profile) redirect("/profile");
 
   // Admitted offers, plus an accepted one — accepting doesn't make the
   // comparison stop being useful until you've actually enrolled.
-  const [{ data: applications }, countryInfo] = await Promise.all([
+  const [{ data: profile }, { data: applications }, countryInfo] = await Promise.all([
+    // Everything at once (they don't depend on each other).
+    supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>(),
     supabase
       .from("applications")
       .select("*, universities(*)")
@@ -40,6 +36,8 @@ export default async function OffersPage() {
       .returns<OfferApplication[]>(),
     getCountryInfo(),
   ]);
+
+  if (!profile) redirect("/profile");
   // One guidance card per destination country among the offers.
   const offerCountries = [
     ...new Set((applications ?? []).map((a) => canonicalCountry(a.universities.country))),

@@ -6,27 +6,10 @@ import type { Profile, UniversitySummary } from "@/lib/types";
 // answers become a temporary profile in memory, scored with the same
 // computeMatchScore() as everywhere else, and nothing is stored.
 
-export const ANY_COUNTRY = "any";
-
-export const QUIZ_BUDGETS = [15000, 25000, 40000, 60000, 80000] as const;
-
-// The subject names the university data uses (College Scorecard fields and
-// the curated program lists), so a pick matches real program lists.
-export const QUIZ_MAJORS = [
-  "Computer Science",
-  "Data Science",
-  "Engineering",
-  "Business",
-  "Economics",
-  "Mathematics",
-  "Physics",
-  "Chemistry",
-  "Biological Sciences",
-  "Medicine",
-  "Psychology",
-  "Law",
-  "Architecture",
-] as const;
+// The answer options live in lib/quiz-options.ts (no scoring code there),
+// so the quiz form in the browser doesn't download the scoring engine.
+import { ANY_COUNTRY, QUIZ_BUDGETS, QUIZ_MAJORS } from "@/lib/quiz-options";
+export { ANY_COUNTRY, QUIZ_BUDGETS, QUIZ_MAJORS };
 
 export type QuizAnswers = { country: string; budget: number; major: string };
 

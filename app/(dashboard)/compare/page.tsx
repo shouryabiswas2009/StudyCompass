@@ -25,22 +25,19 @@ export default async function ComparePage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle<Profile>();
 
-  // Most rows compare the schools against the student's own scores.
-  if (!profile) redirect("/profile");
-
-  const [universities, { data: selected }] = await Promise.all([
+  const [{ data: profile }, universities, { data: selected }] = await Promise.all([
+    // Everything at once (they don't depend on each other).
+    supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>(),
     // The cached list (every row, not just the first 1,000) for the picker.
     getVisibleUniversities(supabase, user.id),
     ids.length > 0
       ? supabase.from("universities").select("*").in("id", ids).returns<University[]>()
       : Promise.resolve({ data: [] as University[] }),
   ]);
+
+  // Most rows compare the schools against the student's own scores.
+  if (!profile) redirect("/profile");
 
   // The picker offers featured schools unless the student asks for all
   // (same rule as browse; see lib/university-filters.ts).

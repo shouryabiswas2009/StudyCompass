@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Card,
   CardHeader,
@@ -28,6 +28,7 @@ import type { ApplicationStatus } from "@/lib/types";
 import type { AdmissionPrediction } from "@/lib/admission-model";
 import type { RankInfo } from "@/lib/ranking";
 import type { UniversitySummary } from "@/lib/types";
+import { universityPath } from "@/lib/university-path";
 
 const TIER_BORDER = {
   strong: "border-t-emerald-500",
@@ -65,20 +66,22 @@ export function UniversityCard({
   // null if it isn't tracked yet.
   tracking?: { application: { id: string; status: ApplicationStatus } | null };
 }) {
-  const reduceMotion = useReducedMotion();
   const tuition = tuitionDisplay(university);
 
   return (
-    // Fade in, staggered by position but capped at the 8th card so a page
-    // never waits on its own animation; skipped entirely for students who
-    // turned on "reduce motion" in their operating system.
+    // A short staggered slide-up for the first screenful of cards (capped at
+    // the 8th, so a page never waits on its own animation).
     <motion.div
       // When sorting or filtering reorders the list, the first screenful of
       // cards slides to its new place (framer-motion animates the move with
       // transforms). Further down it isn't worth the work.
       layout={index < 9 ? "position" : false}
-      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
+      // Slide up a little, first screenful only. No fade: the card is fully
+      // visible in the HTML (even before JavaScript runs), and the server and
+      // browser render the same starting point. MotionConfig skips the slide
+      // for reduced motion.
+      initial={index < 9 ? { y: 12 } : false}
+      animate={{ y: 0 }}
       transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.05 }}
       className="relative h-full"
     >
@@ -92,7 +95,7 @@ export function UniversityCard({
         />
       )}
 
-      <Link href={`/universities/${university.id}`} className="block h-full">
+      <Link href={universityPath(university)} className="block h-full">
         <Card
           className={cn(
             "h-full rounded-2xl border-t-4 transition-all hover:-translate-y-0.5 hover:shadow-lg",

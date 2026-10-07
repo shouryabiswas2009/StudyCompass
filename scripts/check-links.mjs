@@ -55,8 +55,13 @@ async function page(path) {
 }
 
 // The href of every <a> on a page (not <link> tags for icons and styles).
+// Links marked data-members-only are the member navbar: it's in the HTML
+// for everyone (so pages can be cached) but hidden from visitors, so they're
+// skipped here.
 function anchorHrefs(html) {
-  return [...html.matchAll(/<a\b[^>]*?\shref="([^"]+)"/g)].map((m) => m[1].replaceAll("&amp;", "&"));
+  return [...html.matchAll(/<a\b([^>]*?)\shref="([^"]+)"([^>]*)>/g)]
+    .filter((m) => !/data-members-only/.test(m[1] + m[3]))
+    .map((m) => m[2].replaceAll("&amp;", "&"));
 }
 
 const hasId = (html, id) => new RegExp(`\\sid="${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`).test(html);

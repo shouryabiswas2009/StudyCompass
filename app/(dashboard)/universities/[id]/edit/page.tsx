@@ -34,7 +34,7 @@ export default async function EditUniversityPage({
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
       <Button variant="ghost" size="sm" asChild className="mb-6 -ml-2">
-        <Link href={`/universities/${university.id}`}>
+        <Link href={`/universities/mine/${university.id}`}>
           <ArrowLeft className="size-4" />
           Back to {university.name}
         </Link>

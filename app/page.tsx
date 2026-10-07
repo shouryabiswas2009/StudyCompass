@@ -10,7 +10,10 @@ import { getCountryInfo } from "@/lib/data/country-info";
 import { exampleMatches, exampleWhatIf, landingStats } from "@/lib/landing";
 
 // The landing page. Its numbers and examples come from the same cached data
-// the rest of the app uses (no extra database load per visit).
+// the rest of the app uses. The page itself is static: built once, served
+// from Vercel's cache, and rebuilt in the background at most once an hour
+// (ISR), so no visitor waits for the database.
+export const revalidate = 3600;
 export default async function Home() {
   const [universities, countryInfo] = await Promise.all([
     getSharedUniversities().catch(() => []),

@@ -256,3 +256,66 @@ less JavaScript than before because the landing sections are server
 components without the animation library. Every number stays well under the
 signed-in pages measured above.
 
+
+## Making the live site fast (2026-10-07)
+
+### Before (live site, www.unicelerate.com, commit da82d02)
+
+**Headers** (logged out, from Montreal): every page except the sitemap was
+`Cache-Control: private, no-store` and `x-vercel-cache: MISS`, because the
+root layout read the login cookie for the navbar, which made every page
+dynamic. Requests entered Vercel at `yul1` (Montreal) and the functions ran
+in `iad1` (Washington). The first request to `/` took 2.1 s (cold start and
+an empty data cache); later ones 0.2-0.5 s.
+
+**Where the database is:** the Supabase project's database host resolves to
+an address in AWS `ap-southeast-1` (Singapore), worked out from the host's
+IP and Amazon's published IP ranges (the project address isn't printed).
+So every query from Washington crossed the Pacific and back.
+
+**Lighthouse, mobile preset (throttled), median of 3 runs:**
+
+| Page | LCP | CLS | TBT | FCP | Weight | Scripts | JS execution |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `/` | 3,000 ms | 0.000 | 339 ms | 1,545 ms | 393 KB | 16 (227 KB) | 947 ms |
+| `/universities` | 2,571 ms | 0.000 | 754 ms | 1,091 ms | 408 KB | 19 (278 KB) | 1,589 ms |
+| `/credits` | 2,658 ms | 0.030 | 363 ms | 1,248 ms | 328 KB | 15 (211 KB) | 750 ms |
+
+The mobile LCP element on `/` is the hero photo. Signed-in timings weren't
+measured this time (no test login available to the tooling); the signed-out
+numbers above are what everyone sees first.
+
+### What was changed, and why
+
+1. **Public pages are cached.** The root layout no longer reads cookies. The
+   navbar renders both its member and visitor versions and CSS shows one,
+   based on `<html data-auth>`, which a tiny inline script sets from the
+   login cookie before the page paints (`lib/auth-cookie.ts`; re-checked
+   after client navigations). Result: `/`, `/privacy`, `/credits` and
+   `/signup` are static; `/` is rebuilt at most hourly (ISR); each shared
+   university page (`/universities/<id>`) is built on its first visit and
+   cached for a day. Their personal parts (save, your fit) load in the
+   browser from `/api/universities/<id>/me`, only for signed-in students.
+   Schools a student added are private, so they moved to
+   `/universities/mine/<id>` (rendered per request; old links redirect).
+   Logging in or out no longer calls `revalidatePath("/", "layout")`, which
+   used to empty every page's cache for everyone.
+2. **Functions run next to the database:** `vercel.json` `"regions": ["sin1"]`
+   (Singapore). Pages that waited on the profile before their other queries
+   (compare, saved, offers) now run them in parallel.
+3. **Longer data cache:** the university list and country guidance are
+   cached for a day (they only change when an import runs), with
+   stale-while-revalidate, so no visitor waits when they expire. After an
+   import, `POST /api/revalidate` (with `REVALIDATE_SECRET`) refreshes them.
+4. **Less JavaScript for visitors:** the quiz no longer pulls the whole
+   scoring engine into the browser (its option lists moved to
+   `lib/quiz-options.ts`); the unused toast library was removed; the
+   members' dropdown menu (~40 KB with its positioning library) loads only
+   for signed-in members; the code font isn't preloaded.
+5. **Vercel Speed Insights** (free tier) added for real-visitor scores.
+
+Local check of the landing page (production build, same mobile preset):
+17 scripts / 209 KB (was 227 KB live), JS execution 650 ms (was 947 ms),
+TBT 110 ms (was 339 ms). LCP isn't comparable locally (the local image
+optimizer fetches the photo from Unsplash on first use), so the "after"
+table below is measured on the live site, like the "before".

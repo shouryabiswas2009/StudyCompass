@@ -22,15 +22,10 @@ export default async function SavedPage({
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle<Profile>();
 
-  if (!profile) redirect("/profile");
-
-  const [{ data: saved }, { data: applications }] = await Promise.all([
+  const [{ data: profile }, { data: saved }, { data: applications }] = await Promise.all([
+    // Everything at once (they don't depend on each other).
+    supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>(),
     supabase
       .from("saved_universities")
       .select("university_id, universities(*)")
@@ -42,6 +37,8 @@ export default async function SavedPage({
       .eq("user_id", user.id)
       .returns<{ id: string; university_id: string; status: ApplicationStatus }[]>(),
   ]);
+
+  if (!profile) redirect("/profile");
 
   const universities = (saved ?? []).map((row) => row.universities);
 

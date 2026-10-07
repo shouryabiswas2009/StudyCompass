@@ -335,7 +335,7 @@ export function UniversityForm({
         <p className="text-sm text-amber-700 dark:text-amber-400">
           {state.notice}{" "}
           {state.savedId && (
-            <Link href={`/universities/${state.savedId}`} className="underline">
+            <Link href={`/universities/mine/${state.savedId}`} className="underline">
               View the university
             </Link>
           )}
