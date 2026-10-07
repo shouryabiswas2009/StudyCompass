@@ -21,6 +21,7 @@ import {
 } from "@/lib/offers";
 import { formatRank } from "@/lib/matching";
 import { usd } from "@/lib/format";
+import { APPROX_NOTE, approxInCurrency } from "@/lib/display-currency";
 import type { ApplicationStatus, Focus } from "@/lib/types";
 
 // OfferInput plus what this page shows but the ranking doesn't use.
@@ -37,7 +38,20 @@ const CRITERIA = Object.keys(DEFAULT_OFFER_WEIGHTS) as OfferCriterion[];
 // The ranking itself lives in lib/offers.ts (pure and tested); this
 // component only holds the slider values and re-runs it as they move.
 // The student's focuses only pick where the sliders start.
-export function OffersBoard({ offers, focuses }: { offers: OfferRow[]; focuses: Focus[] }) {
+export function OffersBoard({
+  offers,
+  focuses,
+  displayCurrency,
+}: {
+  offers: OfferRow[];
+  focuses: Focus[];
+  displayCurrency?: string;
+}) {
+  // "$60,000 (≈ ₹5,780,000)" when the student shows another currency too.
+  const money = (amount: number) => {
+    const other = approxInCurrency(amount, displayCurrency);
+    return other ? `${usd(amount)} (${other})` : usd(amount);
+  };
   const defaults = defaultOfferWeights(focuses);
   const [weights, setWeights] = useState<OfferWeights>(defaults);
 
@@ -94,12 +108,15 @@ export function OffersBoard({ offers, focuses }: { offers: OfferRow[]; focuses: 
       </aside>
 
       <div className="space-y-6">
+        {approxInCurrency(1, displayCurrency) && (
+          <p className="text-xs text-muted-foreground">Amounts after &ldquo;≈&rdquo; are in {displayCurrency}, {APPROX_NOTE}.</p>
+        )}
         <div className="grid gap-3 sm:grid-cols-3">
           <SummaryCard title="Best overall" name={summary.bestOverall?.universityName} note="for your weights" />
           <SummaryCard
             title="Cheapest"
             name={summary.cheapest?.universityName}
-            note={summary.cheapest?.totalCost != null ? `${usd(summary.cheapest.totalCost)} total` : undefined}
+            note={summary.cheapest?.totalCost != null ? `${money(summary.cheapest.totalCost)} total` : undefined}
           />
           <SummaryCard
             title="Highest ranked"
@@ -163,11 +180,12 @@ export function OffersBoard({ offers, focuses }: { offers: OfferRow[]; focuses: 
               <p className="text-sm">{reason}</p>
               <p className="text-xs text-muted-foreground">
                 {offer.netPerYear !== null && offer.totalCost !== null
-                  ? `${usd(offer.netPerYear)}/yr after scholarship · ${usd(offer.totalCost)} over ${offer.durationYears} years`
+                  ? `${money(offer.netPerYear)}/yr after scholarship · ${money(offer.totalCost)} over ${offer.durationYears} years`
                   : "Cost unknown — add tuition and living cost on the Applications page"}
                 {" · "}
                 {formatRank(offer.overallRank)} overall
                 {offer.subjectRank !== null && ` · #${offer.subjectRank} in ${offer.subjectLabel}`}
+                {` · research impact (Leiden Ranking / OpenAlex): ${offer.researchImpactLabel ?? "not available"}`}
                 {` · ${offer.matchScore}% match`}
               </p>
               {spread && offers.length > 1 && (

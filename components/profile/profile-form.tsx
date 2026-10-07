@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { saveProfile } from "@/lib/actions/profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { COUNTRY_OPTIONS } from "@/lib/countries";
+import {
+  APPROX_NOTE,
+  DEFAULT_DISPLAY_CURRENCY,
+  DISPLAY_CURRENCIES,
+  approxInCurrency,
+  currencyName,
+} from "@/lib/display-currency";
 import { BALANCED_DESCRIPTION, FOCUS_DESCRIPTIONS, FOCUS_LABELS, focusesOf } from "@/lib/focus";
 import { DEGREE_LEVELS, FOCUSES, type Profile } from "@/lib/types";
 
@@ -56,6 +63,11 @@ export function ProfileForm({
   // saved focuses (also read from the old single choice before migration 009).
   const checkedFocuses: string[] =
     state?.focuses ?? (existingProfile ? focusesOf(existingProfile) : []);
+
+  // For the "≈ in your currency" line under the budget, updated as they type.
+  const [currency, setCurrency] = useState(existingProfile?.display_currency ?? DEFAULT_DISPLAY_CURRENCY);
+  const [budgetMax, setBudgetMax] = useState(initial("budget_max") ?? "");
+  const budgetInCurrency = approxInCurrency(Number(budgetMax) || null, currency);
 
   return (
     // noValidate: let the server's messages (lib/profile-validation.ts) be
@@ -176,12 +188,39 @@ export function ProfileForm({
               min={0}
               step="100"
               defaultValue={initial("budget_max")}
+              onChange={(e) => setBudgetMax(e.target.value)}
               placeholder="Max"
               aria-label="Maximum budget"
               aria-invalid={!!errors.budget_max}
             />
           </div>
           <FieldError message={errors.budget_min ?? errors.budget_max} />
+          {budgetInCurrency && (
+            <p className="text-xs text-muted-foreground">
+              Up to {budgetInCurrency} a year ({APPROX_NOTE}).
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="display_currency">Also show amounts in</Label>
+          <Select name="display_currency" value={currency} onValueChange={setCurrency}>
+            <SelectTrigger id="display_currency" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DISPLAY_CURRENCIES.map((code) => (
+                <SelectItem key={code} value={code}>
+                  {code === "USD" ? "US dollars only" : currencyName(code)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Budgets and costs stay in US dollars; we add an approximate amount in this currency next to them,
+            at the European Central Bank rates of one day (shown with each amount).
+          </p>
+          <FieldError message={errors.display_currency} />
         </div>
 
         <div className="space-y-2 sm:col-span-2">

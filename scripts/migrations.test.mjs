@@ -165,3 +165,23 @@ describe("migration_015 (research impact)", () => {
     ).rejects.toThrow(/universities_research_impact_check/);
   }, 30_000);
 });
+
+describe("migration_016 (display currency)", () => {
+  it("defaults to US dollars, accepts a currency code, rejects anything else, and is safe to re-run", async () => {
+    const { db } = await createInMemoryDb();
+    await db.exec(sql("migration_016_display_currency.sql"));
+    const id = "00000000-0000-0000-0000-0000000000dd";
+    await db.query("insert into auth.users (id) values ($1)", [id]);
+    await db.query(
+      `insert into public.profiles (id, full_name, country, intended_majors, gpa_percentage,
+        budget_min, budget_max, preferred_countries, preferred_degree_level)
+        values ($1, 'Student', 'India', '{CS}', 90, 0, 40000, '{Canada}', 'Undergraduate')`,
+      [id]
+    );
+    const read = async () => (await db.query("select display_currency from public.profiles where id = $1", [id])).rows[0].display_currency;
+    expect(await read()).toBe("USD");
+    await db.query("update public.profiles set display_currency = 'INR' where id = $1", [id]);
+    expect(await read()).toBe("INR");
+    await expect(db.query("update public.profiles set display_currency = 'rupees' where id = $1", [id])).rejects.toThrow(/profiles_display_currency_check/);
+  }, 30_000);
+});

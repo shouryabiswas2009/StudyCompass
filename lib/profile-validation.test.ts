@@ -50,6 +50,16 @@ describe("validateProfileForm", () => {
     if (!bad.ok) expect(bad.errors.focuses).toBeDefined();
   });
 
+  it("keeps a display currency we have a rate for, defaults to US dollars, and rejects others", () => {
+    const none = validateProfileForm(makeForm());
+    expect(none.ok && none.data.display_currency).toBe("USD");
+    const inr = validateProfileForm(makeForm({ display_currency: "INR" }));
+    expect(inr.ok && inr.data.display_currency).toBe("INR");
+    const bad = validateProfileForm(makeForm({ display_currency: "BTC" }));
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) expect(bad.errors.display_currency).toBeDefined();
+  });
+
   it("treats blank optional scores as missing, not as errors", () => {
     const result = validateProfileForm(makeForm({ ielts_score: "", sat_score: "" }));
     expect(result.ok).toBe(true);

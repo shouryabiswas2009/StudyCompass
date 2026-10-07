@@ -29,6 +29,9 @@ export type Profile = {
   // The old single choice (migration_008). Migration 009 copies it into
   // focuses and drops it; only read as a fallback before 009 has run.
   primary_focus?: "balanced" | Focus;
+  // "Show amounts also in" (migration_016), an ISO code like "INR"; missing
+  // until that migration runs. See lib/display-currency.ts.
+  display_currency?: string;
   created_at: string;
   updated_at: string;
 };

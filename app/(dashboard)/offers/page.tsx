@@ -104,7 +104,7 @@ export default async function OffersPage() {
           </p>
         </div>
       ) : (
-        <OffersBoard offers={offers} focuses={focusesOf(profile)} />
+        <OffersBoard offers={offers} focuses={focusesOf(profile)} displayCurrency={profile.display_currency} />
       )}
 
       {offerCountries.length > 0 && (

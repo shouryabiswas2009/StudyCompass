@@ -1,5 +1,6 @@
 import { canonicalCountry } from "@/lib/countries";
 import { readList, readNumber, readText } from "@/lib/form-data";
+import { DEFAULT_DISPLAY_CURRENCY, isDisplayCurrency } from "@/lib/display-currency";
 import {
   DEGREE_LEVELS,
   FOCUSES,
@@ -83,6 +84,12 @@ export function validateProfileForm(formData: FormData): ProfileValidationResult
   }
   const focuses = FOCUSES.filter((f) => ticked.includes(f));
 
+  // Only currencies we have an official rate for; empty means US dollars.
+  const display_currency = readText(formData, "display_currency") || DEFAULT_DISPLAY_CURRENCY;
+  if (!isDisplayCurrency(display_currency)) {
+    errors.display_currency = "Choose a currency from the list.";
+  }
+
   if (Object.keys(errors).length > 0) {
     return { ok: false, errors };
   }
@@ -102,6 +109,7 @@ export function validateProfileForm(formData: FormData): ProfileValidationResult
       budget_max: budget_max as number,
       preferred_degree_level: level as DegreeLevel,
       focuses,
+      display_currency,
     },
   };
 }

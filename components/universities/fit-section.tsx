@@ -6,6 +6,8 @@ import { AdmissionEstimate } from "@/components/universities/admission-estimate"
 import { StrengthsConcerns } from "@/components/universities/strengths-concerns";
 import { WhatIfPanel } from "@/components/universities/what-if-panel";
 import { focusSummary, focusesOf } from "@/lib/focus";
+import { totalYearlyCost } from "@/lib/compare";
+import { APPROX_NOTE, approxInCurrency, currencyName } from "@/lib/display-currency";
 import type { MatchEntry } from "@/lib/matching";
 import type { Profile, UniversitySummary } from "@/lib/types";
 
@@ -36,6 +38,7 @@ export function FitSection({
         <ChanceBadge chance={entry.match.chance} source={entry.match.chanceSource} probability={entry.prediction?.probability} />
       </div>
       <p className="-mt-2 mb-2 text-sm font-medium">{entry.rank.reason}</p>
+      <CostsInCurrency profile={profile} university={university} />
       <p className="mb-4 text-sm text-muted-foreground">
         Scored with your focuses: <strong>{focusSummary(focusesOf(profile))}</strong>.{" "}
         <Link href="/profile" className="underline">
@@ -54,5 +57,21 @@ export function FitSection({
         <WhatIfPanel profile={profile} university={university} />
       </div>
     </div>
+  );
+}
+
+// The yearly costs in the student's "also show amounts in" currency.
+function CostsInCurrency({ profile, university }: { profile: Profile; university: UniversitySummary }) {
+  const currency = profile.display_currency;
+  const parts = [
+    ["tuition", approxInCurrency(university.tuition, currency)],
+    ["living", approxInCurrency(university.living_cost_per_year, currency)],
+    ["total", approxInCurrency(totalYearlyCost(university), currency)],
+  ].filter(([, text]) => text);
+  if (!currency || parts.length === 0) return null;
+  return (
+    <p className="mb-2 text-sm text-muted-foreground">
+      In {currencyName(currency)}: {parts.map(([label, text]) => `${label} ${text}`).join(", ")} a year ({APPROX_NOTE}).
+    </p>
   );
 }

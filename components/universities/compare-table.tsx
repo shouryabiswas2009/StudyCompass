@@ -7,6 +7,7 @@ import { ResearchImpactValue } from "@/components/universities/research-impact";
 import { RESEARCH_IMPACT_LABEL, researchImpactFor } from "@/lib/research-impact";
 import { bestIndexes, totalYearlyCost } from "@/lib/compare";
 import { usd } from "@/lib/format";
+import { APPROX_NOTE, approxInCurrency } from "@/lib/display-currency";
 import { livingCostDisplay, tuitionDisplay, type MoneyDisplay } from "@/lib/money";
 import { formatRank, type AdmissionChance, type MatchEntry } from "@/lib/matching";
 import { cn } from "@/lib/utils";
@@ -82,22 +83,27 @@ const ROWS: Row[] = [
   },
   {
     label: "Tuition",
-    render: ({ university }) => <Money display={tuitionDisplay(university)} />,
+    render: ({ university }, profile) => (
+      <Money display={tuitionDisplay(university)} usdAmount={university.tuition} currency={profile.display_currency} />
+    ),
     value: ({ university }) => university.tuition,
     better: "lower",
   },
   {
     label: "Living cost",
-    render: ({ university }) => <Money display={livingCostDisplay(university)} />,
+    render: ({ university }, profile) => (
+      <Money display={livingCostDisplay(university)} usdAmount={university.living_cost_per_year} currency={profile.display_currency} />
+    ),
     value: ({ university }) => university.living_cost_per_year,
     better: "lower",
   },
   {
     label: "Estimated total per year",
-    render: ({ university }) => {
+    render: ({ university }, profile) => {
       const total = totalYearlyCost(university);
+      const other = approxInCurrency(total, profile.display_currency);
       return total !== null
-        ? `about ${usd(total)}/yr`
+        ? `about ${usd(total)}/yr${other ? ` (${other})` : ""}`
         : muted("Not available (tuition or living cost missing)");
     },
     value: ({ university }) => totalYearlyCost(university),
@@ -270,11 +276,13 @@ export function CompareTable({
 
 // A money figure, with "approximate" and its basis shown underneath when it
 // was converted from another currency, so schools are compared fairly.
-function Money({ display }: { display: MoneyDisplay }) {
+function Money({ display, usdAmount, currency }: { display: MoneyDisplay; usdAmount: number | null; currency?: string }) {
   if (display.text === "Not available") return <span className="text-muted-foreground">Not available</span>;
+  const other = approxInCurrency(usdAmount, currency);
   return (
     <span>
       {display.text}
+      {other && <span className="block text-xs text-muted-foreground">{other} ({APPROX_NOTE})</span>}
       {display.note && <span className="block text-xs text-muted-foreground">{display.note}</span>}
     </span>
   );
