@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TagInput } from "@/components/tag-input";
 import { FieldError } from "@/components/field-error";
+import { GradesField } from "@/components/profile/grades-field";
 import {
   Select,
   SelectContent,
@@ -97,21 +98,12 @@ export function ProfileForm({
           <FieldError message={errors.country} />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="gpa_percentage">High school GPA / percentage</Label>
-          <Input
-            id="gpa_percentage"
-            name="gpa_percentage"
-            type="number"
-            step="0.01"
-            min={0}
-            max={100}
-            defaultValue={initial("gpa_percentage")}
-            placeholder="e.g. 88.5"
-            aria-invalid={!!errors.gpa_percentage}
-          />
-          <FieldError message={errors.gpa_percentage} />
-        </div>
+        <GradesField
+          initialSystem={existingProfile?.grade_system ?? "percentage"}
+          initialInput={initial("grade_input")}
+          initialPercentage={initial("gpa_percentage")}
+          errors={errors}
+        />
 
         <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="intended_majors">Intended majors</Label>

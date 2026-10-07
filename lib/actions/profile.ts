@@ -28,6 +28,7 @@ const ECHOED_FIELDS = [
   "full_name",
   "country",
   "gpa_percentage",
+  "grade_input",
   "ielts_score",
   "sat_score",
   "budget_min",

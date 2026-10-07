@@ -1,3 +1,4 @@
+import type { GradeBasis, GradeSystem } from "@/lib/grades";
 // Shared types matching the Supabase schema in supabase/seed.sql plus the
 // numbered migrations in supabase/.
 
@@ -32,6 +33,11 @@ export type Profile = {
   // "Show amounts also in" (migration_016), an ISO code like "INR"; missing
   // until that migration runs. See lib/display-currency.ts.
   display_currency?: string;
+  // How gpa_percentage was obtained (migration_017; see lib/grades.ts).
+  // Missing until that migration runs, which reads as a typed percentage.
+  grade_system?: GradeSystem;
+  grade_input?: string | null;
+  grade_basis?: GradeBasis;
   created_at: string;
   updated_at: string;
 };

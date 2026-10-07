@@ -60,6 +60,25 @@ describe("validateProfileForm", () => {
     if (!bad.ok) expect(bad.errors.display_currency).toBeDefined();
   });
 
+  it("converts other grade systems with their published tables, and records how", () => {
+    const ib = validateProfileForm(makeForm({ grade_system: "ib", grade_input: "7, 6, 6, 5, 6, 7", gpa_percentage: "" }));
+    expect(ib.ok && [ib.data.gpa_percentage, ib.data.grade_basis, ib.data.grade_input]).toEqual([89.8, "converted", "7, 6, 6, 5, 6, 7"]);
+    const cbse = validateProfileForm(makeForm({ grade_system: "cbse_cgpa", grade_input: "9.4" }));
+    expect(cbse.ok && cbse.data.gpa_percentage).toBe(89.3);
+    const gpa = validateProfileForm(makeForm({ grade_system: "us_gpa", gpa_percentage: "90" }));
+    expect(gpa.ok && [gpa.data.gpa_percentage, gpa.data.grade_basis, gpa.data.grade_input]).toEqual([90, "approximate", null]);
+    const plain = validateProfileForm(makeForm());
+    expect(plain.ok && [plain.data.grade_system, plain.data.grade_basis]).toEqual(["percentage", "exact"]);
+  });
+
+  it("explains a grade it can't convert, and rejects unknown systems", () => {
+    const bad = validateProfileForm(makeForm({ grade_system: "cambridge_a_level", grade_input: "A, F" }));
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) expect(bad.errors.grade_input).toMatch(/A\*, A, B, C, D or E/);
+    const unknown = validateProfileForm(makeForm({ grade_system: "made_up" }));
+    expect(unknown.ok).toBe(false);
+  });
+
   it("treats blank optional scores as missing, not as errors", () => {
     const result = validateProfileForm(makeForm({ ielts_score: "", sat_score: "" }));
     expect(result.ok).toBe(true);

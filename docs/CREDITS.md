@@ -57,3 +57,15 @@ for visa guidance, and European Central Bank reference exchange rates.
 
 No commercial ranking (QS, Times Higher Education, U.S. News,
 ShanghaiRanking) is copied into the site or its database.
+
+### Grade conversions (profile)
+
+Only conversions the exam boards publish themselves; anything else is the
+student's own nearest percentage, marked approximate.
+
+| System | Rule used | Source |
+| --- | --- | --- |
+| CBSE Class X CGPA | Indicative percentage = 9.5 × CGPA | [CBSE Circular No. 24, 28 May 2010](https://www.cbse.gov.in/circulars/cir24-2010.pdf) |
+| IB Diploma subject grades | Middle of the IB's suggested mark range per grade (7 = 96–100 … 1 = 1–20), averaged over subjects | [International Baccalaureate, Suggested Conversion for students applying to Indian Universities, April 2012](https://aiu.ac.in/documents/evaluation/Grade%20Conversion%20IB.pdf) |
+| Cambridge International A Levels | Middle of the percentage uniform mark range per grade (A* = 90–100 … E = 40–49), averaged over subjects | [Cambridge International, India frequently asked questions (2025), Appendix 1](https://www.cambridgeinternational.org/Images/745293-india-frequently-asked-questions.pdf) |
+| US GPA | Not converted (no published GPA-to-percentage table); the student enters their nearest percentage. College Board's per-class guide is linked as guidance | [College Board BigFuture](https://bigfuture.collegeboard.org/plan-for-college/get-started/how-to-convert-gpa-4.0-scale) |

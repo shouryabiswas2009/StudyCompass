@@ -185,3 +185,23 @@ describe("migration_016 (display currency)", () => {
     await expect(db.query("update public.profiles set display_currency = 'rupees' where id = $1", [id])).rejects.toThrow(/profiles_display_currency_check/);
   }, 30_000);
 });
+
+describe("migration_017 (grade systems)", () => {
+  it("defaults to an exact percentage and only accepts known systems and bases", async () => {
+    const { db } = await createInMemoryDb();
+    await db.exec(sql("migration_017_grade_systems.sql"));
+    const id = "00000000-0000-0000-0000-0000000000ee";
+    await db.query("insert into auth.users (id) values ($1)", [id]);
+    await db.query(
+      `insert into public.profiles (id, full_name, country, intended_majors, gpa_percentage,
+        budget_min, budget_max, preferred_countries, preferred_degree_level)
+        values ($1, 'Student', 'India', '{CS}', 90, 0, 40000, '{Canada}', 'Undergraduate')`,
+      [id]
+    );
+    const { rows } = await db.query("select grade_system, grade_basis from public.profiles where id = $1", [id]);
+    expect(rows[0]).toEqual({ grade_system: "percentage", grade_basis: "exact" });
+    await db.query("update public.profiles set grade_system = 'ib', grade_input = '7,6,6', grade_basis = 'converted' where id = $1", [id]);
+    await expect(db.query("update public.profiles set grade_system = 'made_up' where id = $1", [id])).rejects.toThrow(/profiles_grade_system_check/);
+    await expect(db.query("update public.profiles set grade_basis = 'guessed' where id = $1", [id])).rejects.toThrow(/profiles_grade_basis_check/);
+  }, 30_000);
+});

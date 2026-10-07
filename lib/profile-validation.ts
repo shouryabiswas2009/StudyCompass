@@ -1,6 +1,7 @@
 import { canonicalCountry } from "@/lib/countries";
 import { readList, readNumber, readText } from "@/lib/form-data";
 import { DEFAULT_DISPLAY_CURRENCY, isDisplayCurrency } from "@/lib/display-currency";
+import { gradeToPercentage, isGradeSystem, type GradeSystem } from "@/lib/grades";
 import {
   DEGREE_LEVELS,
   FOCUSES,
@@ -38,10 +39,20 @@ export function validateProfileForm(formData: FormData): ProfileValidationResult
     errors.preferred_countries = "Add at least one country you'd like to study in.";
   }
 
-  const gpa = readNumber(formData, "gpa_percentage");
-  if (gpa === null || Number.isNaN(gpa) || gpa < 0 || gpa > 100) {
-    errors.gpa_percentage = "GPA / percentage must be a number from 0 to 100.";
+  // Grades: a percentage, or another system converted with its board's
+  // published table (lib/grades.ts). Without a system (older forms), the
+  // percentage field is used as before.
+  const systemText = readText(formData, "grade_system") || "percentage";
+  const grade_system: GradeSystem = isGradeSystem(systemText) ? systemText : "percentage";
+  if (!isGradeSystem(systemText)) errors.grade_system = "Choose a grading system from the list.";
+  const converts = grade_system === "cbse_cgpa" || grade_system === "ib" || grade_system === "cambridge_a_level";
+  const grade_input = converts ? readText(formData, "grade_input") : readText(formData, "gpa_percentage");
+  const grades = gradeToPercentage(grade_system, grade_input);
+  if (!grades.ok) {
+    if (converts) errors.grade_input = grades.error;
+    else errors.gpa_percentage = "GPA / percentage must be a number from 0 to 100.";
   }
+  const gpa = grades.ok ? grades.percentage : null;
 
   // IELTS bands go up in halves, so 6.5 is valid but 6.3 isn't.
   const ielts = readNumber(formData, "ielts_score");
@@ -103,6 +114,9 @@ export function validateProfileForm(formData: FormData): ProfileValidationResult
       preferred_countries,
       // Safe casts: every branch that leaves these null/NaN set an error above.
       gpa_percentage: gpa as number,
+      grade_system,
+      grade_input: converts ? grade_input : null,
+      grade_basis: grades.ok ? grades.basis : "exact",
       ielts_score: ielts,
       sat_score: sat,
       budget_min,

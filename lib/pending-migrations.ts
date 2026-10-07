@@ -24,6 +24,9 @@ export const PENDING_COLUMNS: Record<string, string> = {
   accept_by: "migration_013_offer_accept_by.sql",
   research_impact: "migration_015_research_impact.sql",
   display_currency: "migration_016_display_currency.sql",
+  grade_system: "migration_017_grade_systems.sql",
+  grade_input: "migration_017_grade_systems.sql",
+  grade_basis: "migration_017_grade_systems.sql",
 };
 
 type DbError = { code?: string; message?: string } | null;

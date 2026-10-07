@@ -142,7 +142,8 @@ const ROWS: Row[] = [
       const margin = profile.gpa_percentage - avg;
       return (
         <span>
-          {avg} · you {profile.gpa_percentage}{" "}
+          {avg} · you {profile.gpa_percentage}
+          {profile.grade_basis === "approximate" ? " (approximate)" : ""}{" "}
           <span className={margin >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
             ({margin >= 0 ? "+" : ""}
             {Math.round(margin * 10) / 10})

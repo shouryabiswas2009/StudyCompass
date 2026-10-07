@@ -7,6 +7,7 @@ import { StrengthsConcerns } from "@/components/universities/strengths-concerns"
 import { WhatIfPanel } from "@/components/universities/what-if-panel";
 import { focusSummary, focusesOf } from "@/lib/focus";
 import { totalYearlyCost } from "@/lib/compare";
+import { describeGrades } from "@/lib/grades";
 import { APPROX_NOTE, approxInCurrency, currencyName } from "@/lib/display-currency";
 import type { MatchEntry } from "@/lib/matching";
 import type { Profile, UniversitySummary } from "@/lib/types";
@@ -40,7 +41,8 @@ export function FitSection({
       <p className="-mt-2 mb-2 text-sm font-medium">{entry.rank.reason}</p>
       <CostsInCurrency profile={profile} university={university} />
       <p className="mb-4 text-sm text-muted-foreground">
-        Scored with your focuses: <strong>{focusSummary(focusesOf(profile))}</strong>.{" "}
+        Your grades: {describeGrades(profile.gpa_percentage, profile.grade_system, profile.grade_basis)}. Scored with
+        your focuses: <strong>{focusSummary(focusesOf(profile))}</strong>.{" "}
         <Link href="/profile" className="underline">
           Change it
         </Link>
