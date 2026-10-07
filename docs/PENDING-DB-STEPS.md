@@ -23,7 +23,11 @@ verified: the migration_011 columns exist (search_text included); all
 levels; sources are College Scorecard 1,577, curated 42, illustrative 29
 (442 featured); Oxford was upgraded in place (£39,620 stored with its
 currency, illustrative ranking removed) and a search for "lse" finds the
-London School of Economics by its alias. **Steps 11–14 are pending.**
+London School of Economics by its alias. Steps 11–14 were run the same
+day and verified: sources are College Scorecard 1,577 and curated 111 (no
+illustrative rows left); `country_info` has row level security on and 27
+countries (16 post-study, 7 proof of funds, 16 work-hour figures); and
+`applications.accept_by` exists. **Nothing pending.**
 
 New migrations will be added to this table when they're written.
 
@@ -43,10 +47,10 @@ this order: the seed files need both migrations first.
 | 8 | `supabase/migration_011_international.sql` | Done, verified 2026-10-06 |
 | 9 | `supabase/seed_scorecard/00_link_existing.sql` … `06_universities.sql` again (regenerated) | Done, verified 2026-10-06 (1,577 linked, 1,572 levels) |
 | 10 | `supabase/seed_international/00_link_existing.sql`, `01_universities.sql`, `90_coop.sql`, `91_rankings.sql` | Done, verified 2026-10-06 (42 curated) |
-| 11 | `supabase/seed_international/00_link_existing.sql`, `01_universities.sql`, `02_universities.sql`, `90_coop.sql`, `91_rankings.sql` (regenerated, 111 universities) | **Not run yet** |
-| 12 | `supabase/migration_012_country_info.sql` | **Not run yet** |
-| 13 | `supabase/seed_country_info.sql` (right after step 12) | **Not run yet** |
-| 14 | `supabase/migration_013_offer_accept_by.sql` | **Not run yet** |
+| 11 | `supabase/seed_international/00_link_existing.sql`, `01_universities.sql`, `02_universities.sql`, `90_coop.sql`, `91_rankings.sql` (regenerated, 111 universities) | Done, verified 2026-10-06 (curated 111) |
+| 12 | `supabase/migration_012_country_info.sql` | Done, verified 2026-10-06 (RLS on) |
+| 13 | `supabase/seed_country_info.sql` (right after step 12) | Done, verified 2026-10-06 (27 countries) |
+| 14 | `supabase/migration_013_offer_accept_by.sql` | Done, verified 2026-10-06 |
 
 All of them are safe to run again if you're not sure whether one went
 through.
