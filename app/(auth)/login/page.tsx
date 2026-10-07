@@ -12,9 +12,9 @@ const LINK_ERRORS: Record<string, string> = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, next } = await searchParams;
   const linkError = error ? LINK_ERRORS[error] : undefined;
 
   return (
@@ -31,7 +31,7 @@ export default async function LoginPage({
           {linkError}
         </p>
       )}
-      <LoginForm />
+      <LoginForm next={next} />
     </div>
   );
 }

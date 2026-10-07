@@ -1,34 +1,28 @@
-"use client";
-
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// The closing call to action: a dark green banner with a sand-coloured button.
 export function CtaSection() {
   return (
-    <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 sm:pb-28">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.5 }}
-        className="flex flex-col items-center gap-6 rounded-3xl border bg-muted/40 px-6 py-16 text-center sm:px-16"
-      >
-        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          Ready to find your fit?
-        </h2>
-        <p className="max-w-lg text-muted-foreground">
-          Create your free profile in a couple of minutes and get matched
-          with universities that make sense for you.
-        </p>
-        <Button size="lg" asChild>
+    <section aria-labelledby="cta-heading" className="page-container pb-[var(--section-y)]">
+      <div className="flex flex-col items-start gap-6 rounded-3xl bg-band px-6 py-10 text-band-foreground sm:flex-row sm:items-center sm:px-10">
+        <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-sand text-sand-foreground">
+          <Compass className="size-6" aria-hidden />
+        </span>
+        <div className="flex-1 space-y-1">
+          <h2 id="cta-heading" className="text-2xl font-bold sm:text-3xl">
+            Ready to find your fit?
+          </h2>
+          <p className="text-band-muted">A free profile takes a few minutes. Your matches update as you change it.</p>
+        </div>
+        <Button size="lg" asChild className="bg-sand text-sand-foreground hover:bg-sand/90">
           <Link href="/signup">
-            Create your profile
-            <ArrowRight className="size-4" />
+            Create free account
+            <ArrowRight aria-hidden />
           </Link>
         </Button>
-      </motion.div>
+      </div>
     </section>
   );
 }

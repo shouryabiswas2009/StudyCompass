@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Compass } from "lucide-react";
+import { ArrowRight, Compass } from "lucide-react";
 import { BRAND_NAME } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -20,8 +20,8 @@ const navLinks = [
 export function Navbar({ userEmail }: { userEmail: string | null }) {
   return (
     <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
+      <div className="page-container flex h-16 items-center justify-between">
+        <Link href="/" className="flex items-center gap-2 font-heading text-lg font-bold">
           <Compass className="size-5 text-primary" />
           <span>{BRAND_NAME}</span>
         </Link>
@@ -56,10 +56,13 @@ export function Navbar({ userEmail }: { userEmail: string | null }) {
           ) : (
             <>
               <Button variant="ghost" asChild>
-                <Link href="/login">Log In</Link>
+                <Link href="/login">Log in</Link>
               </Button>
               <Button asChild>
-                <Link href="/signup">Sign Up</Link>
+                <Link href="/signup">
+                  Get started
+                  <ArrowRight aria-hidden className="hidden sm:block" />
+                </Link>
               </Button>
             </>
           )}

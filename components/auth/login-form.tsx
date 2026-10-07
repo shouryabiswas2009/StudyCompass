@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function LoginForm() {
+// `next`: the page to open after logging in (set when a logged-out visitor
+// was sent here from a members-only page). Checked again on the server.
+export function LoginForm({ next }: { next?: string }) {
   const [state, formAction, pending] = useActionState(login, undefined);
 
   return (
     <form action={formAction} className="space-y-4">
+      {next && <input type="hidden" name="next" value={next} />}
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input

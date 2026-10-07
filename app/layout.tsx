@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { siteUrl } from "@/lib/site-url";
 import { BRAND_DESCRIPTION, BRAND_TITLE } from "@/lib/brand";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import "flag-icons/css/flag-icons.min.css";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -17,6 +17,13 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+// Headings (h1–h3) use Plus Jakarta Sans via --font-heading in globals.css.
+// Both fonts are self-hosted by next/font (no request to Google at runtime).
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
 });
 
@@ -38,7 +45,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${jakarta.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">

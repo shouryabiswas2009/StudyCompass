@@ -53,8 +53,12 @@ export async function updateSession(request: NextRequest) {
   const isAuthPath = AUTH_PATHS.some((p) => path.startsWith(p));
 
   if (!user && isProtected) {
+    // Remember where they were going, so logging in takes them there
+    // (the login action only accepts a path on this site, see safeRedirectPath).
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.search = "";
+    url.searchParams.set("next", `${path}${request.nextUrl.search}`);
     return NextResponse.redirect(url);
   }
 

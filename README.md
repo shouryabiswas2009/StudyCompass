@@ -253,6 +253,24 @@ Recommendations also show **top picks by country**: the best three
 matches in each of the student's preferred countries, above the full
 ranked list, so one country can't crowd out the others.
 
+## Design
+
+The look is defined once, as design tokens at the top of
+[`app/globals.css`](app/globals.css): a warm off-white background, one deep
+forest-green accent, a dark green band and footer colour, the radius, the
+section spacing (`section-y`), the page width (`page-container`) and a type
+scale (`text-display`, `text-section`, `eyebrow`). Every page uses these
+through Tailwind and the shadcn components, so changing a colour or size is
+one edit. `.dark` holds the matching dark palette; every text and
+background pair meets WCAG AA contrast in both themes. Headings use Plus
+Jakarta Sans, body text Geist. Images, fonts and icons and their licences
+are listed in [`docs/CREDITS.md`](docs/CREDITS.md).
+
+The landing page's numbers and examples are computed from the database
+([`lib/landing.ts`](lib/landing.ts)): the stats band counts real rows, and
+the example match and "What if?" previews score a made-up sample student
+with the same functions the app uses, labelled "Example".
+
 ## Putting it online
 
 Step-by-step guide for Vercel (free) with your own domain, including the

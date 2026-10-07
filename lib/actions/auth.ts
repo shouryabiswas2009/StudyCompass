@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { siteUrl } from "@/lib/site-url";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 
 export type AuthFormState = { error?: string; message?: string } | undefined;
 
@@ -33,7 +34,8 @@ export async function login(
   }
 
   revalidatePath("/", "layout");
-  redirect("/recommendations");
+  // Back to the page they were trying to open, if any (only paths on this site).
+  redirect(safeRedirectPath(formData.get("next") as string | null, "/recommendations"));
 }
 
 export async function signup(

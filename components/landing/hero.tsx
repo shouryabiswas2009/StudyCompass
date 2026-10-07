@@ -1,109 +1,80 @@
-"use client";
-
+import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowRight, Compass } from "lucide-react";
+import { ArrowDown, ArrowRight, Building2 } from "lucide-react";
 import { BRAND_NAME } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
-import { Flag } from "@/components/flag";
+import { AccentTitle } from "@/components/landing/section-heading";
+import type { LandingStats } from "@/lib/landing";
 
-// Purely decorative "match card" chips floating around the headline on
-// larger screens — a quick visual preview of what the product actually does.
-const FLOATING_MATCHES = [
-  { country: "Canada", name: "U. of Toronto", score: 94, className: "left-[4%] top-[14%]" },
-  { country: "United Kingdom", name: "U. of Edinburgh", score: 88, className: "top-[8%] right-[6%]" },
-  { country: "Germany", name: "TU Munich", score: 91, className: "bottom-[16%] left-[9%]" },
-  { country: "Singapore", name: "NUS", score: 85, className: "right-[4%] bottom-[10%]" },
-];
+// Photo by Vadim Sherbakov on Unsplash (Unsplash License; see docs/CREDITS.md).
+// Allowed by exact path in next.config.ts.
+const HERO_PHOTO = "https://images.unsplash.com/20/cambridge.JPG";
 
-export function Hero() {
+// The top of the landing page: headline and two buttons on the left; on the
+// right a photo that runs to the edge of the screen with a slanted left
+// edge, and one small stat card on top of it. The number is counted from the
+// database (lib/landing.ts), not typed in.
+export function Hero({ stats }: { stats: LandingStats }) {
   return (
     <section className="relative overflow-hidden">
-      {/* Soft gradient blob in the background, purely decorative */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-40 -z-10 flex justify-center blur-3xl"
-      >
-        <div className="h-[420px] w-[720px] rounded-full bg-gradient-to-tr from-primary/30 via-primary/10 to-transparent" />
-      </div>
-
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 hidden lg:block"
-      >
-        {FLOATING_MATCHES.map((match, i) => (
-          <motion.div
-            key={match.name}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: [0, -8, 0] }}
-            transition={{
-              opacity: { duration: 0.6, delay: 0.4 + i * 0.15 },
-              y: {
-                duration: 4 + i,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: 0.4 + i * 0.15,
-              },
-            }}
-            className={`absolute flex items-center gap-2 rounded-xl border bg-card/90 px-3 py-2 text-xs font-medium shadow-sm backdrop-blur ${match.className}`}
-          >
-            <Flag country={match.country} />
-            <span className="text-foreground">{match.name}</span>
-            <span className="rounded-full bg-emerald-500/10 px-1.5 py-0.5 font-semibold text-emerald-600 dark:text-emerald-400">
-              {match.score}%
-            </span>
-          </motion.div>
-        ))}
-      </div>
-
-      <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-24 text-center sm:px-6 sm:py-32">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 rounded-full border bg-muted/50 px-4 py-1.5 text-sm font-medium text-muted-foreground"
-        >
-          <Compass className="size-4 text-primary" />
-          Personalized university matching
-        </motion.div>
-
-        <motion.h1
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="max-w-3xl text-4xl font-bold tracking-tight text-balance sm:text-5xl md:text-6xl"
-        >
-          Find the university that actually fits{" "}
-          <span className="text-primary">you</span>
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="max-w-xl text-lg text-muted-foreground text-balance"
-        >
-          {BRAND_NAME} matches you to universities based on your budget,
-          academic profile, and preferences — not just generic rankings.
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="flex flex-col gap-3 pt-2 sm:flex-row"
-        >
-          <Button size="lg" asChild>
-            <Link href="/signup">
-              Get started
-              <ArrowRight className="size-4" />
+      <div className="page-container grid items-center gap-10 py-12 lg:min-h-[34rem] lg:grid-cols-2 lg:py-20">
+        <div className="relative z-10 space-y-6">
+          <p className="eyebrow">Welcome to {BRAND_NAME}</p>
+          <h1 className="text-display font-extrabold text-balance">
+            <AccentTitle title="Find the university that actually fits you." accent="fits you." />
+          </h1>
+          <p className="max-w-md text-muted-foreground text-pretty">
+            {BRAND_NAME}{" "}matches you to universities by budget, grades, major
+            and what matters most to you, using official US figures and fees
+            checked on each university&apos;s own website.
+          </p>
+          <div className="flex flex-wrap items-center gap-5">
+            <Button size="lg" asChild>
+              <Link href="/signup">
+                Create free account
+                <ArrowRight aria-hidden />
+              </Link>
+            </Button>
+            <Link
+              href="#whats-new"
+              className="group inline-flex items-center gap-3 rounded-full text-sm font-semibold focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            >
+              <span className="flex size-11 items-center justify-center rounded-full border bg-card shadow-sm transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                <ArrowDown className="size-4" aria-hidden />
+              </span>
+              See what it does
             </Link>
-          </Button>
-          <Button size="lg" variant="outline" asChild>
-            <Link href="/login">I already have an account</Link>
-          </Button>
-        </motion.div>
+          </div>
+        </div>
+
+        {/* Photo: full-bleed to the right edge on large screens, a rounded
+            card under the text on small ones. */}
+        <div className="relative h-72 overflow-hidden rounded-3xl sm:h-96 lg:absolute lg:inset-y-0 lg:right-0 lg:h-auto lg:w-[48%] lg:rounded-none lg:rounded-bl-[3rem] lg:[clip-path:polygon(14%_0,100%_0,100%_100%,0_100%)]">
+          <Image
+            src={HERO_PHOTO}
+            alt="A historic college building behind a striped green lawn"
+            fill
+            priority
+            sizes="(min-width: 1024px) 48vw, 100vw"
+            className="object-cover"
+          />
+        </div>
       </div>
+
+      {stats.universities > 0 && (
+        <div className="page-container pointer-events-none relative -mt-24 flex justify-end pb-6 lg:absolute lg:inset-x-0 lg:bottom-10 lg:mt-0 lg:pb-0">
+          <div className="pointer-events-auto mr-3 w-44 rounded-2xl bg-band p-5 text-band-foreground shadow-xl sm:mr-6">
+            <span className="mb-3 flex size-10 items-center justify-center rounded-full border border-band-muted/40">
+              <Building2 className="size-5" aria-hidden />
+            </span>
+            <p className="font-heading text-4xl font-extrabold tabular-nums">
+              {stats.universities.toLocaleString("en-US")}
+            </p>
+            <p className="mt-1 text-sm text-band-muted">universities in {stats.countries} countries</p>
+            <span className="mt-4 block h-0.5 w-10 rounded bg-band-muted/60" aria-hidden />
+          </div>
+        </div>
+      )}
     </section>
   );
 }

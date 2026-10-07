@@ -234,3 +234,25 @@ async function time(path, runs = 5) {
 }
 await time("/universities");
 ```
+
+## Landing page redesign (2026-10-07)
+
+Same method (production build, `next start`, logged out): 7 server requests
+(median) and 3 browser loads at 1280×800.
+
+| | Before (old landing) | After (new design) |
+| --- | --- | --- |
+| Time to first byte | 25 ms | 40 ms |
+| HTML | 35 KB | 93 KB |
+| JavaScript | 239 KB | 202 KB |
+| Fonts | 51 KB | 78 KB (Plus Jakarta Sans for headings) |
+| Images | none | 47 KB (hero photo, WebP via `next/image`, `priority`) |
+| DOM content loaded | 85–103 ms | 80–135 ms |
+| Load event | 103–258 ms | 116–445 ms (the slowest is the first load, while the image optimizer fetches the photo) |
+
+The new page reads the cached university list (for the real stats and
+examples), which explains the extra ~15 ms before the first byte. It ships
+less JavaScript than before because the landing sections are server
+components without the animation library. Every number stays well under the
+signed-in pages measured above.
+
