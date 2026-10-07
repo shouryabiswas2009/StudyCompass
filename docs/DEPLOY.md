@@ -32,7 +32,7 @@ Replace `example.com` below with your domain. This guide uses
    | --- | --- |
    | `NEXT_PUBLIC_SUPABASE_URL` | same as in your `.env.local` |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | same as in your `.env.local` (the anon / publishable key, **never** the service-role key) |
-   | `NEXT_PUBLIC_SITE_URL` | `https://www.example.com` |
+   | `SITE_URL` | `https://www.example.com` (no `NEXT_PUBLIC_` prefix: only the server reads it) |
 
    Don't add `SCORECARD_API_KEY`: the running site never uses it.
 4. Click **Deploy**. After a minute or two you get a
@@ -101,7 +101,7 @@ Settings**.
   often an environment variable is missing or misspelled; fix it under
   **Settings → Environment Variables**, then **Redeploy**.
 - **Confirmation link opens localhost:** the Supabase **Site URL** (step 3)
-  is still `http://localhost:3000`, or `NEXT_PUBLIC_SITE_URL` isn't set on
+  is still `http://localhost:3000`, or `SITE_URL` isn't set on
   Vercel. Fix it and redeploy.
 - **"Invalid redirect URL" after login:** add the address you're using to
   Supabase's **Redirect URLs** (step 3).

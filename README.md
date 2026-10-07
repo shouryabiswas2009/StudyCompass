@@ -258,7 +258,7 @@ ranked list, so one country can't crowd out the others.
 Step-by-step guide for Vercel (free) with your own domain, including the
 DNS records and the Supabase URL settings:
 [`docs/DEPLOY.md`](docs/DEPLOY.md). The site's public address comes from
-`NEXT_PUBLIC_SITE_URL` (or Vercel's own domain if that's empty), see
+`SITE_URL` (or Vercel's own domain if that's empty), see
 [`lib/site-url.ts`](lib/site-url.ts).
 
 ## Continuous integration
