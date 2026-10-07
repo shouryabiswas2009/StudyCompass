@@ -205,3 +205,76 @@ describe("migration_017 (grade systems)", () => {
     await expect(db.query("update public.profiles set grade_basis = 'guessed' where id = $1", [id])).rejects.toThrow(/profiles_grade_basis_check/);
   }, 30_000);
 });
+
+describe("migration_018 (figure reports)", () => {
+  const A = "00000000-0000-0000-0000-0000000000a1";
+  const B = "00000000-0000-0000-0000-0000000000b2";
+
+  // The in-memory database runs as a superuser, which skips row level
+  // security; a plain role (like Supabase's "authenticated") doesn't.
+  async function asStudents() {
+    const { db } = await createInMemoryDb();
+    for (const id of [A, B]) await db.query("insert into auth.users (id) values ($1)", [id]);
+    const { rows } = await db.query("select id from public.universities where created_by is null order by id limit 1");
+    await db.query(
+      `insert into public.universities (name, country, tuition, acceptance_rate, description, created_by, source)
+        values ('Own school', 'Canada', 1, 50, '', $1, 'user-entered')`,
+      [A]
+    );
+    const own = (await db.query("select id from public.universities where created_by = $1", [A])).rows[0].id;
+    await db.exec(`
+      create role student nologin;
+      grant usage on schema public, auth to student;
+      grant select on public.universities to student;
+      grant select, insert, update, delete on public.figure_reports to student;
+      set role student;
+    `);
+    const as = (id) => db.exec(`set test.uid = '${id}'`);
+    return { db, as, shared: rows[0].id, own };
+  }
+
+  const report = (db, universityId, extra = "") =>
+    db.query(`insert into public.figure_reports (university_id, field, suggested_value${extra ? ", user_id" : ""})
+      values ($1, 'tuition', '$40,000'${extra ? ", $2" : ""})`, extra ? [universityId, extra] : [universityId]);
+
+  it("lets a student add reports about shared schools and read only their own", async () => {
+    const { db, as, shared } = await asStudents();
+    await as(A);
+    await report(db, shared);
+    await as(B);
+    await report(db, shared);
+    expect((await db.query("select count(*)::int as n from public.figure_reports")).rows[0].n).toBe(1);
+    await as(A);
+    const { rows } = await db.query("select user_id, status from public.figure_reports");
+    expect(rows).toEqual([{ user_id: A, status: "open" }]);
+  }, 30_000);
+
+  it("refuses reports as someone else, about a student's own school, or already closed", async () => {
+    const { db, as, shared, own } = await asStudents();
+    await as(A);
+    await expect(report(db, shared, B)).rejects.toThrow(/row-level security/);
+    await expect(report(db, own)).rejects.toThrow(/row-level security/);
+    await expect(
+      db.query("insert into public.figure_reports (university_id, field, status) values ($1, 'tuition', 'fixed')", [shared])
+    ).rejects.toThrow(/row-level security/);
+  }, 30_000);
+
+  it("doesn't let students change or delete reports", async () => {
+    const { db, as, shared } = await asStudents();
+    await as(A);
+    await report(db, shared);
+    await db.query("update public.figure_reports set status = 'fixed'");
+    await db.query("delete from public.figure_reports");
+    const { rows } = await db.query("select status from public.figure_reports");
+    expect(rows).toEqual([{ status: "open" }]); // both silently matched no rows
+  }, 30_000);
+
+  it("rejects unknown fields and non-web source links", async () => {
+    const { db, as, shared } = await asStudents();
+    await as(A);
+    await expect(db.query("insert into public.figure_reports (university_id, field) values ($1, 'vibes')", [shared])).rejects.toThrow(/check/);
+    await expect(
+      db.query("insert into public.figure_reports (university_id, field, source_url) values ($1, 'tuition', 'javascript:alert(1)')", [shared])
+    ).rejects.toThrow(/check/);
+  }, 30_000);
+});

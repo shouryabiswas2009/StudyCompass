@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { UniversityDetails } from "@/components/universities/university-details";
 import { PersonalFit, PersonalSave } from "@/components/universities/personal-island";
 import { OwnSchoolRedirect } from "@/components/universities/own-school-redirect";
+import { ReportFigure } from "@/components/universities/report-figure";
 import { getPublicUniversity } from "@/lib/data/universities";
 import { getCountryInfo } from "@/lib/data/country-info";
 
@@ -52,6 +53,7 @@ export default async function UniversityPage({ params }: { params: Promise<{ id:
       }
       headerAction={<PersonalSave id={university.id} />}
       fit={<PersonalFit university={university} />}
+      report={<ReportFigure universityId={university.id} />}
     />
   );
 }

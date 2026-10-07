@@ -12,6 +12,7 @@ import { usd } from "@/lib/format";
 import { livingCostDisplay, tuitionDisplay } from "@/lib/money";
 import { COOP_LABELS, RESEARCH_LABELS } from "@/lib/focus";
 import { compareUrl } from "@/lib/compare";
+import { formatCheckedOn, sourcesWithDates } from "@/lib/source-dates";
 import { ordinal, RESEARCH_IMPACT_LABEL } from "@/lib/research-impact";
 import { canonicalCountry } from "@/lib/countries";
 import type { CountryInfoResult } from "@/lib/data/country-info";
@@ -29,6 +30,7 @@ export function UniversityDetails({
   headerAction,
   afterHeader,
   fit,
+  report,
   ranking = { rank: university.qs_ranking, label: "Overall" },
   highlightLevel,
 }: {
@@ -38,6 +40,7 @@ export function UniversityDetails({
   headerAction: ReactNode; // the save button area
   afterHeader?: ReactNode; // sign-up prompt, or edit/delete for your own school
   fit?: ReactNode; // the "Your fit" section
+  report?: ReactNode; // "Report a wrong figure" (shared universities only)
   ranking?: DisplayRanking;
   highlightLevel?: string; // the student's degree level, highlighted below
 }) {
@@ -238,6 +241,29 @@ export function UniversityDetails({
           </ul>
         </div>
       )}
+
+      <div className="mt-8 space-y-2">
+        <h2 className="font-medium">Data sources and dates</h2>
+        <ul className="space-y-1 text-sm">
+          {sourcesWithDates(university).map((s) => (
+            <li key={s.label}>
+              {s.url ? (
+                <a href={s.url} target="_blank" rel="noopener noreferrer" className="underline">
+                  {s.label}
+                </a>
+              ) : (
+                s.label
+              )}
+              {s.detail && <span className="text-muted-foreground">, {s.detail}</span>}
+              <span className="text-muted-foreground">
+                {" "}
+                · {s.checkedOn ? `data last checked ${formatCheckedOn(s.checkedOn)}` : "no check date recorded"}
+              </span>
+            </li>
+          ))}
+        </ul>
+        {report}
+      </div>
 
       {officialFigures.length > 0 && (
         <div className="mt-8 space-y-2">

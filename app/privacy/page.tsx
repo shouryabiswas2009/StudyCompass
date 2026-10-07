@@ -30,8 +30,9 @@ export default function PrivacyPage() {
         <Section title="What is stored when you create an account">
           <ul className="ml-5 list-disc space-y-1.5">
             <li>Your email address and password. Logins are handled by Supabase Auth; the password is stored only as a secure hash, and {BRAND_NAME} never sees it.</li>
-            <li>Your profile: name, country, intended majors, grades and test scores you enter, budget, preferred countries and degree level, and what matters most to you.</li>
+            <li>Your profile: name, country, intended majors, grades and test scores you enter (and the grading system they came from), budget, preferred countries and degree level, the currency you&apos;d like amounts shown in, and what matters most to you.</li>
             <li>Universities you save, applications and offers you track (status, deadlines, costs, scholarships, notes, accept-by dates), and any universities you add yourself.</li>
+            <li>Any &ldquo;wrong figure&rdquo; reports you send: which university and figure, what you suggest, an optional link and note. Only you can see them on the site; the site&apos;s owner reads them to check the figure against its source.</li>
           </ul>
         </Section>
 
@@ -47,7 +48,8 @@ export default function PrivacyPage() {
           <p>
             Only you. The database checks every request against your login (row-level security), so
             other users can&apos;t read your profile, saved schools, applications or the universities
-            you added. Your data isn&apos;t sold, rented or shared with anyone, and isn&apos;t used for
+            you added. The one exception is a &ldquo;wrong figure&rdquo; report, which the site&apos;s owner
+            reads to check the figure. Your data isn&apos;t sold, rented or shared with anyone, and isn&apos;t used for
             advertising.
           </p>
         </Section>

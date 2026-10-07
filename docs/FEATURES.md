@@ -44,3 +44,42 @@ own published rule:
 How the percentage was obtained is saved with it (`grade_system`,
 `grade_input`, `grade_basis`, migration_017) and shown in "Your fit" and
 compare. Sources are linked in the form and listed on /credits.
+
+## Report a wrong figure, and "data last checked"
+
+**Why.** Figures go out of date, and students often spot it first. Every
+figure should also say how fresh it is.
+
+**How.** A university's page lists each source behind it with the date it
+was last checked (`lib/source-dates.ts`, tested): College Scorecard's fetch
+date and data year, the date a curated row was checked by hand, the ECB
+rate date for converted money, and the Leiden Ranking's download date. No
+date is shown where none was recorded.
+
+Under that list, signed-in students can "Report a wrong figure"
+(`components/universities/report-figure.tsx`, validated in
+`lib/figure-report.ts`, saved by `lib/actions/reports.ts`). Reports go into
+`figure_reports` (migration_018) with row level security: a student can
+only add reports as themselves, only about shared universities, only as
+"open", and can only read their own (listed on their profile with their
+status). Students can't change or delete them. The policies are tested
+under a non-superuser role in `scripts/migrations.test.mjs`.
+
+**Reviewing reports** (SQL Editor, which isn't subject to row level security):
+
+```sql
+-- Open reports, newest first
+select r.created_at, u.name, r.field, r.current_value, r.suggested_value,
+       r.source_url, r.note, r.id
+from public.figure_reports r
+join public.universities u on u.id = r.university_id
+where r.status = 'open'
+order by r.created_at desc;
+
+-- After checking one against its source
+update public.figure_reports set status = 'fixed' where id = '<id>';   -- or 'rejected'
+```
+
+Correct the figure itself in its source file (for example
+`data/curated/international_universities.csv`) and re-run that import, so
+the fix survives the next import.
