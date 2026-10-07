@@ -88,16 +88,8 @@ export default function PrivacyPage() {
 
         <Section title="Questions">
           <p>
-            Open an issue on the project&apos;s{" "}
-            <a
-              href="https://github.com/shouryabiswas2009/StudyCompass/issues"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-primary underline"
-            >
-              GitHub page
-            </a>
-            . Please don&apos;t include personal details in it, as issues are public.
+            There&apos;s no public contact address yet; one will be listed here. You don&apos;t need to
+            ask anyone to delete your data: you can do it yourself at any time (see above).
           </p>
         </Section>
       </div>

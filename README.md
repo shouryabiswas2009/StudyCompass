@@ -264,7 +264,9 @@ through Tailwind and the shadcn components, so changing a colour or size is
 one edit. `.dark` holds the matching dark palette; every text and
 background pair meets WCAG AA contrast in both themes. Headings use Plus
 Jakarta Sans, body text Geist. Images, fonts and icons and their licences
-are listed in [`docs/CREDITS.md`](docs/CREDITS.md).
+are listed in [`docs/CREDITS.md`](docs/CREDITS.md), which is also the
+site's public `/credits` page (rendered from the file, so they never
+disagree).
 
 The landing page's numbers and examples are computed from the database
 ([`lib/landing.ts`](lib/landing.ts)): the stats band counts real rows, and
@@ -317,8 +319,11 @@ DNS records and the Supabase URL settings:
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push
 and pull request: lint, `tsc --noEmit`, `npm test`, `npm run db:check`
-(every SQL file on a throwaway Postgres), the curated-data validators and
-`npm run build`. The build gets dummy Supabase values (no page fetches data
+(every SQL file on a throwaway Postgres), the curated-data validators,
+`npm run build` and `npm run check:links` (starts the built site and checks
+every link on the landing, privacy and credits pages: internal links must
+load without a redirect to login, `#section` links must exist, external
+links must be https). The build gets dummy Supabase values (no page fetches data
 while building), so no secrets are needed and the real database is never
 touched. Results are in the GitHub **Actions** tab.
 

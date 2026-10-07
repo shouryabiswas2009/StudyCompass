@@ -3,7 +3,7 @@ import { isProtectedPath, isPublicUniversityPage } from "@/lib/route-access";
 
 describe("isProtectedPath", () => {
   it("keeps the student's own pages members-only", () => {
-    for (const path of ["/profile", "/recommendations", "/saved", "/applications", "/offers", "/compare", "/universities"]) {
+    for (const path of ["/profile", "/recommendations", "/saved", "/applications", "/offers", "/compare"]) {
       expect(isProtectedPath(path)).toBe(true);
     }
   });
@@ -11,6 +11,11 @@ describe("isProtectedPath", () => {
   it("keeps adding and editing a university members-only", () => {
     expect(isProtectedPath("/universities/new")).toBe(true);
     expect(isProtectedPath("/universities/abc-123/edit")).toBe(true);
+  });
+
+  it("lets anyone browse universities", () => {
+    expect(isProtectedPath("/universities")).toBe(false);
+    expect(isProtectedPath("/universities/")).toBe(false);
   });
 
   it("lets anyone open a single university's page", () => {

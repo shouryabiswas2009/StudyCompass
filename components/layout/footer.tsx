@@ -2,8 +2,6 @@ import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { BRAND_NAME } from "@/lib/brand";
 
-const CREDITS_URL = "https://github.com/shouryabiswas2009/StudyCompass/blob/main/docs/CREDITS.md";
-
 // Columns of links. Only real pages: no contact details or social links
 // that don't exist.
 const COLUMNS: { title: string; links: { href: string; label: string; external?: boolean }[] }[] = [
@@ -30,7 +28,7 @@ const COLUMNS: { title: string; links: { href: string; label: string; external?:
     links: [
       { href: "/#real-data", label: "Where the data comes from" },
       { href: "/privacy", label: "Privacy" },
-      { href: CREDITS_URL, label: "Credits and licences", external: true },
+      { href: "/credits", label: "Credits and licences" },
     ],
   },
 ];

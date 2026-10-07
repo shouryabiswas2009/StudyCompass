@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getVisibleUniversities, searchUniversityIds } from "@/lib/data/universities";
+import { getSharedUniversities, getVisibleUniversities, searchUniversityIds } from "@/lib/data/universities";
+import { guestBrowseEntry } from "@/lib/guest-browse";
 import { scoreUniversity } from "@/lib/matching";
 import { buildBoard, parseBoardParams } from "@/lib/university-filters";
 import { UniversityBoard } from "@/components/universities/university-board";
@@ -17,6 +18,9 @@ export const metadata: Metadata = { title: "Browse universities" };
 // themselves. Unlike recommendations, nothing is hidden by degree level here
 // — that's a filter they can choose. Filtering, sorting and paging happen
 // here on the server; only one page of cards goes to the browser.
+//
+// Visitors without an account can browse too: the shared list ordered by
+// quality, without personal scores (lib/guest-browse.ts).
 export default async function BrowseUniversitiesPage({
   searchParams,
 }: {
@@ -25,7 +29,7 @@ export default async function BrowseUniversitiesPage({
   const state = parseBoardParams(await searchParams);
   const supabase = await createClient();
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) return <GuestBrowse state={state} />;
 
   const [{ data: profile }, universities, { data: saved }, searchIds] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>(),
@@ -67,6 +71,48 @@ export default async function BrowseUniversitiesPage({
         featured={board.featured}
         savedIds={new Set((saved ?? []).map((row) => row.university_id))}
         showDegreeFilter
+        emptyMessage="No universities yet."
+      />
+    </div>
+  );
+}
+
+async function GuestBrowse({ state }: { state: ReturnType<typeof parseBoardParams> }) {
+  const supabase = await createClient();
+  const [universities, searchIds] = await Promise.all([
+    getSharedUniversities(),
+    state.filters.query.trim() ? searchUniversityIds(supabase, state.filters.query) : null,
+  ]);
+  const board = buildBoard(universities.map(guestBrowseEntry), state, {
+    withFeatured: true,
+    searchIds: searchIds ?? undefined,
+  });
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold">Browse universities</h1>
+          <p className="max-w-2xl text-muted-foreground">
+            Strongest first, by published figures (graduation, earnings, SAT of admitted students, research and
+            rankings where we have them). Create a free profile to see how well each school fits you and your chances.
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/signup">Create free account</Link>
+        </Button>
+      </div>
+
+      <UniversityBoard
+        entries={board.entries}
+        state={{ ...state, page: board.page }}
+        totalPages={board.totalPages}
+        matchingCount={board.matchingCount}
+        countries={board.countries}
+        featured={board.featured}
+        savedIds={new Set()}
+        showDegreeFilter
+        guest
         emptyMessage="No universities yet."
       />
     </div>

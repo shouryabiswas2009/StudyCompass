@@ -1,14 +1,15 @@
 # Credits and licences
 
 Everything the site shows that wasn't written for this project, with its
-licence. Keep this file up to date when adding a font, icon set, image or
-data source.
+licence, plus the things that were made for it. This file is also the
+site's public /credits page, so keep it up to date when adding a font,
+icon set, image, graphic or data source (and keep links absolute https).
 
 ## Logo
 
 The Unicelerate logo (a graduation cap lifted by an upward swoosh) is
 **original, made for this project**. It's hand-drawn as SVG paths in
-[`components/brand/mark.ts`](../components/brand/mark.ts) and doesn't copy or
+`components/brand/mark.ts` and doesn't copy or
 adapt any other brand's logo or a stock icon. The tab icon, app icons and
 share image are generated from it (`npm run brand:icons`, and
 `app/opengraph-image.tsx`).

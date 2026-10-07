@@ -11,12 +11,13 @@ const PROTECTED_PREFIXES = [
   "/offers",
 ];
 
-// A single university's page is public: anyone can read shared schools
-// (RLS), and a school a student added stays visible only to that student.
-// Browse (/universities), "add" (/universities/new) and "edit" stay
+// Browsing (/universities) and a single university's page are public:
+// anyone can read shared schools (RLS), and a school a student added stays
+// visible only to that student. Visitors see the facts and quality order,
+// not a personal score. "Add" (/universities/new) and "edit" stay
 // members-only.
 export function isPublicUniversityPage(path: string): boolean {
-  return /^\/universities\/(?!new$)[^/]+\/?$/.test(path);
+  return /^\/universities\/?$/.test(path) || /^\/universities\/(?!new\/?$)[^/]+\/?$/.test(path);
 }
 
 export function isProtectedPath(path: string): boolean {

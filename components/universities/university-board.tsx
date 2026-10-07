@@ -38,6 +38,14 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "ranking", label: "Best ranking" },
 ];
 
+// Visitors have no profile, so only orders that don't need one.
+const GUEST_SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: "best", label: "Strongest first" },
+  { value: "tuition-asc", label: "Lowest tuition" },
+  { value: "tuition-desc", label: "Highest tuition" },
+  { value: "ranking", label: "Best ranking" },
+];
+
 const CHANCES: AdmissionChance[] = ["Reach", "Match", "Safety", "Not enough data"];
 
 // One line under each group heading in the grouped view.
@@ -84,6 +92,7 @@ export function UniversityBoard({
   applications,
   groups,
   groupable = false,
+  guest = false,
 }: {
   entries: MatchEntry[]; // this page only
   state: BoardState;
@@ -104,6 +113,8 @@ export function UniversityBoard({
   // group, and whether the page offers the "group" switch at all.
   groups?: { chance: AdmissionChance; entries: MatchEntry[]; total: number }[];
   groupable?: boolean;
+  // A visitor without an account: no personal scores, saving or comparing.
+  guest?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -185,11 +196,16 @@ export function UniversityBoard({
             rank={entry.rank}
             isSaved={savedIds.has(entry.university.id)}
             index={i}
-            compare={{
-              selected: compareIds.includes(entry.university.id),
-              disabled: !compareIds.includes(entry.university.id) && compareIds.length >= MAX_COMPARE,
-              onToggle: () => toggleCompare(entry.university.id),
-            }}
+            guest={guest}
+            compare={
+              guest
+                ? undefined
+                : {
+                    selected: compareIds.includes(entry.university.id),
+                    disabled: !compareIds.includes(entry.university.id) && compareIds.length >= MAX_COMPARE,
+                    onToggle: () => toggleCompare(entry.university.id),
+                  }
+            }
             tracking={applications ? { application: applications[entry.university.id] ?? null } : undefined}
           />
         ))}
@@ -220,7 +236,7 @@ export function UniversityBoard({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {SORT_OPTIONS.map((option) => (
+              {(guest ? GUEST_SORT_OPTIONS : SORT_OPTIONS).map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -296,6 +312,8 @@ export function UniversityBoard({
             />
           </div>
 
+          {/* Chances are personal, so visitors without a profile don't get this filter. */}
+          {!guest && (
           <div className="flex gap-2">
             {CHANCES.map((chance) => (
               <Badge
@@ -314,6 +332,7 @@ export function UniversityBoard({
               </Badge>
             ))}
           </div>
+          )}
 
           {hasActiveFilters(filters) && (
             <Button variant="ghost" size="sm" onClick={clearFilters}>

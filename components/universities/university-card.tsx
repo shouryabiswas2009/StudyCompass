@@ -42,6 +42,7 @@ export function UniversityCard({
   ranking,
   prediction,
   rank,
+  guest = false,
   isSaved = false,
   index = 0,
   compare,
@@ -54,6 +55,8 @@ export function UniversityCard({
   prediction?: AdmissionPrediction | null;
   // Quality, chance and the one-line reason (lib/ranking.ts).
   rank?: RankInfo;
+  // A visitor without an account: no personal score, chance or saving.
+  guest?: boolean;
   isSaved?: boolean;
   index?: number;
   // Present when the card is shown in a board that supports comparing.
@@ -77,17 +80,19 @@ export function UniversityCard({
     >
       {/* Sibling of the Link (not nested inside it) so the button stays a
           separately clickable element rather than an <a> inside an <a>. */}
-      <SaveButton
-        universityId={university.id}
-        initiallySaved={isSaved}
-        className="absolute top-3 right-3 z-10"
-      />
+      {!guest && (
+        <SaveButton
+          universityId={university.id}
+          initiallySaved={isSaved}
+          className="absolute top-3 right-3 z-10"
+        />
+      )}
 
       <Link href={`/universities/${university.id}`} className="block h-full">
         <Card
           className={cn(
             "h-full rounded-2xl border-t-4 transition-all hover:-translate-y-0.5 hover:shadow-lg",
-            TIER_BORDER[matchTier(match.score)]
+            guest ? "border-t-primary/40" : TIER_BORDER[matchTier(match.score)]
           )}
         >
           <CardHeader>
@@ -95,7 +100,7 @@ export function UniversityCard({
               <CardTitle className="text-base leading-snug">
                 {university.name}
               </CardTitle>
-              <MatchScoreBadge score={match.score} />
+              {!guest && <MatchScoreBadge score={match.score} />}
             </div>
             <CardDescription className="flex items-center gap-1.5">
               <Flag country={university.country} />
@@ -104,7 +109,7 @@ export function UniversityCard({
               {university.city && university.state
                 ? `${university.city}, ${university.state}`
                 : university.country}
-              <span className="ml-auto">
+              <span className={cn("ml-auto", guest && "hidden")}>
                 <ChanceBadge
                   chance={match.chance}
                   source={match.chanceSource}
@@ -114,7 +119,7 @@ export function UniversityCard({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {rank && (
+            {rank && !guest && (
               <div className="space-y-1 rounded-xl bg-muted/60 p-3 text-sm">
                 {match.chanceSource === "model" && prediction && (
                   <p className="font-medium">

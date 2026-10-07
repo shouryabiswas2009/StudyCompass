@@ -54,3 +54,6 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+      - name: Links on the public pages work (no 404s, no login redirects)
+        run: npm run check:links
