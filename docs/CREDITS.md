@@ -78,3 +78,11 @@ student's own nearest percentage, marked approximate.
 | IB Diploma subject grades | Middle of the IB's suggested mark range per grade (7 = 96–100 … 1 = 1–20), averaged over subjects | [International Baccalaureate, Suggested Conversion for students applying to Indian Universities, April 2012](https://aiu.ac.in/documents/evaluation/Grade%20Conversion%20IB.pdf) |
 | Cambridge International A Levels | Middle of the percentage uniform mark range per grade (A* = 90–100 … E = 40–49), averaged over subjects | [Cambridge International, India frequently asked questions (2025), Appendix 1](https://www.cambridgeinternational.org/Images/745293-india-frequently-asked-questions.pdf) |
 | US GPA | Not converted (no published GPA-to-percentage table); the student enters their nearest percentage. College Board's per-class guide is linked as guidance | [College Board BigFuture](https://bigfuture.collegeboard.org/plan-for-college/get-started/how-to-convert-gpa-4.0-scale) |
+| Ontario, British Columbia, Alberta, Manitoba | Not converted: marks are already percentages, as each ministry says (Alberta: the final mark blends 70% course work and 30% diploma exam) | [Ontario](https://www.ontario.ca/page/student-assessment-evaluations-and-report-cards), [British Columbia](https://www2.gov.bc.ca/gov/content/education-training/k-12/administration/legislation-policy/public-schools/student-reporting), [Alberta](https://www.alberta.ca/diploma-exams-overview), [Manitoba](https://www.edu.gov.mb.ca/k12/assess/report_card/docs/provincial_report_card_policy.pdf) |
+| Quebec (CEGEP R-score) | Not converted: the R-score is a rank-based score, not a percentage; the student's nearest percentage, marked approximate | [BCI, cote R](https://www.bci-qc.ca/cote-r/) |
+| AP | Not converted: AP scores are 1–5 with no published percentage conversion | [College Board, About AP Scores](https://apstudents.collegeboard.org/about-ap-scores) |
+| Australia (ATAR) | Not converted: the ATAR is a rank, not a mark | [UAC](https://www.uac.edu.au/future-applicants/atar) |
+
+Saskatchewan and the Atlantic provinces are offered too, kept approximate
+until an official page confirms how their marks are reported. What was
+checked and left out: [GRADE-SYSTEMS-CONSIDERED.md](https://github.com/shouryabiswas2009/Unicelerate/blob/main/docs/GRADE-SYSTEMS-CONSIDERED.md).

@@ -1,7 +1,7 @@
 import { canonicalCountry } from "@/lib/countries";
 import { readList, readNumber, readText } from "@/lib/form-data";
 import { DEFAULT_DISPLAY_CURRENCY, isDisplayCurrency } from "@/lib/display-currency";
-import { gradeToPercentage, isGradeSystem, type GradeSystem } from "@/lib/grades";
+import { convertsInput, gradeToPercentage, isGradeSystem, type GradeSystem } from "@/lib/grades";
 import { STAY_AFTER, VISA_MODES, VISA_WEIGHTS } from "@/lib/visa";
 import {
   DEGREE_LEVELS,
@@ -46,7 +46,7 @@ export function validateProfileForm(formData: FormData): ProfileValidationResult
   const systemText = readText(formData, "grade_system") || "percentage";
   const grade_system: GradeSystem = isGradeSystem(systemText) ? systemText : "percentage";
   if (!isGradeSystem(systemText)) errors.grade_system = "Choose a grading system from the list.";
-  const converts = grade_system === "cbse_cgpa" || grade_system === "ib" || grade_system === "cambridge_a_level";
+  const converts = convertsInput(grade_system);
   const grade_input = converts ? readText(formData, "grade_input") : readText(formData, "gpa_percentage");
   const grades = gradeToPercentage(grade_system, grade_input);
   if (!grades.ok) {

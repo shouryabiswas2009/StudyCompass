@@ -29,7 +29,7 @@ illustrative rows left); `country_info` has row level security on and 27
 countries (16 post-study, 7 proof of funds, 16 work-hour figures); and
 `applications.accept_by` exists. Step 15 was run on 2026-10-07 (reported
 done; check: `delete_my_account` exists as a security-definer function).
-Steps 16–20 were run on 2026-10-07 and verified read-only: 350 universities have research impact (Oxford 99), the four profile columns exist, `figure_reports` exists and refuses inserts without a login. Steps 21–23 were run on 2026-10-08 and verified read-only: the strength columns exist, 1,688 shared universities have an index (14 estimates, MIT 99.2 / A / #1), no College Scorecard row keeps an illustrative ranking, and `visa_mode`, `visa_weight`, `stay_after` exist. **Nothing pending.**
+Steps 16–20 were run on 2026-10-07 and verified read-only: 350 universities have research impact (Oxford 99), the four profile columns exist, `figure_reports` exists and refuses inserts without a login. Steps 21–23 were run on 2026-10-08 and verified read-only: the strength columns exist, 1,688 shared universities have an index (14 estimates, MIT 99.2 / A / #1), no College Scorecard row keeps an illustrative ranking, and `visa_mode`, `visa_weight`, `stay_after` exist. **Pending: step 24** (more grade systems).
 
 New migrations will be added to this table when they're written.
 
@@ -62,6 +62,7 @@ this order: the seed files need both migrations first.
 | 21 | `supabase/migration_019_strength_index.sql` | Done, verified 2026-10-08 |
 | 22 | `supabase/seed_strength/01_strength.sql` … `06_strength.sql`, one at a time in order (check: `select count(*) filter (where strength_index is not null), count(*) filter (where strength_is_estimate) from universities where created_by is null` → 1688 and the estimate count in data/strength/report.md) | Done, verified 2026-10-08 |
 | 23 | `supabase/migration_020_visa_preferences.sql` (check: `select column_name from information_schema.columns where table_name = 'profiles' and column_name in ('visa_mode','visa_weight','stay_after')` → 3 rows) | Done, verified 2026-10-08 |
+| 24 | `supabase/migration_021_more_grade_systems.sql` (check: `select conname from pg_constraint where conname = 'profiles_grade_system_check'` → 1 row) | **To do** |
 
 All of them are safe to run again if you're not sure whether one went
 through.

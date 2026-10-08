@@ -331,3 +331,22 @@ describe("migration_020 (visa preferences)", () => {
     await expect(db.query("update public.profiles set stay_after = 'later' where id = $1", [id])).rejects.toThrow(/profiles_stay_after_check/);
   }, 30_000);
 });
+
+describe("migration_021 (more grade systems)", () => {
+  it("accepts the new systems, keeps the old ones, still rejects unknown keys, and is safe to re-run", async () => {
+    const { db } = await createInMemoryDb();
+    await db.exec(sql("migration_021_more_grade_systems.sql"));
+    const id = "00000000-0000-0000-0000-0000000000ac";
+    await db.query("insert into auth.users (id) values ($1)", [id]);
+    await db.query(
+      `insert into public.profiles (id, full_name, country, intended_majors, gpa_percentage,
+        budget_min, budget_max, preferred_countries, preferred_degree_level, grade_system)
+        values ($1, 'Student', 'Canada', '{CS}', 90, 0, 40000, '{Canada}', 'Undergraduate', 'ib')`,
+      [id]
+    );
+    for (const system of ["ca_ontario", "ca_quebec", "ap", "au_atar", "other"]) {
+      await db.query("update public.profiles set grade_system = $2 where id = $1", [id, system]);
+    }
+    await expect(db.query("update public.profiles set grade_system = 'made_up' where id = $1", [id])).rejects.toThrow(/profiles_grade_system_check/);
+  }, 30_000);
+});

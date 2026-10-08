@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { CAMBRIDGE_A_LEVEL_MARKS, GRADE_SYSTEMS, GRADE_SYSTEM_INFO, IB_RANGES, describeGrades, gradeToPercentage } from "@/lib/grades";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import {
+  CAMBRIDGE_A_LEVEL_MARKS,
+  GRADE_SYSTEMS,
+  GRADE_SYSTEM_INFO,
+  IB_RANGES,
+  describeGrades,
+  filterGradeSystems,
+  gradeToPercentage,
+  groupedGradeSystems,
+  inputAfterSystemChange,
+} from "@/lib/grades";
 
 const pct = (system: Parameters<typeof gradeToPercentage>[0], input: string) => {
   const r = gradeToPercentage(system, input);
@@ -87,5 +99,73 @@ describe("every system", () => {
     expect(describeGrades(89.8, "ib", "converted")).toBe("89.8% (converted from your IB Diploma subject grades)");
     expect(describeGrades(90, "us_gpa", "approximate")).toBe("90% (approximate, your estimate)");
     expect(describeGrades(90, undefined, undefined)).toBe("90%");
+  });
+});
+
+describe("the wider list of systems (Canada, AP, ATAR)", () => {
+  it("gives every system a source, or marks it approximate (only the plain percentage needs neither)", () => {
+    for (const s of GRADE_SYSTEMS) {
+      const info = GRADE_SYSTEM_INFO[s];
+      if (s === "percentage") continue;
+      expect(info.source !== null || info.basis === "approximate", s).toBe(true);
+    }
+  });
+
+  it("never has a converted system without its published source", () => {
+    for (const s of GRADE_SYSTEMS) {
+      if (GRADE_SYSTEM_INFO[s].basis === "converted") expect(GRADE_SYSTEM_INFO[s].source?.url, s).toMatch(/^https:\/\//);
+    }
+  });
+
+  it("passes exact percentages through unchanged and rejects values outside 0-100", () => {
+    for (const s of ["ca_ontario", "ca_british_columbia", "ca_alberta", "ca_manitoba"] as const) {
+      expect(GRADE_SYSTEM_INFO[s].basis).toBe("exact");
+      expect(pct(s, "91.5")).toEqual([91.5, "exact"]);
+      expect(pct(s, "101")).toMatch(/0 to 100/);
+      expect(pct(s, "-1")).toMatch(/0 to 100/);
+    }
+  });
+
+  it("keeps rank- or score-based systems approximate (R-score, ATAR, AP) and provinces we couldn't verify", () => {
+    for (const s of ["ca_quebec", "au_atar", "ap", "ca_saskatchewan", "ca_nova_scotia", "ca_new_brunswick", "ca_newfoundland", "ca_pei"] as const) {
+      expect(pct(s, "84")).toEqual([84, "approximate"]);
+    }
+  });
+
+  it("rejects garbage with a clear message", () => {
+    expect(pct("ca_ontario", "ninety")).toMatch(/percentage from 0 to 100/);
+    expect(pct("ib", "seven")).toMatch(/IB subject grade from 1 to 7/);
+    expect(pct("cbse_cgpa", "A+")).toMatch(/CGPA is from 0 to 10/);
+  });
+
+  it("groups the picker, with the student's own country first", () => {
+    expect(groupedGradeSystems("Canada")[0].group).toBe("Canada");
+    expect(groupedGradeSystems("India")[0].group).toBe("India");
+    expect(groupedGradeSystems(null)[0].group).toBe("Percentage-based");
+    expect(groupedGradeSystems().flatMap((g) => g.systems).sort()).toEqual([...GRADE_SYSTEMS].sort());
+  });
+
+  it("filters by name or group", () => {
+    expect(filterGradeSystems("ontario", GRADE_SYSTEMS)).toEqual(["ca_ontario"]);
+    expect(filterGradeSystems("IB", GRADE_SYSTEMS)).toContain("ib");
+    expect(filterGradeSystems("canada", GRADE_SYSTEMS)).toHaveLength(10);
+    expect(filterGradeSystems("  ", GRADE_SYSTEMS)).toHaveLength(GRADE_SYSTEMS.length);
+  });
+
+  it("clears the typed grade only when the new system is entered differently", () => {
+    expect(inputAfterSystemChange("ca_ontario", "us_gpa", "88")).toBe("88");
+    expect(inputAfterSystemChange("ib", "cambridge_a_level", "7, 6, 6")).toBe("");
+    expect(inputAfterSystemChange("percentage", "cbse_cgpa", "88")).toBe("");
+  });
+
+  it("names the system when describing an exact board average", () => {
+    expect(describeGrades(91.5, "ca_ontario", "exact")).toBe("91.5% (Ontario OSSD average, exact)");
+    expect(describeGrades(84, "ca_quebec", "approximate")).toBe("84% (approximate, your estimate)");
+  });
+
+  it("matches the list the database allows (migration_021)", () => {
+    const sql = readFileSync(join(__dirname, "..", "supabase", "migration_021_more_grade_systems.sql"), "utf8");
+    const allowed = [...sql.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).filter((k) => k !== "profiles_grade_system_check");
+    expect(allowed.sort()).toEqual([...GRADE_SYSTEMS].sort());
   });
 });

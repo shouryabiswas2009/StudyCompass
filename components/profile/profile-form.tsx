@@ -103,6 +103,7 @@ export function ProfileForm({
           initialSystem={existingProfile?.grade_system ?? "percentage"}
           initialInput={initial("grade_input")}
           initialPercentage={initial("gpa_percentage")}
+          homeCountry={existingProfile?.country}
           errors={errors}
         />
 

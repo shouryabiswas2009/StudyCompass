@@ -96,6 +96,15 @@ describe("validateProfileForm", () => {
     }
   });
 
+  it("still accepts profiles saved with the original systems, and the new Canadian ones", () => {
+    const ib = validateProfileForm(makeForm({ grade_system: "ib", grade_input: "7, 6, 6" }));
+    expect(ib.ok && [ib.data.grade_system, ib.data.grade_basis]).toEqual(["ib", "converted"]);
+    const other = validateProfileForm(makeForm({ grade_system: "other", gpa_percentage: "77" }));
+    expect(other.ok && [other.data.grade_system, other.data.gpa_percentage, other.data.grade_basis]).toEqual(["other", 77, "approximate"]);
+    const ontario = validateProfileForm(makeForm({ grade_system: "ca_ontario", gpa_percentage: "91.5" }));
+    expect(ontario.ok && [ontario.data.gpa_percentage, ontario.data.grade_basis, ontario.data.grade_input]).toEqual([91.5, "exact", null]);
+  });
+
   it("treats blank optional scores as missing, not as errors", () => {
     const result = validateProfileForm(makeForm({ ielts_score: "", sat_score: "" }));
     expect(result.ok).toBe(true);

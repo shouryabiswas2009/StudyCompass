@@ -121,3 +121,22 @@ always general guidance. Tests: `lib/visa.test.ts`,
 `lib/visa-scoring.test.ts` (ignore = identical scores and order;
 long window up, funds above budget down; missing data left out; going home
 removes the post-study part; weights add up to 100).
+
+## More grade systems (Canada first)
+
+**Why.** Canadian students (and many others) landed in "Another system"
+and were marked approximate even when their marks are plain percentages.
+
+**How.** 12 more systems in `lib/grades.ts`, grouped in the picker
+(Percentage-based, Canada, International programmes, India, Other
+countries, Other), with the student's own country's group first and a
+filter box ("Ontario", "IB"). Ontario, BC, Alberta and Manitoba are
+**exact**: their ministries say marks are percentages, so nothing is
+converted and the source shows it. Quebec's R-score, the ATAR and AP
+scores are ranks or 1–5 scores, so they're never converted; the student
+enters their nearest percentage, marked approximate. Saskatchewan and the
+Atlantic provinces stay approximate until an official page confirms their
+scale. Each option says exactly what to enter ("average of your best six
+Grade 12 U/M courses"). Old saved values keep working; migration_021 widens
+the database's list. What was checked and left out:
+`docs/GRADE-SYSTEMS-CONSIDERED.md`.
