@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { VISA_MODES } from "@/lib/visa";
+import { SECTION_FIELDS, isProfileSection, mergeSectionForm } from "@/lib/profile-sections";
+import type { Profile } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import {
   validateProfileForm,
@@ -100,4 +102,53 @@ export async function setVisaMode(formData: FormData): Promise<void> {
   if (!user) return;
   await writeSkippingPendingColumns({ visa_mode: mode }, (row) => supabase.from("profiles").update(row).eq("id", user.id));
   revalidatePath("/recommendations");
+}
+
+export type SectionState =
+  | {
+      ok?: boolean;
+      savedAt?: number;
+      error?: string;
+      notice?: string;
+      fieldErrors?: ProfileFieldErrors;
+      values?: Record<string, string>;
+    }
+  | undefined;
+
+// Saves one section of the profile page (lib/profile-sections.ts): the
+// saved profile with only this section's fields replaced, validated as a
+// whole by the same rules as before, so a section can never wipe another.
+export async function saveProfileSection(_prev: SectionState, formData: FormData): Promise<SectionState> {
+  const section = String(formData.get("section") ?? "");
+  if (!isProfileSection(section)) return { error: "Unknown section." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be logged in to save your profile." };
+
+  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>();
+  if (!profile) return { error: "Create your profile first (the form below saves everything at once)." };
+
+  const echo = Object.fromEntries(SECTION_FIELDS[section].map((name) => [name, String(formData.get(name) ?? "")]));
+  const result = validateProfileForm(mergeSectionForm(profile, section, formData));
+  if (!result.ok) {
+    const own = Object.keys(result.errors).some((k) => SECTION_FIELDS[section].includes(k));
+    return {
+      error: own ? "Please fix the highlighted fields." : "Another section has a problem; check the fields marked there.",
+      fieldErrors: result.errors,
+      values: echo,
+    };
+  }
+
+  const {
+    result: { error },
+    skipped,
+  } = await writeSkippingPendingColumns({ id: user.id, ...result.data }, (row) => supabase.from("profiles").upsert(row));
+  if (error) return { error: "Couldn't save. Please try again.", values: echo };
+
+  revalidatePath("/profile");
+  revalidatePath("/recommendations");
+  return { ok: true, savedAt: Date.now(), notice: skipped.length ? skippedNotice(skipped) : undefined };
 }

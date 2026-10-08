@@ -140,3 +140,36 @@ scale. Each option says exactly what to enter ("average of your best six
 Grade 12 U/M courses"). Old saved values keep working; migration_021 widens
 the database's list. What was checked and left out:
 `docs/GRADE-SYSTEMS-CONSIDERED.md`.
+
+## A guided profile page
+
+**Why.** The profile was one long form of about 15 unrelated controls, with
+nothing saying what matters, what's optional or how complete it was.
+
+**How.** `app/(dashboard)/profile/page.tsx`:
+- **Profile strength**: "6 of 9 filled in" (a plain count of real fields,
+  `lib/profile-completeness.ts`), each missing item linked to its section
+  with what adding it changes ("Adding SAT lets us estimate admission
+  chances for US schools").
+- **Quick start presets** (`lib/profile-presets.ts`, plain config): links
+  that pre-fill grades, currency and countries; nothing is saved until Save.
+- **Six numbered sections** (01 About you, 02 Your academics, 03 What you
+  want to study, 04 Money, 05 Your priorities, 06 Account) with a sticky
+  list of them on large screens and a stacked layout on phones; hairlines
+  between sections, no boxes.
+- **Each section saves on its own** (`saveProfileSection`): the saved
+  profile with only that section's fields replaced, validated as a whole by
+  the existing rules (`lib/profile-sections.ts`, tested), so a section can
+  never wipe another. Status next to each Save: "Saving…", "Saved ✓",
+  "Couldn't save: …"; field errors beside the fields; announced with
+  `aria-live`. A new profile (or an applied preset) is one form with one
+  Save, because its required fields span several sections.
+- **Money** as a range with sliders and number boxes, shown in US dollars
+  and the display currency, with the note that US net price isn't used.
+- **Your priorities** groups the focuses and the visa choice.
+- **Your top 3 right now**: the same "Best you can get into" ranking,
+  computed on the server and cached per saved profile, so it changes after
+  a save, not per keystroke.
+- Native inputs and selects (no dropdown library), 44px targets, labels
+  tied to inputs. The page's browser JavaScript went from 9 chunks / 238 KB
+  to 7 chunks / 161 KB (uncompressed, from the build's client manifest).

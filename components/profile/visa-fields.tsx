@@ -27,7 +27,7 @@ export function VisaFields({
       <legend className="text-sm font-medium">Visa and work rights</legend>
       <div className="grid gap-2 sm:grid-cols-3">
         {VISA_MODES.map((m) => (
-          <label key={m} className="flex cursor-pointer gap-2 rounded-md border p-3 has-[:checked]:border-primary">
+          <label key={m} className="flex min-h-11 cursor-pointer gap-2 rounded-md border p-3 has-[:checked]:border-primary">
             <input type="radio" name="visa_mode" value={m} checked={mode === m} onChange={() => setMode(m)} className="mt-1 accent-primary" />
             <span className="space-y-0.5">
               <span className="block text-sm font-medium">{VISA_MODE_LABELS[m]}</span>
@@ -44,7 +44,7 @@ export function VisaFields({
             <span className="text-sm">How much should it count?</span>
             <div className="flex gap-3">
               {VISA_WEIGHTS.map((w) => (
-                <label key={w} className="flex items-center gap-1.5 text-sm">
+                <label key={w} className="flex min-h-11 items-center gap-1.5 pr-2 text-sm">
                   <input type="radio" name="visa_weight" value={w} defaultChecked={(profile?.visa_weight ?? "medium") === w} className="accent-primary" />
                   {w[0].toUpperCase() + w.slice(1)}
                 </label>
@@ -56,7 +56,7 @@ export function VisaFields({
             <span className="text-sm">Do you plan to work or stay in the country after graduating?</span>
             <div className="flex flex-wrap gap-3">
               {STAY_AFTER.map((s) => (
-                <label key={s} className="flex items-center gap-1.5 text-sm">
+                <label key={s} className="flex min-h-11 items-center gap-1.5 pr-2 text-sm">
                   <input type="radio" name="stay_after" value={s} defaultChecked={profile?.stay_after === s} className="accent-primary" />
                   {STAY_AFTER_LABELS[s]}
                 </label>

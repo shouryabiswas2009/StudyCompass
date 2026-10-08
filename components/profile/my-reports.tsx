@@ -19,8 +19,8 @@ const STATUS: Record<MyReport["status"], string> = {
 // Only they can read these (row level security, migration_018).
 export function MyReports({ reports }: { reports: MyReport[] }) {
   return (
-    <section className="mt-10 space-y-3">
-      <h2 className="text-lg font-semibold">Figures you reported</h2>
+    <section className="space-y-3">
+      <h3 className="font-semibold">Figures you reported</h3>
       <ul className="divide-y border-y text-sm">
         {reports.map((r) => (
           <li key={r.id} className="flex flex-wrap items-baseline justify-between gap-2 py-3">

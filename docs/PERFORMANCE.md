@@ -403,3 +403,13 @@ found two accessibility issues, both fixed before release: the faint
 placeholder numbers in "Try it" were 3.6:1 in dark mode (now the normal
 muted colour), and "How is this calculated?" was a 16px-tall target (now at
 least 24px).
+
+## Profile page redesign (2026-10-08)
+
+Browser JavaScript referenced by `/profile` (the build's client reference
+manifest, uncompressed): **9 chunks / 238 KB before, 7 chunks / 161 KB
+after**. The dropdown library (Radix Select) is no longer used there:
+grading system, degree level and currency are native selects. "Your top 3
+right now" is computed on the server and cached per saved profile, so it
+adds no work per keystroke. The page needs a login, so Lighthouse can't
+measure it from here.

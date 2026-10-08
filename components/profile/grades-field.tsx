@@ -108,7 +108,10 @@ export function GradesField({
         <p className="text-sm" aria-live="polite">
           {result?.ok ? (
             <>
-              <span className="font-medium">≈ {result.percentage}%</span>{" "}
+              <span className="font-medium">
+                {result.basis === "exact" ? "" : "≈ "}
+                {result.percentage}%
+              </span>{" "}
               <span className="text-muted-foreground">({BASIS_TEXT[result.basis]})</span>
             </>
           ) : result ? (
