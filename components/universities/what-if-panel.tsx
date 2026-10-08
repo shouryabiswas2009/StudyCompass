@@ -37,7 +37,7 @@ export function WhatIfPanel({ profile, university }: { profile: Profile; univers
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="mr-auto text-sm font-medium">What if?</h3>
-        <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">Demo estimate</span>
+        <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Demo estimate</span>
         <Button
           type="button"
           variant="ghost"
@@ -97,7 +97,7 @@ export function WhatIfPanel({ profile, university }: { profile: Profile; univers
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2" aria-live="polite">
-        <div className="rounded-xl border p-3">
+        <div className="border-t pt-3">
           <p className="text-xs text-muted-foreground">Match score</p>
           <div className="mt-1 flex items-center gap-2">
             <MatchScoreBadge score={shownScore} />
@@ -108,7 +108,7 @@ export function WhatIfPanel({ profile, university }: { profile: Profile; univers
             )}
           </div>
         </div>
-        <div className="rounded-xl border p-3">
+        <div className="border-t pt-3">
           <p className="text-xs text-muted-foreground">Admission estimate</p>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <ChanceBadge

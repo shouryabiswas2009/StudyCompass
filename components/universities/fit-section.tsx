@@ -26,9 +26,9 @@ export function FitSection({
   university: UniversitySummary;
 }) {
   return (
-    <div className="mt-8 rounded-2xl border p-5">
+    <div className="mt-8 rounded-lg border p-5">
       {profile.preferred_degree_level !== "Undergraduate" && (
-        <p className="mb-4 rounded-xl bg-muted p-3 text-xs text-muted-foreground">
+        <p className="mb-4 border-l-2 pl-3 text-xs text-muted-foreground">
           Tuition, admission rate and test scores on this page are undergraduate figures unless stated;{" "}
           {profile.preferred_degree_level} fees and admission differ, so check the program&apos;s own page.
         </p>

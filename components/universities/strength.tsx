@@ -74,7 +74,7 @@ export function StrengthExplainer({ university }: { university: UniversitySummar
             if (!(e.target as HTMLElement).closest("a")) e.preventDefault();
             e.stopPropagation();
           }}
-          className="absolute right-0 z-30 mt-1 block w-72 max-w-[80vw] rounded-xl border bg-popover p-3 text-left text-xs text-popover-foreground shadow-lg"
+          className="absolute right-0 z-30 mt-1 block w-72 max-w-[80vw] rounded-md border bg-popover p-3 text-left text-xs text-popover-foreground shadow-md"
         >
           <StrengthBreakdown university={university} />
         </span>

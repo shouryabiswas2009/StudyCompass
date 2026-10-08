@@ -46,7 +46,7 @@ export function ApplicationCard({
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border p-5">
+    <div className="space-y-4 rounded-lg border p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="space-y-1">
           <Link href={`/universities/${university.id}`} className="font-medium hover:underline">

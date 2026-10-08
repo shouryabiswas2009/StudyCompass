@@ -155,7 +155,7 @@ export function UniversityForm({
         </fieldset>
       </div>
 
-      <div className="space-y-4 rounded-2xl border p-4">
+      <div className="space-y-4 rounded-lg border p-4">
         <div>
           <h2 className="font-medium">Admission figures (optional)</h2>
           <p className="text-sm text-muted-foreground">
@@ -239,7 +239,7 @@ export function UniversityForm({
         </div>
       </div>
 
-      <div className="space-y-4 rounded-2xl border p-4">
+      <div className="space-y-4 rounded-lg border p-4">
         <div>
           <h2 className="font-medium">Research and work experience (optional)</h2>
           <p className="text-sm text-muted-foreground">

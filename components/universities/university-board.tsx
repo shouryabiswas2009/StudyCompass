@@ -375,7 +375,7 @@ export function UniversityBoard({
         <EmptyState message="No universities match these filters — try clearing one." />
       ) : groups ? (
         <div className={`space-y-10 transition-opacity ${isPending ? "opacity-60" : ""}`} aria-busy={isPending}>
-          <p className="rounded-xl bg-tint p-4 text-sm text-tint-foreground">
+          <p className="border-l-2 border-primary py-1 pl-3 text-sm">
             A balanced list often has {LIST_MIX.reach} reach, {LIST_MIX.match} match and {LIST_MIX.safety} safety
             schools. The labels come from a demo estimate, not a prediction: very selective schools are a reach for
             almost everyone, even strong applicants, and nothing here is a promise.
@@ -428,7 +428,7 @@ export function UniversityBoard({
 
       {/* Appears once something is ticked; stays visible while scrolling. */}
       {compareIds.length > 0 && (
-        <div className="sticky bottom-4 z-20 mx-auto flex w-fit items-center gap-3 rounded-full border bg-background/95 px-4 py-2 shadow-lg backdrop-blur">
+        <div className="sticky bottom-4 z-20 mx-auto flex w-fit items-center gap-3 rounded-md border bg-background px-4 py-2 shadow-md">
           <span className="text-sm">
             {compareIds.length} of {MAX_COMPARE} selected
           </span>
@@ -523,10 +523,8 @@ function PageLink({
 
 function EmptyState({ message }: { message: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed py-16 text-center">
-      <div className="flex size-12 items-center justify-center rounded-full bg-muted">
-        <Search className="size-5 text-muted-foreground" aria-hidden />
-      </div>
+    <div className="flex flex-col items-center gap-3 border-y py-16 text-center">
+      <Search className="size-5 text-muted-foreground" aria-hidden />
       <p className="max-w-sm text-muted-foreground">{message}</p>
     </div>
   );

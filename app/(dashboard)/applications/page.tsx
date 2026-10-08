@@ -71,8 +71,8 @@ export default async function ApplicationsPage() {
       </div>
 
       {sorted.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed py-16 text-center">
-          <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+        <div className="flex flex-col items-center gap-3 border-y py-16 text-center">
+          <div className="flex items-center justify-center">
             <ClipboardList className="size-5 text-muted-foreground" />
           </div>
           <p className="max-w-sm text-muted-foreground">

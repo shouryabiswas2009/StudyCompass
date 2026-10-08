@@ -17,7 +17,7 @@ export function DeleteAccount() {
   const [state, formAction, pending] = useActionState(deleteAccount, undefined);
 
   return (
-    <section aria-labelledby="delete-heading" className="mt-12 rounded-2xl border border-destructive/30 p-6">
+    <section aria-labelledby="delete-heading" className="mt-12 rounded-lg border border-destructive/30 p-6">
       <h2 id="delete-heading" className="font-semibold">Delete my account and data</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Permanently deletes your login, profile, saved schools, applications and offers, and any

@@ -45,7 +45,7 @@ export function CompareControls({
               type="button"
               aria-label={`Remove ${nameOf(id)} from comparison`}
               onClick={() => router.push(compareUrl(selectedIds.filter((x) => x !== id), showAll))}
-              className="rounded-full p-0.5 hover:bg-muted-foreground/20"
+              className="rounded-sm p-0.5 hover:bg-muted-foreground/20"
             >
               <X className="size-3" />
             </button>

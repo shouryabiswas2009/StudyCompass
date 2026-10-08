@@ -250,7 +250,7 @@ export function ProfileForm({
             {FOCUSES.map((focus) => (
               <label
                 key={focus}
-                className="flex cursor-pointer gap-3 rounded-xl border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                className="flex cursor-pointer gap-3 rounded-md border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
               >
                 <input
                   type="checkbox"

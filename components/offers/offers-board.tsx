@@ -74,7 +74,7 @@ export function OffersBoard({
 
   return (
     <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
-      <aside className="space-y-4 rounded-2xl border p-5 lg:sticky lg:top-24 lg:self-start">
+      <aside className="space-y-4 rounded-lg border p-5 lg:sticky lg:top-24 lg:self-start">
         <div>
           <h2 className="font-medium">What matters to you?</h2>
           <p className="text-sm text-muted-foreground">
@@ -142,8 +142,8 @@ export function OffersBoard({
           <div
             className={
               sensitivity.verdict.kind === "clear"
-                ? "flex gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-sm"
-                : "flex gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm"
+                ? "flex gap-2 border-l-2 border-emerald-500 py-1 pl-3 text-sm"
+                : "flex gap-2 border-l-2 border-amber-500 py-1 pl-3 text-sm"
             }
             aria-live="polite"
           >
@@ -161,10 +161,10 @@ export function OffersBoard({
             const due = acceptByStatus(offer.acceptBy, offer.status);
             const spread = robustness.get(offer.id);
             return (
-            <li key={offer.id} className="space-y-2 rounded-2xl border p-5">
+            <li key={offer.id} className="space-y-2 rounded-lg border p-5">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="flex size-7 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-                  {position}
+                <span className="font-heading text-sm font-semibold tabular-nums text-primary">
+                  {String(position).padStart(2, "0")}
                 </span>
                 <Link href={`/universities/${offer.universityId}`} className="mr-auto font-medium hover:underline">
                   {offer.universityName}
@@ -174,10 +174,10 @@ export function OffersBoard({
                   <span
                     className={
                       due.state === "overdue"
-                        ? "inline-flex items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-xs text-rose-600 dark:text-rose-400"
+                        ? "inline-flex items-center gap-1 text-xs font-medium text-rose-600 dark:text-rose-400"
                         : due.state === "due-soon"
-                          ? "inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-600 dark:text-amber-400"
-                          : "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs text-muted-foreground"
+                          ? "inline-flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400"
+                          : "inline-flex items-center gap-1 text-xs text-muted-foreground"
                     }
                   >
                     {due.state === "overdue" ? (
@@ -241,7 +241,7 @@ export function OffersBoard({
 
 function SummaryCard({ title, name, note }: { title: string; name?: string; note?: string }) {
   return (
-    <div className="rounded-2xl border p-4">
+    <div className="border-t pt-3">
       <p className="text-xs text-muted-foreground">{title}</p>
       <p className="font-medium">{name ?? "—"}</p>
       {note && <p className="text-xs text-muted-foreground">{note}</p>}

@@ -101,8 +101,8 @@ export default async function OffersPage() {
       </div>
 
       {offers.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed py-16 text-center">
-          <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+        <div className="flex flex-col items-center gap-3 border-y py-16 text-center">
+          <div className="flex items-center justify-center">
             <Award className="size-5 text-muted-foreground" />
           </div>
           <p className="max-w-sm text-muted-foreground">
@@ -129,7 +129,7 @@ export default async function OffersPage() {
           <h2 className="text-lg font-semibold">Visas and work, by country</h2>
           <div className="grid gap-6 lg:grid-cols-2">
             {offerCountries.map((country) => (
-              <div key={country} className="rounded-2xl border p-4">
+              <div key={country} className="border-t pt-4">
                 <CountryGuidance
                   country={country}
                   info={countryInfo.byCountry.get(country) ?? null}

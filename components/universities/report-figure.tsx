@@ -40,7 +40,7 @@ export function ReportFigure({ universityId }: { universityId: string }) {
             <FlagIcon className="size-3.5" aria-hidden /> Report a wrong figure
           </Button>
         ) : (
-          <form action={action} className="space-y-3 rounded-2xl border p-4">
+          <form action={action} className="space-y-3 rounded-lg border p-4">
             <input type="hidden" name="university_id" value={universityId} />
             <div className="space-y-1.5">
               <Label htmlFor="report-field">Which figure?</Label>

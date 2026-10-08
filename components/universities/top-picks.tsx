@@ -12,9 +12,9 @@ export function TopPicks({ groups }: { groups: { country: string; picks: MatchEn
   return (
     <section className="mb-10 space-y-3">
       <h2 className="font-medium">Top picks by country</h2>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
         {groups.map(({ country, picks }) => (
-          <div key={country} className="rounded-2xl border p-4">
+          <div key={country} className="border-t pt-3">
             <h3 className="mb-3 flex items-center gap-2 text-sm font-medium">
               <Flag country={country} />
               {country}

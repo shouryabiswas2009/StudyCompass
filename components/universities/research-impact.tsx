@@ -51,13 +51,13 @@ export function ResearchImpactPanel({ university }: { university: UniversitySumm
         </p>
       ) : (
         <>
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border p-3">
+          <dl className="grid grid-cols-2 gap-x-6 border-t sm:grid-cols-3">
+            <div className="border-b py-3">
               <dt className="text-xs text-muted-foreground">Overall</dt>
               <dd className="font-medium">{ordinal(impact.overall)} percentile</dd>
             </div>
             {(Object.keys(RESEARCH_FIELD_LABELS) as ResearchFieldKey[]).map((key) => (
-              <div key={key} className="rounded-xl border p-3">
+              <div key={key} className="border-b py-3">
                 <dt className="text-xs text-muted-foreground">{RESEARCH_FIELD_LABELS[key]}</dt>
                 <dd className="font-medium">
                   {typeof impact.fields?.[key] === "number" ? (

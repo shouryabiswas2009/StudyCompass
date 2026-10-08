@@ -1,12 +1,11 @@
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { DotLabel } from "@/components/dot-label";
 import type { AdmissionChance } from "@/lib/matching";
 
 const STYLES: Record<AdmissionChance, string> = {
-  Reach: "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
-  Match: "border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-400",
-  Safety: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  "Not enough data": "border-border text-muted-foreground",
+  Reach: "text-rose-600 dark:text-rose-400",
+  Match: "text-sky-700 dark:text-sky-400",
+  Safety: "text-emerald-700 dark:text-emerald-400",
+  "Not enough data": "text-muted-foreground",
 };
 
 // Shown wherever a school's admission chance appears. The tooltip says how
@@ -22,9 +21,8 @@ export function ChanceBadge({
 }) {
   const fromModel = source === "model" && probability !== undefined;
   return (
-    <Badge
-      variant="outline"
-      className={cn("font-medium", STYLES[chance])}
+    <DotLabel
+      className={STYLES[chance]}
       title={
         chance === "Not enough data"
           ? "This school doesn't publish admission figures we can compare you with, so there's no Reach / Match / Safety label"
@@ -35,6 +33,6 @@ export function ChanceBadge({
     >
       {chance}
       {fromModel && ` · ~${Math.round(probability * 100)}%`}
-    </Badge>
+    </DotLabel>
   );
 }

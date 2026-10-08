@@ -21,9 +21,9 @@ export function MyReports({ reports }: { reports: MyReport[] }) {
   return (
     <section className="mt-10 space-y-3">
       <h2 className="text-lg font-semibold">Figures you reported</h2>
-      <ul className="divide-y rounded-2xl border text-sm">
+      <ul className="divide-y border-y text-sm">
         {reports.map((r) => (
-          <li key={r.id} className="flex flex-wrap items-baseline justify-between gap-2 p-3">
+          <li key={r.id} className="flex flex-wrap items-baseline justify-between gap-2 py-3">
             <span>
               <span className="font-medium">{r.universities?.name ?? "A university"}</span>: {REPORT_FIELDS[r.field]}
               {r.suggested_value && <span className="text-muted-foreground"> → {r.suggested_value}</span>}

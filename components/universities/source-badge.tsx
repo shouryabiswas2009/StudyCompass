@@ -1,5 +1,4 @@
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { DotLabel } from "@/components/dot-label";
 import type { University } from "@/lib/types";
 
 type SourceFields = Pick<University, "source" | "data_year" | "fetched_at" | "source_url">;
@@ -20,13 +19,12 @@ export function SourceBadge({
   if (source === "College Scorecard") {
     const fetched = fetched_at ? ` Fetched ${fetched_at.slice(0, 10)}.` : "";
     return (
-      <Badge
-        variant="outline"
-        className="border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
+      <DotLabel
+        className="text-emerald-700 dark:text-emerald-400"
         title={`Official figures from the US Department of Education College Scorecard (data year ${data_year}).${fetched}`}
       >
         College Scorecard{data_year ? ` · ${data_year} data` : ""}
-      </Badge>
+      </DotLabel>
     );
   }
 
@@ -35,21 +33,20 @@ export function SourceBadge({
   if (source === "curated") {
     const site = source_url ? new URL(source_url).hostname.replace(/^www\./, "") : "university website";
     return (
-      <Badge
-        variant="outline"
-        className="border-sky-500/30 text-sky-700 dark:text-sky-400"
+      <DotLabel
+        className="text-sky-700 dark:text-sky-400"
         title="Figures checked by hand on the university's own pages (linked on the details page). Converted amounts are approximate."
       >
         Source: {site}
         {data_year ? ` · ${data_year}` : ""}
-      </Badge>
+      </DotLabel>
     );
   }
 
   if (source === "user-entered") {
     return (
       <span className="inline-flex items-center gap-1.5">
-        <Badge variant="secondary">Added by you</Badge>
+        <DotLabel className="text-muted-foreground">Added by you</DotLabel>
         {source_url && showLink && (
           <a
             href={source_url}
@@ -65,12 +62,11 @@ export function SourceBadge({
   }
 
   return (
-    <Badge
-      variant="outline"
-      className={cn("border-amber-500/30 text-amber-700 dark:text-amber-400")}
+    <DotLabel
+      className="text-amber-700 dark:text-amber-400"
       title="Hand-written sample figures for this demo — not official statistics"
     >
       Illustrative data
-    </Badge>
+    </DotLabel>
   );
 }

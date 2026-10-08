@@ -62,7 +62,7 @@ export function TagInput({
                 type="button"
                 onClick={() => removeTag(tag)}
                 aria-label={`Remove ${tag}`}
-                className="rounded-full p-0.5 hover:bg-muted-foreground/20"
+                className="rounded-sm p-0.5 hover:bg-muted-foreground/20"
               >
                 <X className="size-3" />
               </button>

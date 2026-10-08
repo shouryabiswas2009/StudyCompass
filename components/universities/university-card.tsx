@@ -105,7 +105,7 @@ export function UniversityCard({
       <Link href={universityPath(university)} className="block h-full">
         <Card
           className={cn(
-            "h-full rounded-2xl border-t-4 transition-all hover:-translate-y-0.5 hover:shadow-lg",
+            "h-full rounded-lg border-t-2 transition-colors hover:border-x-primary/40 hover:border-b-primary/40",
             guest ? "border-t-primary/40" : TIER_BORDER[matchTier(match.score)]
           )}
         >
@@ -134,7 +134,7 @@ export function UniversityCard({
           </CardHeader>
           <CardContent className="space-y-3">
             {rank && !guest && (
-              <div className="space-y-1 rounded-xl bg-muted/60 p-3 text-sm">
+              <div className="space-y-1 border-l-2 border-primary/40 pl-3 text-sm">
                 {match.chanceSource === "model" && prediction && (
                   <p className="font-medium">
                     ~{Math.round(prediction.probability * 100)}% chance{" "}

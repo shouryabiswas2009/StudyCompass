@@ -57,7 +57,7 @@ export function PersonalSave({ id }: { id: string }) {
         {data?.signedIn ? (
           <SaveButton universityId={id} initiallySaved={data.saved} />
         ) : (
-          <span className="skeleton block size-8 rounded-full" aria-hidden />
+          <span className="skeleton block size-8 rounded-md" aria-hidden />
         )}
       </span>
     </>
@@ -69,8 +69,8 @@ export function PersonalFit({ university }: { university: UniversitySummary }) {
   return (
     <>
       <div className="guest-only">
-        <div className="mt-6 flex flex-col gap-3 rounded-2xl border bg-tint p-5 sm:flex-row sm:items-center">
-          <p className="flex-1 text-sm text-tint-foreground">
+        <div className="mt-6 flex flex-col gap-3 border-l-2 border-primary py-1 pl-4 sm:flex-row sm:items-center">
+          <p className="flex-1 text-sm">
             <strong>How well does it fit you?</strong> Create a free profile to see your match score,
             admission estimate and the What if? sliders for this university.
           </p>
@@ -81,11 +81,11 @@ export function PersonalFit({ university }: { university: UniversitySummary }) {
       </div>
       <div className="member-only" aria-live="polite">
         {!data ? (
-          <div className="skeleton mt-8 h-48 rounded-2xl" aria-label="Loading your fit" />
+          <div className="skeleton mt-8 h-48 rounded-lg" aria-label="Loading your fit" />
         ) : data.signedIn && data.entry && data.profile ? (
           <FitSection entry={data.entry} profile={data.profile} university={university} />
         ) : data.signedIn ? (
-          <p className="mt-6 rounded-2xl border bg-tint p-5 text-sm text-tint-foreground">
+          <p className="mt-6 border-l-2 border-primary py-1 pl-4 text-sm">
             <Link href="/profile" className="font-semibold underline">Fill in your profile</Link> to see how well
             this university fits you.
           </p>

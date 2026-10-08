@@ -132,7 +132,7 @@ export function UniversityDetails({
       : {
           icon: TrendingUp,
           label: STRENGTH_LABEL,
-          value: <StrengthValue university={university} className="justify-center text-center" />,
+          value: <StrengthValue university={university} className="justify-start text-left" />,
         },
     {
       icon: Percent,
@@ -163,15 +163,15 @@ export function UniversityDetails({
 
       {afterHeader}
 
-      <div className="mt-8 grid grid-cols-3 gap-4">
+      {/* The three headline figures as a row with thin dividers, no boxes. */}
+      <div className="mt-8 grid grid-cols-1 divide-y border-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-2xl border p-4 text-center"
-          >
-            <stat.icon className="mx-auto mb-2 size-5 text-primary" />
-            <p className="text-lg font-semibold">{stat.value}</p>
-            <p className="text-xs text-muted-foreground">{stat.label}</p>
+          <div key={stat.label} className="py-4 sm:px-5 sm:first:pl-0">
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <stat.icon className="size-3.5" aria-hidden />
+              {stat.label}
+            </p>
+            <div className="mt-1 text-lg font-semibold">{stat.value}</div>
           </div>
         ))}
       </div>
@@ -191,9 +191,9 @@ export function UniversityDetails({
 
       <div className="mt-8 space-y-2">
         <h2 className="font-medium">Admission figures</h2>
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-x-6 border-t sm:grid-cols-4">
           {admissionFigures.map((figure) => (
-            <div key={figure.label} className="rounded-xl border p-3">
+            <div key={figure.label} className="border-b py-3">
               <dt className="text-xs text-muted-foreground">{figure.label}</dt>
               <dd className="font-medium">{figure.value}</dd>
             </div>
@@ -269,9 +269,9 @@ export function UniversityDetails({
       {officialFigures.length > 0 && (
         <div className="mt-8 space-y-2">
           <h2 className="font-medium">More official figures</h2>
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <dl className="grid grid-cols-2 gap-x-6 border-t sm:grid-cols-3">
             {officialFigures.map((figure) => (
-              <div key={figure.label} className="rounded-xl border p-3">
+              <div key={figure.label} className="border-b py-3">
                 <dt className="text-xs text-muted-foreground">{figure.label}</dt>
                 <dd className="font-medium">{figure.value}</dd>
               </div>
@@ -295,7 +295,7 @@ export function UniversityDetails({
       <div className="mt-8 space-y-2">
         <h2 className="font-medium">{STRENGTH_LABEL}</h2>
         {university.strength_signals ? (
-          <div className="rounded-xl border p-4 text-sm">
+          <div className="border-l-2 border-primary/40 pl-4 text-sm">
             <StrengthBreakdown university={university} />
           </div>
         ) : (
@@ -323,9 +323,9 @@ export function UniversityDetails({
 
       <div className="mt-8 space-y-2">
         <h2 className="font-medium">Research and work experience</h2>
-        <dl className="grid grid-cols-2 gap-3">
+        <dl className="grid grid-cols-2 gap-x-6 border-t">
           {focusFigures.map((figure) => (
-            <div key={figure.label} className="rounded-xl border p-3">
+            <div key={figure.label} className="border-b py-3">
               <dt className="text-xs text-muted-foreground">{figure.label}</dt>
               <dd className="font-medium">{figure.value}</dd>
             </div>

@@ -42,7 +42,7 @@ export function SaveButton({
       aria-label={saved ? "Remove from saved" : "Save university"}
       onClick={handleClick}
       disabled={isPending}
-      className={cn("rounded-full shadow-sm", className)}
+      className={cn("rounded-md", className)}
     >
       {saved ? (
         <BookmarkCheck key={pops} className={cn("size-4 text-primary", pops > 0 && "animate-pop")} />

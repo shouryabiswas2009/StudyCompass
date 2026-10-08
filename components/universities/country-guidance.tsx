@@ -35,15 +35,15 @@ export function CountryGuidance({
       </div>
 
       {pending ? (
-        <p className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">
+        <p className="border-l-2 py-1 pl-3 text-sm text-muted-foreground">
           Visa guidance isn&apos;t set up yet (the database step for it hasn&apos;t been run).
         </p>
       ) : (
-        <dl className={compact ? "grid gap-2" : "grid gap-3 sm:grid-cols-3"}>
+        <dl className={compact ? "grid border-t" : "grid gap-x-6 border-t sm:grid-cols-3"}>
           {items.map((item) => {
             const age = item.text && item.checkedOn ? checkAge(item.checkedOn) : null;
             return (
-              <div key={item.key} className="rounded-xl border p-3">
+              <div key={item.key} className="border-b py-3">
                 <dt className="text-xs text-muted-foreground">{item.title}</dt>
                 <dd className="mt-1 space-y-1">
                   {item.text ? (

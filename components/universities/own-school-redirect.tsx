@@ -22,7 +22,7 @@ export function OwnSchoolRedirect({ id }: { id: string }) {
   useEffect(() => {
     if (signedIn) router.replace(`/universities/mine/${id}`);
   }, [signedIn, id, router]);
-  if (signedIn !== false) return <div className="skeleton mx-auto my-24 h-40 max-w-md rounded-2xl" aria-label="Loading" />;
+  if (signedIn !== false) return <div className="skeleton mx-auto my-24 h-40 max-w-md rounded-lg" aria-label="Loading" />;
   return (
     <StatusMessage
       eyebrow="Not found"
