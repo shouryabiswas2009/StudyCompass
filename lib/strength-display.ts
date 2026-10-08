@@ -1,5 +1,6 @@
 import { STRENGTH_WEIGHTS, type StrengthSignalKey } from "@/lib/strength-config";
 import { majorField } from "@/lib/research-impact";
+import { NUMBER_FORMAT } from "@/lib/format";
 import type { Profile, UniversitySummary } from "@/lib/types";
 
 // How the Unicelerate strength index is shown and used in the app. The
@@ -62,7 +63,7 @@ export type StrengthSummary = {
   isEstimate: boolean;
 };
 
-const fmt = (n: number) => n.toLocaleString("en-US");
+const fmt = (n: number) => NUMBER_FORMAT.format(n);
 const oneDecimal = (n: number) => String(Math.round(Number(n)));
 
 export function strengthSummary(u: UniversitySummary): StrengthSummary | null {

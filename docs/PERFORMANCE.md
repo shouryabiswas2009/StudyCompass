@@ -354,3 +354,36 @@ Notes, honestly:
 - Signed-in timings weren't measured (no test login for the tooling).
 - Speed Insights' real-visitor numbers appear in the Vercel dashboard once
   it's enabled there and visitors arrive.
+
+## Strength index and visa factor (2026-10-08)
+
+The index is computed at import time and stored; pages only read it. The
+cached university list is packed by column (`packRows`), so it stays far
+below Next.js's 2 MB data-cache limit with the new columns (tested with the
+real values in `lib/data/universities.test.ts`).
+
+**Server:** time to first byte after the release, from Montreal (5 requests
+each): `/` 0.13–0.18 s, a university page 0.12 s (cached), `/universities`
+0.38–0.44 s (one slow outlier at 0.96 s), `/recommendations` (logged out,
+a redirect to login: signed-in timing can't be measured by the tooling)
+0.11–0.15 s. Same ranges as before.
+
+**Browser, `/universities`, A/B on the same machine and database**
+(production builds served locally, Lighthouse mobile, 3 runs each; local
+numbers run higher than live because the server shares the machine):
+
+| Build | Total blocking time | JavaScript execution |
+| --- | --- | --- |
+| Before the strength index (1c5fe02) | 652 / 655 / 764 ms | 1,715 / 1,945 / 2,160 ms |
+| Strength index, first version | 696 / 936 / 962 ms | 2,653 / 3,215 / 3,409 ms |
+| Same card without the strength cell (diagnosis) | 575 / 623 / 689 ms | 2,504 / 2,524 / 2,650 ms |
+| **Strength index with shared number formatters** | 502 / 712 / 730 ms | 1,726 / 2,108 / 2,140 ms |
+
+The first version **was slower**: every card formatted its numbers with
+`toLocaleString("en-US")` / `new Intl.NumberFormat(...)`, which builds a new
+formatter on every call, twice per card (server render and hydration).
+Sharing one formatter (`NUMBER_FORMAT` in lib/format.ts, one per currency
+in lib/money.ts) brought it back to the pre-index range, so the release
+doesn't make the page slower. Older live figures (TBT 387 ms after the
+caching work) were measured before research impact, currency and the other
+features shipped, so they aren't a like-for-like comparison.

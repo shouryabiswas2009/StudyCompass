@@ -25,8 +25,14 @@ type MoneyFields = Pick<University, "tuition" | "living_cost_per_year"> &
 
 export type MoneyDisplay = { text: string; note: string | null; approximate: boolean };
 
-const local = (amount: number, currency: string) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
+// One formatter per currency, made once (creating one per call is slow).
+const formatters = new Map<string, Intl.NumberFormat>();
+const local = (amount: number, currency: string) => {
+  if (!formatters.has(currency)) {
+    formatters.set(currency, new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }));
+  }
+  return formatters.get(currency)!.format(amount);
+};
 
 function display(
   amountUsd: number | null,
