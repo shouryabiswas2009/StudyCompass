@@ -226,6 +226,9 @@ export const getPublicUniversity = unstable_cache(
     if (error) throw new Error(error.message); // don't cache a failure as "not found"
     return data;
   },
-  ["public-university", "v1"],
+  // Bump the version when a migration adds columns: the data cache outlives
+  // deploys, so old rows (without the new columns) would be served for up
+  // to a day otherwise. v2: the strength index (migration_019).
+  ["public-university", "v2"],
   { revalidate: 86400, tags: ["universities"] }
 );
