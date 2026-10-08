@@ -2,7 +2,7 @@
 
 import { startTransition, useActionState, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Flag } from "@/components/flag";
 import { SectionHeading } from "@/components/landing/section-heading";
@@ -11,7 +11,7 @@ import { COUNTRY_OPTIONS } from "@/lib/countries";
 import { ANY_COUNTRY, QUIZ_BUDGETS, QUIZ_MAJORS, QUIZ_VISA } from "@/lib/quiz-options";
 
 const selectClass =
-  "h-11 w-full rounded-xl border bg-background px-3 text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none";
+  "h-11 w-full rounded-md border bg-background px-3 text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none";
 
 // Three questions and the visitor's top five matches, no account needed.
 // The answers go to a server action that scores featured universities with
@@ -25,8 +25,8 @@ export function TryIt() {
   const [visa, setVisa] = useState("ignore");
 
   return (
-    <section id="try-it" aria-labelledby="try-it-heading" className="page-container section-y scroll-mt-16 pt-0">
-      <div className="reveal grid gap-8 rounded-3xl border bg-card p-6 sm:p-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-12">
+    <section id="try-it" aria-labelledby="try-it-heading" className="scroll-mt-16 border-y bg-muted/50">
+      <div className="page-container section-y reveal grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
         <div>
           <SectionHeading
             id="try-it-heading"
@@ -87,23 +87,23 @@ export function TryIt() {
         </div>
 
         <div aria-live="polite" className="flex flex-col">
-          {state?.error && <p className="rounded-xl bg-muted p-4 text-sm" role="alert">{state.error}</p>}
+          {state?.error && <p className="border-l-2 border-destructive py-1 pl-3 text-sm" role="alert">{state.error}</p>}
 
           {state?.matches ? (
             <>
               {/* New key per result set, so each new answer replays the fade-in. */}
-              <ol key={state.matches.map((m) => m.id).join()} className="space-y-3">
+              <ol key={state.matches.map((m) => m.id).join()} className="divide-y border-y">
                 {state.matches.map((match, i) => (
                   <li key={match.id} className="appear" style={{ "--appear-delay": `${i * 60}ms` } as React.CSSProperties}>
                     <Link
                       href={`/universities/${match.id}`}
-                      className="flex items-center gap-4 rounded-2xl border bg-background p-4 transition-colors hover:border-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                      className="group flex items-center gap-4 py-4 transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                     >
-                      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-tint text-sm font-semibold text-tint-foreground">
-                        {i + 1}
+                      <span className="w-6 shrink-0 font-heading text-sm font-semibold tabular-nums text-primary">
+                        {String(i + 1).padStart(2, "0")}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate font-semibold">{match.name}</span>
+                        <span className="block truncate font-semibold group-hover:underline group-hover:decoration-primary/50 group-hover:underline-offset-4">{match.name}</span>
                         <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                           <Flag country={match.country} />
                           <span className="truncate">{match.city ? `${match.city}, ${match.country}` : match.country}</span>
@@ -116,9 +116,9 @@ export function TryIt() {
                         <span className="block text-xs text-muted-foreground">
                           {match.knownFactors} of {match.totalFactors} factors
                         </span>
-                        <span className="mt-1 block h-1 w-14 overflow-hidden rounded-full bg-muted" aria-hidden>
+                        <span className="mt-1 block h-1 w-14 overflow-hidden bg-border" aria-hidden>
                           <span
-                            className="animate-grow-x block h-full rounded-full bg-primary"
+                            className="animate-grow-x block h-full bg-primary"
                             style={{ width: `${match.score}%`, "--grow-delay": `${150 + i * 60}ms` } as React.CSSProperties}
                           />
                         </span>
@@ -142,9 +142,22 @@ export function TryIt() {
             </>
           ) : (
             !state?.error && (
-              <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed p-10 text-center text-muted-foreground">
-                <Sparkles className="size-6 text-primary" aria-hidden />
-                <p className="max-w-xs text-sm">Your five best matches will appear here, scored on budget, country and subject.</p>
+              <div className="flex flex-1 flex-col">
+                {/* Five faint numbered rows: the shape of the answer, before it comes. */}
+                <ol className="divide-y border-y" aria-hidden>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <li key={n} className="flex items-center gap-4 py-4">
+                      <span className="w-6 font-heading text-sm font-semibold tabular-nums text-muted-foreground/60">
+                        {String(n).padStart(2, "0")}
+                      </span>
+                      <span className="h-2.5 flex-1 bg-border/70" style={{ maxWidth: `${80 - n * 9}%` }} />
+                      <span className="h-5 w-8 bg-border/70" />
+                    </li>
+                  ))}
+                </ol>
+                <p className="mt-4 text-sm text-muted-foreground">
+                  Your five best matches will appear here, scored on budget, country and subject.
+                </p>
               </div>
             )
           )}

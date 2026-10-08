@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowDown, ArrowRight, Building2 } from "lucide-react";
+import { ArrowDown, ArrowRight } from "lucide-react";
 import { BRAND_NAME } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { AccentTitle } from "@/components/landing/section-heading";
@@ -12,7 +12,7 @@ const HERO_PHOTO = "https://images.unsplash.com/20/cambridge.JPG";
 
 // The top of the landing page: headline and two buttons on the left; on the
 // right a photo that runs to the edge of the screen with a slanted left
-// edge, and one small stat card on top of it. The number is counted from the
+// edge, and one small, flat stat block on top of it. The number is counted from the
 // database (lib/landing.ts), not typed in.
 export function Hero({ stats }: { stats: LandingStats }) {
   return (
@@ -39,19 +39,17 @@ export function Hero({ stats }: { stats: LandingStats }) {
             </Button>
             <Link
               href="#try-it"
-              className="group inline-flex items-center gap-3 rounded-full text-sm font-semibold focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold underline decoration-primary/40 underline-offset-4 transition-colors hover:decoration-primary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
             >
-              <span className="flex size-11 items-center justify-center rounded-full border bg-card shadow-sm transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                <ArrowDown className="size-4" aria-hidden />
-              </span>
               Try it, no account needed
+              <ArrowDown className="size-4" aria-hidden />
             </Link>
           </div>
         </div>
 
-        {/* Photo: full-bleed to the right edge on large screens, a rounded
-            card under the text on small ones. */}
-        <div className="relative h-72 overflow-hidden rounded-3xl sm:h-96 lg:absolute lg:inset-y-0 lg:right-0 lg:h-auto lg:w-[48%] lg:rounded-none lg:rounded-bl-[3rem] lg:[clip-path:polygon(14%_0,100%_0,100%_100%,0_100%)]">
+        {/* Photo: full-bleed to the right edge on large screens (slanted left
+            edge), a plain image with small corners under the text on small ones. */}
+        <div className="relative h-72 overflow-hidden rounded-lg sm:h-96 lg:absolute lg:inset-y-0 lg:right-0 lg:h-auto lg:w-[48%] lg:rounded-none lg:[clip-path:polygon(14%_0,100%_0,100%_100%,0_100%)]">
           <Image
             src={HERO_PHOTO}
             alt="A historic college building behind a striped green lawn"
@@ -66,17 +64,14 @@ export function Hero({ stats }: { stats: LandingStats }) {
       {stats.universities > 0 && (
         <div className="page-container pointer-events-none relative -mt-24 flex justify-end pb-6 lg:absolute lg:inset-x-0 lg:bottom-10 lg:mt-0 lg:pb-0">
           <div
-            className="appear pointer-events-auto mr-3 w-44 rounded-2xl bg-band p-5 text-band-foreground shadow-xl sm:mr-6"
+            className="appear pointer-events-auto mr-3 w-44 rounded-md bg-band p-5 text-band-foreground sm:mr-6"
             style={{ "--appear-delay": "300ms" } as React.CSSProperties}
           >
-            <span className="mb-3 flex size-10 items-center justify-center rounded-full border border-band-muted/40">
-              <Building2 className="size-5" aria-hidden />
-            </span>
             <p className="font-heading text-4xl font-extrabold tabular-nums">
               {stats.universities.toLocaleString("en-US")}
             </p>
             <p className="mt-1 text-sm text-band-muted">universities in {stats.countries} countries</p>
-            <span className="mt-4 block h-0.5 w-10 rounded bg-band-muted/60" aria-hidden />
+            <span className="mt-4 block h-px w-10 bg-band-muted/60" aria-hidden />
           </div>
         </div>
       )}

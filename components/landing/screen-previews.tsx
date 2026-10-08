@@ -28,7 +28,7 @@ export function ScreenPreviews({
   if (cards.length === 0) return null;
 
   return (
-    <section aria-labelledby="previews-heading" className="page-container section-y pt-0">
+    <section aria-labelledby="previews-heading" className="page-container section-y">
       <SectionHeading
         id="previews-heading"
         eyebrow="See it in action"
@@ -36,25 +36,21 @@ export function ScreenPreviews({
         accent="real numbers"
         description={`Examples for a sample student (${SAMPLE_PROFILE_SUMMARY}). Yours will differ.`}
       />
-      <ul className="mt-8 grid gap-5 md:grid-cols-3">
-        {cards.map((card) => (
-          <li key={card.title} className="reveal lift flex flex-col overflow-hidden rounded-2xl border bg-card hover:shadow-md">
-            <div className="bg-muted p-4 sm:p-5">
-              <div className="rounded-xl border bg-card p-4 shadow-sm" aria-hidden>
-                <div className="mb-3 flex gap-1.5">
-                  <span className="size-2 rounded-full bg-border" />
-                  <span className="size-2 rounded-full bg-border" />
-                  <span className="size-2 rounded-full bg-border" />
-                </div>
+      <ul className="mt-10 grid gap-10 md:grid-cols-3 md:gap-8">
+        {cards.map((card, i) => (
+          <li key={card.title} className="reveal">
+            <figure className="space-y-4">
+              <div className="rounded-md border bg-card p-4" aria-hidden>
                 {card.screen}
               </div>
-            </div>
-            <div className="flex items-center justify-between gap-3 p-5">
-              <div>
-                <h3 className="font-semibold">{card.title}</h3>
-                <p className="text-sm text-muted-foreground">{card.tag}</p>
-              </div>
-            </div>
+              <figcaption className="border-t pt-3">
+                <span className="mr-2 font-heading text-sm font-semibold tabular-nums text-primary">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="font-semibold">{card.title}</span>
+                <span className="block text-sm text-muted-foreground">{card.tag}</span>
+              </figcaption>
+            </figure>
           </li>
         ))}
       </ul>
@@ -63,7 +59,7 @@ export function ScreenPreviews({
 }
 
 function ExampleTag() {
-  return <span className="rounded-full bg-tint px-2 py-0.5 text-[0.65rem] font-semibold text-tint-foreground">Example</span>;
+  return <span className="text-[0.65rem] font-semibold tracking-wide text-muted-foreground uppercase">Example</span>;
 }
 
 function MatchScreen({ match }: { match: ExampleMatch }) {
@@ -116,11 +112,11 @@ function WhatIfScreen({ whatIf }: { whatIf: ExampleWhatIf }) {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-lg bg-muted p-2">
+        <div className="border-l-2 border-border pl-2">
           <p className="text-muted-foreground">Match score</p>
           <p className="font-semibold tabular-nums">{actual.score} → {next.score} <span className="text-primary">({signed(scoreChange)})</span></p>
         </div>
-        <div className="rounded-lg bg-muted p-2">
+        <div className="border-l-2 border-border pl-2">
           <p className="text-muted-foreground">Admission estimate</p>
           <p className="font-semibold tabular-nums">
             {pct(actual.probability)} → {pct(next.probability)}
@@ -141,7 +137,7 @@ function VisaScreen({ info }: { info: CountryInfo }) {
         {info.country}
       </p>
       {items.map((item) => (
-        <div key={item.key} className="flex items-center justify-between gap-2 rounded-lg bg-muted px-2 py-1.5">
+        <div key={item.key} className="flex items-center justify-between gap-2 border-b py-1.5 last:border-b-0">
           <span className="text-muted-foreground">{item.title}</span>
           <span className="font-semibold">{item.headline ?? "See source"}</span>
         </div>

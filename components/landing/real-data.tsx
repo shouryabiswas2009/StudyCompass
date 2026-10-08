@@ -42,12 +42,15 @@ export function RealData({ stats }: { stats: LandingStats }) {
           accent="where it came from"
           description="No invented statistics and no scraped or copied ranking sites. The strength index is our own labelled estimate, never presented as an official ranking."
         />
-        <ul className="grid gap-4 sm:grid-cols-2">
+        {/* Rows with a bold lead-in and hairlines between them, not cards. */}
+        <ul className="reveal divide-y border-y">
           {sources.map((source) => (
-            <li key={source.title} className="reveal lift rounded-2xl border bg-card p-6 hover:shadow-md">
-              <source.icon className="mb-4 size-6 text-primary" aria-hidden />
-              <h3 className="font-semibold">{source.title}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{source.text}</p>
+            <li key={source.title} className="grid gap-2 py-5 sm:grid-cols-[13rem_1fr] sm:gap-6">
+              <h3 className="flex items-start gap-2 font-semibold">
+                <source.icon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                {source.title}
+              </h3>
+              <p className="text-muted-foreground">{source.text}</p>
             </li>
           ))}
         </ul>
