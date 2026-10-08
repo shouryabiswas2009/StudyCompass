@@ -13,7 +13,9 @@ import {
   focusesOf,
 } from "@/lib/focus";
 import { canonicalCountry } from "@/lib/countries";
-import { BASE_WEIGHTS, FOCUS_POINTS } from "@/lib/scoring-config";
+import { BASE_WEIGHTS, FOCUS_POINTS, VISA_WEIGHT_POINTS } from "@/lib/scoring-config";
+import type { CountryInfo } from "@/lib/country-info";
+import { visaFit, visaLine, visaModeOf, type VisaFit, type VisaMode } from "@/lib/visa";
 import { rankUniversity, type RankInfo } from "@/lib/ranking";
 import { researchImpactFor } from "@/lib/research-impact";
 import { FOCUSES, type Focus, type Profile, type UniversitySummary } from "@/lib/types";
@@ -34,7 +36,7 @@ const FOCUS_FACTOR = {
   affordability: "affordability",
 } as const satisfies Record<Focus, string>;
 
-export type FactorKey = keyof typeof BASE_WEIGHTS | (typeof FOCUS_FACTOR)[Focus];
+export type FactorKey = keyof typeof BASE_WEIGHTS | (typeof FOCUS_FACTOR)[Focus] | "visa";
 
 // Blending rule. Think of each focus as its own weight profile: the 80 base
 // points plus all 20 focus points on that focus's factor. When a student
@@ -54,6 +56,20 @@ export function focusWeights(focuses: Focus[]): Record<FactorKey, number> {
 
 export const BALANCED_WEIGHTS = focusWeights([]);
 
+// The student's weights: the focus weights, plus "Visa and work rights"
+// when they chose to factor it in. Its points (Low / Medium / High) are
+// taken proportionally from every other factor, so the total stays 100.
+// With visa ignored or only shown, these are exactly the focus weights.
+export function fitWeights(profile: Pick<Profile, "focuses" | "primary_focus" | "visa_mode" | "visa_weight">): Record<FactorKey, number> {
+  const weights = focusWeights(focusesOf(profile as Profile));
+  if (visaModeOf(profile) !== "factor") return weights;
+  const points = VISA_WEIGHT_POINTS[profile.visa_weight ?? "medium"];
+  const scale = (100 - points) / 100;
+  for (const key of Object.keys(weights) as FactorKey[]) weights[key] *= scale;
+  weights.visa = points;
+  return weights;
+}
+
 const FACTOR_LABELS: Record<FactorKey, string> = {
   budget: "Budget",
   major: "Major",
@@ -64,6 +80,7 @@ const FACTOR_LABELS: Record<FactorKey, string> = {
   coop: "Co-op / internships",
   research: "Research",
   affordability: "Affordability",
+  visa: "Visa and work rights",
 };
 
 export type FactorScore = {
@@ -317,9 +334,9 @@ export function admissionChance(
 export function computeMatchScore(
   profile: Profile,
   university: UniversitySummary,
-  { unknown = [] }: { unknown?: FactorKey[] } = {}
+  { unknown = [], visa = null }: { unknown?: FactorKey[]; visa?: VisaFit | null } = {}
 ): MatchResult {
-  const weights = focusWeights(focusesOf(profile));
+  const weights = fitWeights(profile);
   const fits: Record<FactorKey, number | null> = {
     budget: budgetFit(profile, university),
     // No program list at all means we don't know, not that none match.
@@ -330,6 +347,8 @@ export function computeMatchScore(
     country: countryMatches(profile, university) ? 1 : 0,
     english: englishFit(profile, university),
     ...focusFits(profile, university),
+    // Only weighted when the student factors the visa in; unknown = left out.
+    visa: visa?.score ?? null,
   };
   for (const key of unknown) fits[key] = null;
 
@@ -645,6 +664,9 @@ export type MatchEntry = {
   // Quality, plausibility and the "Best you can get into" score
   // (lib/ranking.ts).
   rank: RankInfo;
+  // Visa and work rights, only when the student chose to show or factor it
+  // (lib/visa.ts); null when they ignore it.
+  visa: { mode: VisaMode; fit: VisaFit; line: string; info: CountryInfo | null } | null;
 };
 
 // The trained model only replaces the rule-based Reach/Match/Safety label
@@ -653,8 +675,18 @@ export type MatchEntry = {
 // official College Scorecard figures — the synthetic training data was
 // built around those schools' real admission rates and SAT ranges, so
 // using it on illustrative or student-entered figures would be guesswork.
-export function scoreUniversity(profile: Profile, university: UniversitySummary): MatchEntry {
-  const match = computeMatchScore(profile, university);
+export function scoreUniversity(
+  profile: Profile,
+  university: UniversitySummary,
+  // Visa guidance per country (lib/data/country-info.ts). Only needed when
+  // the student shows or factors in the visa; otherwise it's not used.
+  { countryInfo }: { countryInfo?: Map<string, CountryInfo> } = {}
+): MatchEntry {
+  const mode = visaModeOf(profile);
+  const info = countryInfo?.get(canonicalCountry(university.country)) ?? null;
+  const fit = mode !== "ignore" && countryInfo ? visaFit(profile, info, { tuition: university.tuition }) : null;
+  const factored = mode === "factor" ? fit : null;
+  const match = computeMatchScore(profile, university, { visa: factored });
   const prediction =
     profile.preferred_degree_level === "Undergraduate" &&
     university.source === "College Scorecard" &&
@@ -667,14 +699,21 @@ export function scoreUniversity(profile: Profile, university: UniversitySummary)
     match.chanceSource = "model";
   }
 
+  const explanation = explainMatch(profile, university);
+  if (factored) {
+    explanation.strengths.push(...factored.reasons);
+    explanation.concerns.push(...factored.concerns);
+  }
+
   return {
     university,
     match,
-    explanation: explainMatch(profile, university),
+    explanation,
     ranking: getDisplayRanking(university, profile),
     prediction,
     // The model's probability only drives plausibility when it also drives
     // the Reach/Match/Safety label, so the two never disagree.
-    rank: rankUniversity(profile, university, match, match.chanceSource === "model" ? prediction!.probability : null),
+    rank: rankUniversity(profile, university, match, match.chanceSource === "model" ? prediction!.probability : null, factored?.score ?? null),
+    visa: fit ? { mode, fit, line: visaLine(info), info } : null,
   };
 }

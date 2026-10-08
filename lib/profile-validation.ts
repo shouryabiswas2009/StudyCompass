@@ -2,6 +2,7 @@ import { canonicalCountry } from "@/lib/countries";
 import { readList, readNumber, readText } from "@/lib/form-data";
 import { DEFAULT_DISPLAY_CURRENCY, isDisplayCurrency } from "@/lib/display-currency";
 import { gradeToPercentage, isGradeSystem, type GradeSystem } from "@/lib/grades";
+import { STAY_AFTER, VISA_MODES, VISA_WEIGHTS } from "@/lib/visa";
 import {
   DEGREE_LEVELS,
   FOCUSES,
@@ -101,6 +102,17 @@ export function validateProfileForm(formData: FormData): ProfileValidationResult
     errors.display_currency = "Choose a currency from the list.";
   }
 
+  // Visa and work rights (lib/visa.ts). Blank means "ignore"; the weight and
+  // the stay question only matter when the student factors the visa in.
+  const visaText = readText(formData, "visa_mode") || "ignore";
+  if (!(VISA_MODES as readonly string[]).includes(visaText)) errors.visa_mode = "Choose one of the options.";
+  const weightText = readText(formData, "visa_weight") || "medium";
+  if (!(VISA_WEIGHTS as readonly string[]).includes(weightText)) errors.visa_weight = "Choose Low, Medium or High.";
+  const stayText = readText(formData, "stay_after");
+  if (stayText && !(STAY_AFTER as readonly string[]).includes(stayText)) errors.stay_after = "Choose one of the options.";
+  const visa_mode = visaText as NonNullable<ProfileInput["visa_mode"]>;
+  const factor = visa_mode === "factor";
+
   if (Object.keys(errors).length > 0) {
     return { ok: false, errors };
   }
@@ -124,6 +136,9 @@ export function validateProfileForm(formData: FormData): ProfileValidationResult
       preferred_degree_level: level as DegreeLevel,
       focuses,
       display_currency,
+      visa_mode,
+      visa_weight: factor ? (weightText as NonNullable<ProfileInput["visa_weight"]>) : null,
+      stay_after: stayText ? (stayText as NonNullable<ProfileInput["stay_after"]>) : null,
     },
   };
 }

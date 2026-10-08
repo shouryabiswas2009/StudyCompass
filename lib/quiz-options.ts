@@ -23,3 +23,12 @@ export const QUIZ_MAJORS = [
   "Law",
   "Architecture",
 ] as const;
+
+// Optional fourth question: should visa and work rights count? "ignore" is
+// the default, so guests who skip it see exactly the same matches as before.
+export const QUIZ_VISA = {
+  ignore: "Don't consider it",
+  stay: "Consider it: I may stay and work after",
+  home: "Consider it: I'll return home after",
+} as const;
+export type QuizVisa = keyof typeof QUIZ_VISA;

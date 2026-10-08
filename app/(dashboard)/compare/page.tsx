@@ -8,6 +8,7 @@ import { scoreUniversity } from "@/lib/matching";
 import type { Profile, University } from "@/lib/types";
 import { getCurrentUser } from "@/lib/auth";
 import { getVisibleUniversities } from "@/lib/data/universities";
+import { getCountryInfo } from "@/lib/data/country-info";
 import { featuredReady, isShownByDefault } from "@/lib/university-filters";
 
 export const metadata: Metadata = { title: "Compare universities" };
@@ -26,7 +27,7 @@ export default async function ComparePage({
   if (!user) redirect("/login");
 
 
-  const [{ data: profile }, universities, { data: selected }] = await Promise.all([
+  const [{ data: profile }, universities, { data: selected }, countryInfo] = await Promise.all([
     // Everything at once (they don't depend on each other).
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>(),
     // The cached list (every row, not just the first 1,000) for the picker.
@@ -34,6 +35,8 @@ export default async function ComparePage({
     ids.length > 0
       ? supabase.from("universities").select("*").in("id", ids).returns<University[]>()
       : Promise.resolve({ data: [] as University[] }),
+    // Visa guidance (cached; used only when the student shows or factors it).
+    getCountryInfo(),
   ]);
 
   // Most rows compare the schools against the student's own scores.
@@ -51,7 +54,7 @@ export default async function ComparePage({
   const entries = ids
     .map((id) => (selected ?? []).find((u) => u.id === id))
     .filter((u): u is University => u !== undefined)
-    .map((university) => scoreUniversity(profile, university));
+    .map((university) => scoreUniversity(profile, university, { countryInfo: countryInfo.byCountry }));
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">

@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/applications/status-badge";
 import {
   CRITERION_LABELS,
   DEFAULT_OFFER_WEIGHTS,
+  VISA_OFFER_WEIGHT,
   SENSITIVITY_SPREAD,
   acceptByStatus,
   defaultOfferWeights,
@@ -22,6 +23,7 @@ import {
 import { formatRank } from "@/lib/matching";
 import { usd } from "@/lib/format";
 import { APPROX_NOTE, approxInCurrency } from "@/lib/display-currency";
+import type { VisaMode } from "@/lib/visa";
 import type { ApplicationStatus, Focus } from "@/lib/types";
 
 // OfferInput plus what this page shows but the ranking doesn't use.
@@ -42,17 +44,24 @@ export function OffersBoard({
   offers,
   focuses,
   displayCurrency,
+  visaMode = "ignore",
+  visaWeight = "medium",
 }: {
   offers: OfferRow[];
   focuses: Focus[];
   displayCurrency?: string;
+  visaMode?: VisaMode;
+  visaWeight?: keyof typeof VISA_OFFER_WEIGHT;
 }) {
   // "$60,000 (≈ ₹5,780,000)" when the student shows another currency too.
   const money = (amount: number) => {
     const other = approxInCurrency(amount, displayCurrency);
     return other ? `${usd(amount)} (${other})` : usd(amount);
   };
-  const defaults = defaultOfferWeights(focuses);
+  // The visa slider starts at the student's chosen weight when they factor
+  // it in, at 0 when they only show it, and is hidden when they ignore it.
+  const defaults = { ...defaultOfferWeights(focuses), visa: visaMode === "factor" ? VISA_OFFER_WEIGHT[visaWeight] : 0 };
+  const criteria = CRITERIA.filter((key) => key !== "visa" || visaMode !== "ignore");
   const [weights, setWeights] = useState<OfferWeights>(defaults);
 
   const ranked = useMemo(() => rankOffers(offers, weights), [offers, weights]);
@@ -78,7 +87,7 @@ export function OffersBoard({
             </Link>
           </p>
         </div>
-        {CRITERIA.map((key) => (
+        {criteria.map((key) => (
           <div key={key} className="space-y-1">
             <div className="flex justify-between text-sm">
               <label htmlFor={`weight-${key}`}>{CRITERION_LABELS[key]}</label>
@@ -190,6 +199,7 @@ export function OffersBoard({
                 {offer.strengthLabel ? `strength ${offer.strengthLabel}` : `${formatRank(offer.overallRank)} overall`}
                 {offer.subjectRank !== null && ` · #${offer.subjectRank} in ${offer.subjectLabel}`}
                 {` · research impact (Leiden Ranking / OpenAlex): ${offer.researchImpactLabel ?? "not available"}`}
+                {visaMode !== "ignore" && ` · visa: ${offer.visaLabel ?? "information not available"}`}
                 {` · ${offer.matchScore}% match`}
               </p>
               {spread && offers.length > 1 && (

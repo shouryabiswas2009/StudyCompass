@@ -56,8 +56,10 @@ function entry(
       plausibilitySource: "rule",
       gate: { passes: extra.passes ?? true, reasons: extra.passes === false ? ["outside the countries you chose"] : [] },
       realistic: (extra.quality ?? 0.5) * (extra.plausibility ?? 1),
+      visaFactor: 1,
       reason: "",
     },
+    visa: null,
   };
 }
 

@@ -9,6 +9,7 @@ import {
   P_FULL,
   QUALITY_UNKNOWN,
   RULE_PLAUSIBILITY,
+  VISA_BEST_INFLUENCE,
 } from "@/lib/scoring-config";
 import type { Profile, UniversitySummary } from "@/lib/types";
 
@@ -37,6 +38,9 @@ export type RankInfo = {
   plausibilitySource: "model" | "rule" | "unknown";
   gate: { passes: boolean; reasons: string[] };
   realistic: number; // 0..1, the "Best you can get into" score
+  // 1 unless the student factors in the visa (lib/visa.ts): then up to
+  // VISA_BEST_INFLUENCE less for a weak visa score. Never changes quality.
+  visaFactor: number;
   reason: string; // one line for the card
 };
 
@@ -104,9 +108,12 @@ export function rankUniversity(
   profile: Profile,
   university: UniversitySummary,
   match: MatchResult,
-  probability: number | null
+  probability: number | null,
+  // The visa score when the student factors the visa in (else null).
+  visaScore: number | null = null
 ): RankInfo {
   const { score: quality, parts } = qualityScore(profile, university);
+  const visaFactor = visaScore === null ? 1 : 1 - VISA_BEST_INFLUENCE[profile.visa_weight ?? "medium"] * (1 - visaScore);
   const plausibility = plausibilityFrom(probability, match.chance);
   const gate = fitGate(profile, university, match);
   return {
@@ -115,7 +122,8 @@ export function rankUniversity(
     plausibility: plausibility.value,
     plausibilitySource: plausibility.source,
     gate,
-    realistic: (quality ?? QUALITY_UNKNOWN) * plausibility.value,
+    realistic: (quality ?? QUALITY_UNKNOWN) * plausibility.value * visaFactor,
+    visaFactor,
     reason: reasonLine(university, match.chance, quality, gate),
   };
 }
@@ -196,7 +204,7 @@ export function withNeutralUnknowns<T extends Ranked>(entries: T[]): T[] {
   return entries.map((e) => {
     if (e.rank.quality !== null && e.rank.plausibilitySource !== "unknown") return e;
     const plausibility = e.rank.plausibilitySource === "unknown" ? neutralPlausibility : e.rank.plausibility;
-    const realistic = (e.rank.quality ?? neutralQuality) * plausibility;
+    const realistic = (e.rank.quality ?? neutralQuality) * plausibility * (e.rank.visaFactor ?? 1);
     return { ...e, rank: { ...e.rank, plausibility, realistic } };
   });
 }

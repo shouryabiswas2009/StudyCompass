@@ -119,3 +119,34 @@ export const GOOD_QUALITY = 0.5; // "well regarded"
 // Shown with the Reach / Match / Safety groups: a common counsellor rule of
 // thumb, not a requirement.
 export const LIST_MIX = { reach: "2–3", match: "3–4", safety: "2–3" } as const;
+
+// ─── 4. Visa and work rights (optional; lib/visa.ts) ────────────────────
+// Only used when the student chooses "Factor it in". Every figure comes
+// from country_info (government pages, cited and dated); nothing here is a
+// "difficulty" or "approval chance".
+
+// Fit points the visa factor takes, by the student's chosen weight. They're
+// taken proportionally from every other factor, so the total stays 100.
+export const VISA_WEIGHT_POINTS = { low: 5, medium: 10, high: 15 } as const;
+export type VisaWeight = keyof typeof VISA_WEIGHT_POINTS;
+
+// "Best you can get into" multiplies quality × plausibility; with the visa
+// factored in, a school with a weak visa score loses up to this share of
+// that product (score 1 → no change, score 0 → the full share). Quality
+// itself is never touched.
+export const VISA_BEST_INFLUENCE = { low: 0.1, medium: 0.2, high: 0.3 } as const;
+
+// How the three cited figures make up the visa score (relative weights;
+// a figure we don't have drops out and the rest are re-weighted).
+export const VISA_PART_WEIGHTS = {
+  postStudy: 6, // post-study work window: the main reason students weigh visas
+  funds: 3, // proof of funds compared with what the budget leaves
+  work: 1, // hours of work allowed during study: a small plus
+} as const;
+
+// A post-study window this long or longer counts as full marks.
+export const POST_STUDY_CAP_MONTHS = 36;
+// "Not sure" about staying: the post-study window counts half.
+export const STAY_UNSURE_POST_STUDY_SHARE = 0.5;
+// Work during study: this many hours a week or more counts as full marks.
+export const WORK_HOURS_CAP = 24;

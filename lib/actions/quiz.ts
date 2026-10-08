@@ -1,6 +1,7 @@
 "use server";
 
 import { getSharedUniversities } from "@/lib/data/universities";
+import { getCountryInfo } from "@/lib/data/country-info";
 import { guestTopMatches, parseQuizAnswers } from "@/lib/guest-quiz";
 import { tuitionDisplay } from "@/lib/money";
 
@@ -24,11 +25,12 @@ export async function guestMatches(_prevState: QuizState, formData: FormData): P
     country: formData.get("country"),
     budget: formData.get("budget"),
     major: formData.get("major"),
+    visa: formData.get("visa"),
   });
   if (!parsed.ok) return { error: parsed.error };
 
-  const universities = await getSharedUniversities();
-  const matches = guestTopMatches(universities, parsed.answers).map(({ university, ...match }) => ({
+  const [universities, countryInfo] = await Promise.all([getSharedUniversities(), getCountryInfo()]);
+  const matches = guestTopMatches(universities, parsed.answers, 5, countryInfo.byCountry).map(({ university, ...match }) => ({
     ...match,
     tuition: tuitionDisplay(university).text,
   }));

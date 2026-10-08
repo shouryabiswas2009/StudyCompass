@@ -310,3 +310,24 @@ describe("migration_019 (strength index)", () => {
     await expect(set(db, own, `${base}, strength_is_estimate = false`)).rejects.toThrow(/universities_strength_check/);
   }, 30_000);
 });
+
+describe("migration_020 (visa preferences)", () => {
+  it("starts as null (ignore), accepts the listed values, rejects others, and is safe to re-run", async () => {
+    const { db } = await createInMemoryDb();
+    await db.exec(sql("migration_020_visa_preferences.sql"));
+    const id = "00000000-0000-0000-0000-0000000000ab";
+    await db.query("insert into auth.users (id) values ($1)", [id]);
+    await db.query(
+      `insert into public.profiles (id, full_name, country, intended_majors, gpa_percentage,
+        budget_min, budget_max, preferred_countries, preferred_degree_level)
+        values ($1, 'Student', 'India', '{CS}', 90, 0, 40000, '{Canada}', 'Undergraduate')`,
+      [id]
+    );
+    const { rows } = await db.query("select visa_mode, visa_weight, stay_after from public.profiles where id = $1", [id]);
+    expect(rows[0]).toEqual({ visa_mode: null, visa_weight: null, stay_after: null });
+    await db.query("update public.profiles set visa_mode = 'factor', visa_weight = 'high', stay_after = 'no' where id = $1", [id]);
+    await expect(db.query("update public.profiles set visa_mode = 'always' where id = $1", [id])).rejects.toThrow(/profiles_visa_mode_check/);
+    await expect(db.query("update public.profiles set visa_weight = 'max' where id = $1", [id])).rejects.toThrow(/profiles_visa_weight_check/);
+    await expect(db.query("update public.profiles set stay_after = 'later' where id = $1", [id])).rejects.toThrow(/profiles_stay_after_check/);
+  }, 30_000);
+});

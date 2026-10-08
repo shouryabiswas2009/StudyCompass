@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import {
   formatRank,
   type DisplayRanking,
+  type MatchEntry,
   type MatchExplanation,
   type MatchResult,
 } from "@/lib/matching";
@@ -28,6 +29,7 @@ import type { ApplicationStatus } from "@/lib/types";
 import type { AdmissionPrediction } from "@/lib/admission-model";
 import type { RankInfo } from "@/lib/ranking";
 import { StrengthValue } from "@/components/universities/strength";
+import { VisaNote } from "@/components/universities/visa-note";
 import { STRENGTH_LABEL, hasVerifiedRanking } from "@/lib/strength-display";
 import type { UniversitySummary } from "@/lib/types";
 import { universityPath } from "@/lib/university-path";
@@ -45,6 +47,7 @@ export function UniversityCard({
   ranking,
   prediction,
   rank,
+  visa = null,
   guest = false,
   isSaved = false,
   index = 0,
@@ -58,6 +61,8 @@ export function UniversityCard({
   prediction?: AdmissionPrediction | null;
   // Quality, chance and the one-line reason (lib/ranking.ts).
   rank?: RankInfo;
+  // Visa and work rights, when the student shows or factors it in.
+  visa?: MatchEntry["visa"];
   // A visitor without an account: no personal score, chance or saving.
   guest?: boolean;
   isSaved?: boolean;
@@ -164,6 +169,7 @@ export function UniversityCard({
                 </span>
               </div>
             )}
+            {visa && <VisaNote visa={visa} />}
             <StrengthsConcerns explanation={explanation} limit={2} />
             {/* Leaves room for the controls pinned to the bottom corners. */}
             {(compare || tracking) && <div className="h-6" />}

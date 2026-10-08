@@ -79,6 +79,23 @@ describe("validateProfileForm", () => {
     expect(unknown.ok).toBe(false);
   });
 
+  it("saves the visa choice: ignore by default, a weight only when factoring it in", () => {
+    const none = validateProfileForm(makeForm());
+    expect(none.ok && [none.data.visa_mode, none.data.visa_weight, none.data.stay_after]).toEqual(["ignore", null, null]);
+    const factor = validateProfileForm(makeForm({ visa_mode: "factor", visa_weight: "high", stay_after: "no" }));
+    expect(factor.ok && [factor.data.visa_mode, factor.data.visa_weight, factor.data.stay_after]).toEqual(["factor", "high", "no"]);
+    const show = validateProfileForm(makeForm({ visa_mode: "show", visa_weight: "high", stay_after: "yes" }));
+    expect(show.ok && [show.data.visa_mode, show.data.visa_weight, show.data.stay_after]).toEqual(["show", null, "yes"]);
+  });
+
+  it("rejects visa values outside the lists", () => {
+    const bads: Record<string, string>[] = [{ visa_mode: "maybe" }, { visa_mode: "factor", visa_weight: "huge" }, { stay_after: "forever" }];
+    for (const bad of bads) {
+      const r = validateProfileForm(makeForm(bad));
+      expect(r.ok).toBe(false);
+    }
+  });
+
   it("treats blank optional scores as missing, not as errors", () => {
     const result = validateProfileForm(makeForm({ ielts_score: "", sat_score: "" }));
     expect(result.ok).toBe(true);

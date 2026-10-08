@@ -1,6 +1,8 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { VISA_MODES } from "@/lib/visa";
 import { createClient } from "@/lib/supabase/server";
 import {
   validateProfileForm,
@@ -83,4 +85,19 @@ export async function saveProfile(
   }
 
   redirect("/recommendations");
+}
+
+// The quick "Visa and work rights" switch on the recommendations page.
+// Only changes visa_mode; the weight and the stay question stay as saved
+// (Medium and "unsure" count until the student sets them on the profile).
+export async function setVisaMode(formData: FormData): Promise<void> {
+  const mode = String(formData.get("visa_mode") ?? "");
+  if (!(VISA_MODES as readonly string[]).includes(mode)) return;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  await writeSkippingPendingColumns({ visa_mode: mode }, (row) => supabase.from("profiles").update(row).eq("id", user.id));
+  revalidatePath("/recommendations");
 }

@@ -32,7 +32,7 @@ export default async function OwnUniversityPage({ params }: { params: Promise<{ 
     getCountryInfo(),
   ]);
   if (!university) notFound();
-  const entry = profile ? scoreUniversity(profile, university) : null;
+  const entry = profile ? scoreUniversity(profile, university, { countryInfo: countryInfo.byCountry }) : null;
 
   return (
     <UniversityDetails

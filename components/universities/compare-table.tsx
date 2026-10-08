@@ -5,6 +5,7 @@ import { StrengthsConcerns } from "@/components/universities/strengths-concerns"
 import { SourceBadge } from "@/components/universities/source-badge";
 import { ResearchImpactValue } from "@/components/universities/research-impact";
 import { StrengthValue } from "@/components/universities/strength";
+import { checkAge, type CountryInfo } from "@/lib/country-info";
 import { STRENGTH_LABEL, hasVerifiedRanking } from "@/lib/strength-display";
 import { RESEARCH_IMPACT_LABEL, researchImpactFor } from "@/lib/research-impact";
 import { bestIndexes, totalYearlyCost } from "@/lib/compare";
@@ -140,6 +141,28 @@ const ROWS: Row[] = [
     better: "higher",
     // A field percentile and an overall one aren't the same comparison.
     comparable: (entries, profile) => new Set(entries.map((e) => researchImpactFor(profile, e.university)?.field ?? "overall")).size === 1,
+  },
+  {
+    label: "Visa and work rights",
+    render: ({ visa }) =>
+      visa ? (
+        <span className="space-y-1">
+          <span className="block">{visa.line}</span>
+          {[...visa.fit.reasons, ...visa.fit.concerns, ...visa.fit.notes].map((line) => (
+            <span key={line} className="block text-xs text-muted-foreground">
+              {line}
+            </span>
+          ))}
+          {visa.info && <VisaSources info={visa.info} />}
+        </span>
+      ) : (
+        muted("Not shown")
+      ),
+    value: ({ visa }) => visa?.fit.score ?? null,
+    better: "higher",
+    // "Best" only when the student factors the visa in, not when only shown.
+    comparable: (entries) => entries.every((e) => e.visa?.mode === "factor"),
+    shown: (entries) => entries.some((e) => e.visa !== null),
   },
   {
     label: "Acceptance rate",
@@ -300,6 +323,32 @@ function Money({ display, usdAmount, currency }: { display: MoneyDisplay; usdAmo
       {display.text}
       {other && <span className="block text-xs text-muted-foreground">{other} ({APPROX_NOTE})</span>}
       {display.note && <span className="block text-xs text-muted-foreground">{display.note}</span>}
+    </span>
+  );
+}
+
+// Government sources for the visa figures, with how old each check is.
+function VisaSources({ info }: { info: CountryInfo }) {
+  const sources = [
+    { label: "post-study work", url: info.post_study_source_url, checked: info.post_study_checked_on },
+    { label: "funds", url: info.funds_source_url, checked: info.funds_checked_on },
+    { label: "work hours", url: info.work_source_url, checked: info.work_checked_on },
+  ].filter((s): s is { label: string; url: string; checked: string | null } => Boolean(s.url));
+  return (
+    <span className="block text-xs text-muted-foreground">
+      Guidance only, not legal advice. Sources:{" "}
+      {sources.map((s, i) => {
+        const age = s.checked ? checkAge(s.checked) : null;
+        return (
+          <span key={s.label}>
+            {i > 0 && ", "}
+            <a href={s.url} target="_blank" rel="noopener noreferrer" className="underline">
+              {s.label}
+            </a>
+            {age ? ` (${age.label}${age.stale ? ", may be out of date" : ""})` : ""}
+          </span>
+        );
+      })}
     </span>
   );
 }

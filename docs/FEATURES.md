@@ -83,3 +83,41 @@ update public.figure_reports set status = 'fixed' where id = '<id>';   -- or 're
 Correct the figure itself in its source file (for example
 `data/curated/international_universities.csv`) and re-run that import, so
 the fix survives the next import.
+
+## Visa and work rights (optional factor)
+
+**Why.** For many students the post-study work window, proof of funds and
+work rights decide where to apply, but not for everyone, so the student
+chooses: **Ignore it** (the default: no effect anywhere), **Show it, don't
+score it** (a visa line on cards, compare and offers), or **Factor it in**
+(Low / Medium / High), plus "Do you plan to work or stay after
+graduating?". Saved on the profile (migration_020), also in the quiz and as
+a quick switch on the recommendations page.
+
+**How.** `lib/visa.ts` `visaFit()` (pure, tested) uses only the cited
+figures in `country_info`:
+- post-study work window, scaled up to 36 months (left out if the student
+  is returning home; counted half if they're not sure);
+- proof of funds, per month in US dollars at the dated ECB rate, against
+  what the student's yearly budget leaves after tuition (tuition has to be
+  paid either way, so this holds whether the rule adds it on top or not);
+- work hours allowed during study, up to 24 a week (0 is a real figure).
+Missing figures drop out and the rest are re-weighted; with nothing known
+the visa adds nothing and the card says "Visa information not available".
+Weights and caps are named constants in `lib/scoring-config.ts`.
+
+**Where it counts (Factor it in only).** The match score gets a "Visa and
+work rights" factor; its 5 / 10 / 15 points come proportionally from every
+other factor, so the total stays 100 (`fitWeights` in lib/matching.ts, the
+same weight machinery as the focuses). "Best you can get into" multiplies
+quality × chance by up to 10 / 20 / 30% less for a weak visa score; quality
+itself never changes. Offers get a "Visa and work rights" slider (starting
+at the chosen weight; hidden when ignored) that the robustness check
+includes; compare marks the best visa figure only in this mode. Neutral
+wording only ("longer post-study window", "less time to work during
+study"); "guidance only, not legal advice" and the age of each check
+(`checkAge`) wherever visa data appears. Nationality isn't known, so it's
+always general guidance. Tests: `lib/visa.test.ts`,
+`lib/visa-scoring.test.ts` (ignore = identical scores and order;
+long window up, funds above budget down; missing data left out; going home
+removes the post-study part; weights add up to 100).

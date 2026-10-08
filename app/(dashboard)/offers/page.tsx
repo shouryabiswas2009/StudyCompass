@@ -7,6 +7,7 @@ import { OffersBoard, type OfferRow } from "@/components/offers/offers-board";
 import { coopSignal, countryMatches, researchSignal, scoreUniversity } from "@/lib/matching";
 import { describeImpact, researchImpactFor } from "@/lib/research-impact";
 import { hasVerifiedRanking, strengthForStudent, strengthSummary } from "@/lib/strength-display";
+import { visaModeOf } from "@/lib/visa";
 import { focusesOf } from "@/lib/focus";
 import { netCostPerYear, totalProgramCost } from "@/lib/offers";
 import type { Application, Profile, University } from "@/lib/types";
@@ -47,7 +48,7 @@ export default async function OffersPage() {
 
   const offers: OfferRow[] = (applications ?? []).map((application) => {
     const university = application.universities;
-    const { match, ranking } = scoreUniversity(profile, university);
+    const { match, ranking, visa } = scoreUniversity(profile, university, { countryInfo: countryInfo.byCountry });
     // Only rankings entered from their source count (never illustrative ones).
     const verified = hasVerifiedRanking(university);
     const hasSubjectRank = verified && ranking.label !== "Overall";
@@ -79,6 +80,9 @@ export default async function OffersPage() {
       researchImpactLabel: impact ? describeImpact(impact) : null,
       coopScore: coop?.value ?? null,
       coopLabel: coop?.label ?? null,
+      // Visa and work rights, only when the student shows or factors it.
+      visaScore: visa?.fit.score ?? null,
+      visaLabel: visa ? visa.line.replace(/^Visa: /, "") : null,
     };
   });
 
@@ -111,7 +115,13 @@ export default async function OffersPage() {
           </p>
         </div>
       ) : (
-        <OffersBoard offers={offers} focuses={focusesOf(profile)} displayCurrency={profile.display_currency} />
+        <OffersBoard
+          offers={offers}
+          focuses={focusesOf(profile)}
+          displayCurrency={profile.display_currency}
+          visaMode={visaModeOf(profile)}
+          visaWeight={profile.visa_weight ?? "medium"}
+        />
       )}
 
       {offerCountries.length > 0 && (

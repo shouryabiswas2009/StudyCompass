@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { TagInput } from "@/components/tag-input";
 import { FieldError } from "@/components/field-error";
 import { GradesField } from "@/components/profile/grades-field";
+import { VisaFields } from "@/components/profile/visa-fields";
 import {
   Select,
   SelectContent,
@@ -269,6 +270,8 @@ export function ProfileForm({
           </div>
           <FieldError message={errors.focuses} />
         </fieldset>
+
+        <VisaFields profile={existingProfile} errors={errors} />
       </div>
 
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}

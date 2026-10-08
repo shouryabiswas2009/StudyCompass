@@ -25,3 +25,27 @@ allowed.
 Commercial rankings never enter the site or database. An exact rank isn't
 needed: the strength index is our own labelled estimate built from the
 open sources above (docs/STRENGTH-INDEX.md).
+
+## Study-visa grant or refusal rates (for the visa factor)
+
+Checked 2026-10-08. The visa factor (lib/visa.ts) uses only the cited
+figures in `country_info` (post-study work window, proof of funds, work
+hours). A "difficulty" signal would only ever come from an officially
+published statistic, with its source, year and check date.
+
+| Country | Official figure? | Decision |
+| --- | --- | --- |
+| United Kingdom | Home Office *Immigration system statistics*: entry clearance visa applications and outcomes for sponsored study, by nationality ([gov.uk release](https://www.gov.uk/government/statistics/immigration-system-statistics-year-ending-june-2026/why-do-people-come-to-the-uk-study)); a grant rate can be derived from applications and outcomes (Open Government Licence). | Not added yet (see below). |
+| Australia | Department of Home Affairs, *Student visa program* reports: lodged, granted and grant rate by citizenship country, monthly ([data.gov.au listing via researchdata.edu.au](https://researchdata.edu.au/student-visa-program)). | Not added yet. |
+| Canada | No open dataset of study-permit approval rates; IRCC has given approval rates by **country of residence**, top 10 countries only, in answers to a parliamentary committee ([CIMM, 28 Feb 2024](https://www.canada.ca/en/immigration-refugees-citizenship/corporate/transparency/committees/cimm-feb-28-2024/intake-output-issued.html)). | Not added: not a regular, complete series. |
+| United States | The State Department publishes adjusted refusal rates by nationality for **B (visitor) visas only**; F-1 student refusal rates by nationality are not published. | Not available. |
+| Others in `country_info` | No official, linkable study-visa refusal or grant rate found. | Not available. |
+
+**Why none is shown yet.** Where official figures exist, they differ a lot
+by nationality (in the same months, very different grant rates for
+different countries of citizenship), and Unicelerate doesn't ask for
+nationality: the profile's country is where the student lives. A single
+country-wide rate would mislead most students, so the app says "No
+refusal-rate figure shown: official rates vary by nationality" and never
+calls a country easy or hard. Adding a nationality question would make the
+UK and Australian figures usable, with their source, year and check date.

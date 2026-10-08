@@ -42,7 +42,9 @@ export function guestBrowseEntry(university: UniversitySummary): MatchEntry {
       plausibilitySource: "unknown",
       gate: { passes: true, reasons: [] },
       realistic: (quality ?? QUALITY_UNKNOWN) * PLAUSIBILITY_UNKNOWN,
+      visaFactor: 1,
       reason: "Create a free profile to see how well it fits you and your chances.",
     },
+    visa: null,
   };
 }

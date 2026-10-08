@@ -10,6 +10,9 @@ import { buildBoard, parseBoardParams, topPicksByCountry } from "@/lib/universit
 import { UniversityBoard } from "@/components/universities/university-board";
 import { TopPicks } from "@/components/universities/top-picks";
 import { Button } from "@/components/ui/button";
+import { VisaQuickControl } from "@/components/universities/visa-quick-control";
+import { getCountryInfo } from "@/lib/data/country-info";
+import { visaModeOf } from "@/lib/visa";
 import type { Profile } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Your recommendations" };
@@ -25,12 +28,14 @@ export default async function RecommendationsPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [{ data: profile }, universities, { data: saved }, searchIds] = await Promise.all([
+  const [{ data: profile }, universities, { data: saved }, searchIds, countryInfo] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>(),
     getVisibleUniversities(supabase, user.id),
     supabase.from("saved_universities").select("university_id").eq("user_id", user.id),
     // Only when searching: one indexed query in Postgres (name + aliases).
     state.filters.query.trim() ? searchUniversityIds(supabase, state.filters.query) : null,
+    // Visa guidance (cached; only used when the student shows or factors it).
+    getCountryInfo(),
   ]);
 
   // No profile yet — we need it to compute matches, so send them there first.
@@ -40,7 +45,7 @@ export default async function RecommendationsPage({
     // Schools without the student's degree level aren't recommendations at
     // all, so leave them out rather than showing them with a 0% score.
     .filter((university) => offersDegreeLevel(profile, university))
-    .map((university) => scoreUniversity(profile, university));
+    .map((university) => scoreUniversity(profile, university, { countryInfo: countryInfo.byCountry }));
   const board = buildBoard(scored, state, { withFeatured: true, searchIds: searchIds ?? undefined });
   const focuses = focusesOf(profile);
 
@@ -60,6 +65,9 @@ export default async function RecommendationsPage({
         <Button variant="outline" asChild>
           <Link href="/profile">Edit profile</Link>
         </Button>
+      </div>
+      <div className="-mt-4 mb-8">
+        <VisaQuickControl mode={visaModeOf(profile)} />
       </div>
 
       {/* Only on the first page, so it doesn't repeat while paging. */}

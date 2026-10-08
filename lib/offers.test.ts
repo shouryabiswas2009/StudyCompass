@@ -50,6 +50,7 @@ const only = (key: keyof OfferWeights): OfferWeights => ({
   research: 0,
   researchImpact: 0,
   coop: 0,
+  visa: 0,
   [key]: 10,
 });
 
@@ -116,7 +117,7 @@ describe("rankOffers", () => {
   });
 
   it("scores everything 0 when every weight is 0, without crashing", () => {
-    const zero = { cost: 0, ranking: 0, subjectRanking: 0, match: 0, country: 0, research: 0, researchImpact: 0, coop: 0 };
+    const zero = { cost: 0, ranking: 0, subjectRanking: 0, match: 0, country: 0, research: 0, researchImpact: 0, coop: 0, visa: 0 };
     const ranked = rankOffers([cheapLowRanked, pricyTopRanked], zero);
     expect(ranked.every((r) => r.score === 0)).toBe(true);
   });
@@ -341,5 +342,21 @@ describe("the strength index in offers", () => {
       rankOffers([offer({ id: "a", strength: 60 }), offer({ id: "b", strength: 85 }), offer({ id: "c", strength: null })], DEFAULT_OFFER_WEIGHTS)
     );
     expect(summary.highestRanked?.id).toBe("b");
+  });
+});
+
+describe("visa and work rights in offers", () => {
+  it("counts the visa score only when its slider is above 0, and leaves unknowns out", () => {
+    const longWindow = offer({ id: "long", visaScore: 1, visaLabel: "3-year post-study work" });
+    const shortWindow = offer({ id: "short", visaScore: 0.2, visaLabel: "6-month post-study work" });
+    const unknown = offer({ id: "unknown", visaScore: null });
+    expect(rankOffers([shortWindow, longWindow], DEFAULT_OFFER_WEIGHTS)[0].criteria.visa).toBeDefined();
+    const ranked = rankOffers([shortWindow, longWindow, unknown], only("visa"));
+    expect(ranked[0].offer.id).toBe("long");
+    expect(ranked.find((r) => r.offer.id === "unknown")!.criteria.visa).toBeNull();
+    // At the default 0 the visa can't change the order.
+    const before = rankOffers([shortWindow, longWindow], DEFAULT_OFFER_WEIGHTS).map((r) => r.offer.id);
+    const noVisa = rankOffers([{ ...shortWindow, visaScore: null }, { ...longWindow, visaScore: null }], DEFAULT_OFFER_WEIGHTS).map((r) => r.offer.id);
+    expect(before).toEqual(noVisa);
   });
 });

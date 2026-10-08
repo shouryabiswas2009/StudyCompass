@@ -198,6 +198,7 @@ export function UniversityBoard({
             ranking={entry.ranking}
             prediction={entry.prediction}
             rank={entry.rank}
+            visa={entry.visa}
             isSaved={savedIds.has(entry.university.id)}
             index={i}
             guest={guest}

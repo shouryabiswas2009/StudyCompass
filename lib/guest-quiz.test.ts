@@ -63,8 +63,11 @@ describe("parseQuizAnswers", () => {
   it("accepts the quiz's own options", () => {
     expect(parseQuizAnswers({ country: "Canada", budget: "40000", major: "Computer Science" })).toEqual({
       ok: true,
-      answers: { country: "Canada", budget: 40000, major: "Computer Science" },
+      answers: { country: "Canada", budget: 40000, major: "Computer Science", visa: "ignore" },
     });
+    // The optional visa question: missing = ignore; only listed values.
+    expect(parseQuizAnswers({ country: "Canada", budget: "40000", major: "Law", visa: "home" })).toMatchObject({ ok: true, answers: { visa: "home" } });
+    expect(parseQuizAnswers({ country: "Canada", budget: "40000", major: "Law", visa: "always" }).ok).toBe(false);
     expect(parseQuizAnswers({ country: ANY_COUNTRY, budget: "15000", major: "Law" }).ok).toBe(true);
   });
 
@@ -133,5 +136,12 @@ describe("guest scoring", () => {
     const top = guestTopMatches(list, answers({ country: ANY_COUNTRY }));
     expect(top.map((m) => m.id).sort()).toEqual(["a", "b"]);
     expect(guestTopMatches([...list].reverse(), answers({ country: ANY_COUNTRY }))).toEqual(top);
+  });
+});
+
+describe("the optional visa question", () => {
+  it("leaves the guest profile's visa ignored unless chosen", () => {
+    expect(guestProfile({ country: "Canada", budget: 40000, major: "Law" }).visa_mode).toBe("ignore");
+    expect(guestProfile({ country: "Canada", budget: 40000, major: "Law", visa: "home" })).toMatchObject({ visa_mode: "factor", visa_weight: "medium", stay_after: "no" });
   });
 });

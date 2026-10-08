@@ -54,6 +54,10 @@ export type OfferInput = {
   researchImpactLabel: string | null;
   coopScore: number | null;
   coopLabel: string | null;
+  // Visa and work rights (lib/visa.ts), 0..1, and a short label; null when
+  // the student ignores the visa or nothing is known for the country.
+  visaScore?: number | null;
+  visaLabel?: string | null;
 };
 
 export type OfferCriterion =
@@ -64,7 +68,8 @@ export type OfferCriterion =
   | "country"
   | "research"
   | "researchImpact"
-  | "coop";
+  | "coop"
+  | "visa";
 
 // How much each criterion matters, 0-10 (the sliders on the offers page).
 export type OfferWeights = Record<OfferCriterion, number>;
@@ -74,17 +79,21 @@ export type OfferWeights = Record<OfferCriterion, number>;
 // used before focuses existed, with the two newer criteria at a low 1. Each
 // focus raises the criteria it's about.
 export const BALANCED_OFFER_WEIGHTS: OfferWeights = {
-  cost: 5, ranking: 3, subjectRanking: 3, match: 2, country: 1, research: 1, researchImpact: 3, coop: 1,
+  cost: 5, ranking: 3, subjectRanking: 3, match: 2, country: 1, research: 1, researchImpact: 3, coop: 1, visa: 0,
 };
 
 export const FOCUS_OFFER_WEIGHTS: Record<Focus, OfferWeights> = {
-  academic: { cost: 3, ranking: 7, subjectRanking: 7, match: 2, country: 1, research: 2, researchImpact: 6, coop: 1 },
-  work_experience: { cost: 4, ranking: 2, subjectRanking: 2, match: 2, country: 1, research: 1, researchImpact: 2, coop: 8 },
-  research: { cost: 3, ranking: 2, subjectRanking: 7, match: 2, country: 1, research: 8, researchImpact: 8, coop: 1 },
-  affordability: { cost: 9, ranking: 2, subjectRanking: 2, match: 2, country: 1, research: 1, researchImpact: 2, coop: 1 },
+  academic: { cost: 3, ranking: 7, subjectRanking: 7, match: 2, country: 1, research: 2, researchImpact: 6, coop: 1, visa: 0 },
+  work_experience: { cost: 4, ranking: 2, subjectRanking: 2, match: 2, country: 1, research: 1, researchImpact: 2, coop: 8, visa: 0 },
+  research: { cost: 3, ranking: 2, subjectRanking: 7, match: 2, country: 1, research: 8, researchImpact: 8, coop: 1, visa: 0 },
+  affordability: { cost: 9, ranking: 2, subjectRanking: 2, match: 2, country: 1, research: 1, researchImpact: 2, coop: 1, visa: 0 },
 };
 
 export const DEFAULT_OFFER_WEIGHTS: OfferWeights = BALANCED_OFFER_WEIGHTS;
+
+// Where the visa slider starts: 0 unless the student factors the visa in,
+// then by their Low / Medium / High choice.
+export const VISA_OFFER_WEIGHT = { low: 2, medium: 4, high: 6 } as const;
 
 // Same blending rule as the match score (lib/matching.ts, focusWeights):
 // average the profiles of every ticked focus, each counting equally, then
@@ -126,6 +135,7 @@ export const CRITERION_LABELS: Record<OfferCriterion, string> = {
   research: "Research intensity",
   researchImpact: "Research impact (Leiden Ranking / OpenAlex)",
   coop: "Co-op / internships",
+  visa: "Visa and work rights",
 };
 
 // Generic so callers can pass extra fields (e.g. for display) and get them
@@ -199,6 +209,7 @@ function scoreOffers<T extends OfferInput>(
       research: offer.researchScore,
       researchImpact: offer.researchImpact,
       coop: offer.coopScore,
+      visa: offer.visaScore ?? null,
     };
 
     let earned = 0;
@@ -246,6 +257,8 @@ function strongPhrase(key: OfferCriterion, offer: OfferInput, value: number): st
       return `its research impact (${offer.researchImpactLabel})`;
     case "coop":
       return `its co-op program (${offer.coopLabel?.toLowerCase()})`;
+    case "visa":
+      return `its visa and work rights (${offer.visaLabel})`;
   }
 }
 
@@ -268,6 +281,8 @@ function weakPhrase(key: OfferCriterion, offer: OfferInput): string {
       return `its lower research impact (${offer.researchImpactLabel})`;
     case "coop":
       return `its co-op situation (${offer.coopLabel?.toLowerCase()})`;
+    case "visa":
+      return `its visa and work rights (${offer.visaLabel})`;
   }
 }
 

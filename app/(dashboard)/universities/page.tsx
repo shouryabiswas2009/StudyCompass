@@ -10,6 +10,7 @@ import { scoreUniversity } from "@/lib/matching";
 import { buildBoard, parseBoardParams } from "@/lib/university-filters";
 import { UniversityBoard } from "@/components/universities/university-board";
 import { Button } from "@/components/ui/button";
+import { getCountryInfo } from "@/lib/data/country-info";
 import type { Profile } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Browse universities" };
@@ -31,18 +32,19 @@ export default async function BrowseUniversitiesPage({
   const user = await getCurrentUser();
   if (!user) return <GuestBrowse state={state} />;
 
-  const [{ data: profile }, universities, { data: saved }, searchIds] = await Promise.all([
+  const [{ data: profile }, universities, { data: saved }, searchIds, countryInfo] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>(),
     getVisibleUniversities(supabase, user.id),
     supabase.from("saved_universities").select("university_id").eq("user_id", user.id),
     // Only when searching: one indexed query in Postgres (name + aliases).
     state.filters.query.trim() ? searchUniversityIds(supabase, state.filters.query) : null,
+    getCountryInfo(),
   ]);
 
   // Cards show a match score, which needs the profile.
   if (!profile) redirect("/profile");
 
-  const scored = universities.map((university) => scoreUniversity(profile, university));
+  const scored = universities.map((university) => scoreUniversity(profile, university, { countryInfo: countryInfo.byCountry }));
   const board = buildBoard(scored, state, { withFeatured: true, searchIds: searchIds ?? undefined });
 
   return (

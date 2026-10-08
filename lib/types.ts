@@ -39,6 +39,11 @@ export type Profile = {
   grade_system?: GradeSystem;
   grade_input?: string | null;
   grade_basis?: GradeBasis;
+  // Visa and work rights (migration_020; see lib/visa.ts). Missing or null
+  // means "ignore", so nothing changes for anyone who hasn't chosen.
+  visa_mode?: "ignore" | "show" | "factor" | null;
+  visa_weight?: "low" | "medium" | "high" | null;
+  stay_after?: "yes" | "unsure" | "no" | null;
   created_at: string;
   updated_at: string;
 };

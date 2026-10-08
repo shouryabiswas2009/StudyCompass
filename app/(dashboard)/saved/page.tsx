@@ -7,6 +7,7 @@ import { UniversityBoard } from "@/components/universities/university-board";
 import { buildBoard, parseBoardParams } from "@/lib/university-filters";
 import { Button } from "@/components/ui/button";
 import type { ApplicationStatus, Profile, University } from "@/lib/types";
+import { getCountryInfo } from "@/lib/data/country-info";
 import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Saved universities" };
@@ -23,7 +24,7 @@ export default async function SavedPage({
   if (!user) redirect("/login");
 
 
-  const [{ data: profile }, { data: saved }, { data: applications }] = await Promise.all([
+  const [{ data: profile }, { data: saved }, { data: applications }, countryInfo] = await Promise.all([
     // Everything at once (they don't depend on each other).
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>(),
     supabase
@@ -36,13 +37,14 @@ export default async function SavedPage({
       .select("id, university_id, status")
       .eq("user_id", user.id)
       .returns<{ id: string; university_id: string; status: ApplicationStatus }[]>(),
+    getCountryInfo(),
   ]);
 
   if (!profile) redirect("/profile");
 
   const universities = (saved ?? []).map((row) => row.universities);
 
-  const scored = universities.map((university) => scoreUniversity(profile, university));
+  const scored = universities.map((university) => scoreUniversity(profile, university, { countryInfo: countryInfo.byCountry }));
   // Saved schools are always shown (no featured step); just filter and page.
   const board = buildBoard(scored, state, { withFeatured: false });
 

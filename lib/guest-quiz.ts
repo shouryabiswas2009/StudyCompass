@@ -1,5 +1,7 @@
 import { COUNTRY_OPTIONS, canonicalCountry } from "@/lib/countries";
 import { computeMatchScore, type FactorKey } from "@/lib/matching";
+import type { CountryInfo } from "@/lib/country-info";
+import { visaFit } from "@/lib/visa";
 import type { Profile, UniversitySummary } from "@/lib/types";
 
 // The "Try it" quiz on the landing page: three questions, no account. The
@@ -8,16 +10,16 @@ import type { Profile, UniversitySummary } from "@/lib/types";
 
 // The answer options live in lib/quiz-options.ts (no scoring code there),
 // so the quiz form in the browser doesn't download the scoring engine.
-import { ANY_COUNTRY, QUIZ_BUDGETS, QUIZ_MAJORS } from "@/lib/quiz-options";
-export { ANY_COUNTRY, QUIZ_BUDGETS, QUIZ_MAJORS };
+import { ANY_COUNTRY, QUIZ_BUDGETS, QUIZ_MAJORS, QUIZ_VISA, type QuizVisa } from "@/lib/quiz-options";
+export { ANY_COUNTRY, QUIZ_BUDGETS, QUIZ_MAJORS, QUIZ_VISA };
 
-export type QuizAnswers = { country: string; budget: number; major: string };
+export type QuizAnswers = { country: string; budget: number; major: string; visa?: QuizVisa };
 
 export type QuizParse = { ok: true; answers: QuizAnswers } | { ok: false; error: string };
 
 // Only accept values the quiz offers, so a hand-made request can't feed the
 // scoring anything odd.
-export function parseQuizAnswers(input: { country: unknown; budget: unknown; major: unknown }): QuizParse {
+export function parseQuizAnswers(input: { country: unknown; budget: unknown; major: unknown; visa?: unknown }): QuizParse {
   const country = typeof input.country === "string" ? input.country : "";
   const budget = Number(input.budget);
   const major = typeof input.major === "string" ? input.major : "";
@@ -26,7 +28,9 @@ export function parseQuizAnswers(input: { country: unknown; budget: unknown; maj
   }
   if (!(QUIZ_BUDGETS as readonly number[]).includes(budget)) return { ok: false, error: "Choose a yearly budget." };
   if (!(QUIZ_MAJORS as readonly string[]).includes(major)) return { ok: false, error: "Choose what you'd like to study." };
-  return { ok: true, answers: { country, budget, major } };
+  const visa = typeof input.visa === "string" && input.visa ? input.visa : "ignore";
+  if (!(visa in QUIZ_VISA)) return { ok: false, error: "Choose whether visa rules should count." };
+  return { ok: true, answers: { country, budget, major, visa: visa as QuizVisa } };
 }
 
 // What the quiz doesn't know about a guest: grades, test scores and English
@@ -53,6 +57,10 @@ export function guestProfile(answers: QuizAnswers): Profile {
     preferred_countries: answers.country === ANY_COUNTRY ? [] : [answers.country],
     preferred_degree_level: "Undergraduate",
     focuses: [],
+    // The optional visa question: factored in at Medium, or ignored.
+    visa_mode: answers.visa && answers.visa !== "ignore" ? "factor" : "ignore",
+    visa_weight: answers.visa && answers.visa !== "ignore" ? "medium" : null,
+    stay_after: answers.visa === "stay" ? "yes" : answers.visa === "home" ? "no" : null,
     created_at: "",
     updated_at: "",
   };
@@ -78,14 +86,22 @@ export type QuizMatch = {
 //   would otherwise score well simply because it can't be judged.
 // - Best score first; then the school the score knows more about; then the
 //   better ranking; then the name, so the same answers give the same list.
-export function guestTopMatches(universities: UniversitySummary[], answers: QuizAnswers, count = 5): QuizMatch[] {
+export function guestTopMatches(
+  universities: UniversitySummary[],
+  answers: QuizAnswers,
+  count = 5,
+  countryInfo: Map<string, CountryInfo> = new Map()
+): QuizMatch[] {
   const profile = guestProfile(answers);
   const unknown = unknownFactors(answers);
   return universities
     .filter((u) => u.created_by === null && u.is_featured === true)
     .filter((u) => answers.country === ANY_COUNTRY || canonicalCountry(u.country) === answers.country)
     .map((university) => {
-      const result = computeMatchScore(profile, university, { unknown });
+      const visa = profile.visa_mode === "factor"
+        ? visaFit(profile, countryInfo.get(canonicalCountry(university.country)) ?? null, { tuition: university.tuition })
+        : null;
+      const result = computeMatchScore(profile, university, { unknown, visa });
       const counted = result.factors.filter((f) => !unknown.includes(f.key));
       return {
         university,
