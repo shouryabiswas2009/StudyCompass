@@ -8,8 +8,10 @@ import {
   SIGNAL_INFO,
   STRENGTH_DISCLAIMER,
   STRENGTH_LABEL,
+  describePeerGroup,
   strengthSummary,
 } from "@/lib/strength-display";
+import { ordinal } from "@/lib/research-impact";
 import type { StrengthSignalKey } from "@/lib/strength-config";
 import type { UniversitySummary } from "@/lib/types";
 
@@ -97,7 +99,7 @@ export function StrengthBreakdown({ university }: { university: UniversitySummar
       {s.isEstimate ? (
         <span className="block">
           <strong>Estimated from similar schools:</strong> we have too few figures for this school, so this is the
-          range of the middle half of {details.peer_count} similar schools ({details.peer_group}).
+          range of the middle half of {details.peer_count} similar schools ({describePeerGroup(details.peer_group)}).
         </span>
       ) : null}
       {signals.length > 0 && (
@@ -112,7 +114,7 @@ export function StrengthBreakdown({ university }: { university: UniversitySummar
                   {SIGNAL_INFO[key].licence ? `, ${SIGNAL_INFO[key].licence}` : ""})
                 </span>
               </span>
-              <span className="shrink-0 tabular-nums">{Math.round(v.percentile)}th pct</span>
+              <span className="shrink-0 tabular-nums">{ordinal(Math.round(v.percentile))} pct</span>
             </span>
           ))}
         </span>

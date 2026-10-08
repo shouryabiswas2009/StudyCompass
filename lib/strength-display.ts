@@ -94,3 +94,22 @@ export function strengthSummary(u: UniversitySummary): StrengthSummary | null {
 export function hasVerifiedRanking(u: UniversitySummary): boolean {
   return (u.source === "curated" || u.source === "user-entered") && (u.qs_ranking != null || Object.keys(u.program_rankings ?? {}).length > 0);
 }
+
+// Peer groups are stored as "Country, type" with the import's type codes
+// (lib/strength.ts); this turns them into words for the page.
+const PEER_TYPE_WORDS: Record<string, string> = {
+  very_high: "R1 research universities",
+  high: "R2 research universities",
+  doctoral_professional: "doctoral or professional universities",
+  non_doctoral: "colleges without doctoral programs",
+  unknown: "schools with no research level on record",
+  university: "universities outside the US",
+};
+export function describePeerGroup(group: string | undefined): string {
+  if (!group) return "similar schools";
+  if (group === "all schools") return "all schools in our list";
+  return group
+    .split(", ")
+    .map((part) => PEER_TYPE_WORDS[part] ?? part)
+    .join(": ");
+}

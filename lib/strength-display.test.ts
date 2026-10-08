@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasVerifiedRanking, strengthForStudent, strengthSummary } from "@/lib/strength-display";
+import { describePeerGroup, hasVerifiedRanking, strengthForStudent, strengthSummary } from "@/lib/strength-display";
 import type { UniversitySummary } from "@/lib/types";
 
 const measured = {
@@ -59,5 +59,14 @@ describe("hasVerifiedRanking", () => {
     expect(hasVerifiedRanking({ source: "College Scorecard", qs_ranking: 1, program_rankings: {} } as unknown as UniversitySummary)).toBe(false);
     expect(hasVerifiedRanking({ source: "curated", qs_ranking: 30, program_rankings: {} } as unknown as UniversitySummary)).toBe(true);
     expect(hasVerifiedRanking({ source: "user-entered", qs_ranking: null, program_rankings: {} } as unknown as UniversitySummary)).toBe(false);
+  });
+});
+
+describe("describePeerGroup", () => {
+  it("turns the stored codes into words", () => {
+    expect(describePeerGroup("United States, non_doctoral")).toBe("United States: colleges without doctoral programs");
+    expect(describePeerGroup("university")).toBe("universities outside the US");
+    expect(describePeerGroup("all schools")).toBe("all schools in our list");
+    expect(describePeerGroup(undefined)).toBe("similar schools");
   });
 });
