@@ -387,3 +387,19 @@ in lib/money.ts) brought it back to the pre-index range, so the release
 doesn't make the page slower. Older live figures (TBT 387 ms after the
 caching work) were measured before research impact, currency and the other
 features shipped, so they aren't a like-for-like comparison.
+
+## Redesign (2026-10-08)
+
+Production build served locally, Lighthouse mobile, 3 runs each:
+
+| Page | Total blocking time | Layout shift | Weight | Accessibility |
+| --- | --- | --- | --- | --- |
+| `/` | 87 / 164 / 214 ms | 0.000 | 345 KB | 100 (light and dark) |
+| `/universities` | 141 / 326 / 381 ms | 0.000 | 442 KB | 100 (light and dark) |
+
+No new assets: the redesign removed shadows, icon circles and boxes, and
+added no images, fonts or scripts. Layout shift stays 0. The first run
+found two accessibility issues, both fixed before release: the faint
+placeholder numbers in "Try it" were 3.6:1 in dark mode (now the normal
+muted colour), and "How is this calculated?" was a 16px-tall target (now at
+least 24px).

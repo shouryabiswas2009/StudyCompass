@@ -147,7 +147,7 @@ export function TryIt() {
                 <ol className="divide-y border-y" aria-hidden>
                   {[1, 2, 3, 4, 5].map((n) => (
                     <li key={n} className="flex items-center gap-4 py-4">
-                      <span className="w-6 font-heading text-sm font-semibold tabular-nums text-muted-foreground/60">
+                      <span className="w-6 font-heading text-sm font-semibold tabular-nums text-muted-foreground">
                         {String(n).padStart(2, "0")}
                       </span>
                       <span className="h-2.5 flex-1 bg-border/70" style={{ maxWidth: `${80 - n * 9}%` }} />

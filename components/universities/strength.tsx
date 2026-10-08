@@ -61,7 +61,7 @@ export function StrengthExplainer({ university }: { university: UniversitySummar
           e.stopPropagation();
           setOpen((o) => !o);
         }}
-        className="text-xs text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground"
+        className="inline-flex min-h-6 items-center text-xs text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground"
       >
         How is this calculated?
       </button>
