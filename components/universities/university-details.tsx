@@ -336,7 +336,7 @@ export function UniversityDetails({
             ? "Entered by you."
             : official
               ? "Research activity is the Carnegie Classification as reported by College Scorecard."
-              : "Not available for illustrative schools."}{" "}
+              : "The Carnegie research level only exists for US schools; for others see research impact above."}{" "}
           Co-op / internship programs are only filled in from the school&apos;s
           own page{university.internship_support_url ? (
             <>

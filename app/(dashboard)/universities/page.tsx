@@ -96,8 +96,9 @@ async function GuestBrowse({ state }: { state: ReturnType<typeof parseBoardParam
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold">Browse universities</h1>
           <p className="max-w-2xl text-muted-foreground">
-            Strongest first, by published figures (graduation, earnings, SAT of admitted students, research and
-            rankings where we have them). Create a free profile to see how well each school fits you and your chances.
+            Strongest first, by the Unicelerate strength index: our own estimate from open data (graduation,
+            earnings, admitted students&apos; SAT and research figures), not an official ranking. Create a free
+            profile to see how well each school fits you and your chances.
           </p>
         </div>
         <Button asChild>
