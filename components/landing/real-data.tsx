@@ -1,4 +1,4 @@
-import { CircleSlash, Globe2, Landmark, Plane } from "lucide-react";
+import { CircleSlash, Gauge, Globe2, Landmark, Plane } from "lucide-react";
 import { SectionHeading } from "@/components/landing/section-heading";
 import type { LandingStats } from "@/lib/landing";
 
@@ -22,6 +22,11 @@ export function RealData({ stats }: { stats: LandingStats }) {
       text: "Post-study work, proof of funds and work-hour limits come only from government immigration websites, with the date each one was checked.",
     },
     {
+      icon: Gauge,
+      title: "A strength estimate, not a ranking",
+      text: "Each university's “Strength (Unicelerate index)” is our own estimate from open data (graduation, earnings and research figures), with a confidence label. Where we know too little, it's estimated from similar schools and shown as a range.",
+    },
+    {
       icon: CircleSlash,
       title: "Honest gaps",
       text: "If a figure can't be verified, it says “Not available” instead of guessing, and the match score leaves it out rather than counting it as zero.",
@@ -35,7 +40,7 @@ export function RealData({ stats }: { stats: LandingStats }) {
           eyebrow="Real data"
           title="Every number says where it came from"
           accent="where it came from"
-          description="No invented statistics and no scraped ranking sites. Any ranking that's shown is labelled with where it came from."
+          description="No invented statistics and no scraped or copied ranking sites. The strength index is our own labelled estimate, never presented as an official ranking."
         />
         <ul className="grid gap-4 sm:grid-cols-2">
           {sources.map((source) => (

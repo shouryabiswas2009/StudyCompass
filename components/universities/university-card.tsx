@@ -27,6 +27,8 @@ import { ApplicationStatusControl } from "@/components/applications/application-
 import type { ApplicationStatus } from "@/lib/types";
 import type { AdmissionPrediction } from "@/lib/admission-model";
 import type { RankInfo } from "@/lib/ranking";
+import { StrengthValue } from "@/components/universities/strength";
+import { STRENGTH_LABEL, hasVerifiedRanking } from "@/lib/strength-display";
 import type { UniversitySummary } from "@/lib/types";
 import { universityPath } from "@/lib/university-path";
 
@@ -147,12 +149,19 @@ export function UniversityCard({
                 {tuition.text}
               </span>
             </div>
-            {ranking && (
+            <div className="flex items-start justify-between gap-3 text-sm">
+              <span className="shrink-0 text-muted-foreground" title={STRENGTH_LABEL}>
+                Strength
+              </span>
+              <StrengthValue university={university} />
+            </div>
+            {/* A ranking only when someone entered it from the ranking's own page. */}
+            {ranking && ranking.rank !== null && hasVerifiedRanking(university) && (
               <div className="flex items-baseline justify-between text-sm">
-                <span className="text-muted-foreground">
-                  Ranking ({ranking.label})
+                <span className="text-muted-foreground">Ranking ({ranking.label})</span>
+                <span className="font-medium">
+                  {formatRank(ranking.rank)} <span className="text-xs font-normal text-muted-foreground">(from its source)</span>
                 </span>
-                <span className="font-medium">{formatRank(ranking.rank)}</span>
               </div>
             )}
             <StrengthsConcerns explanation={explanation} limit={2} />

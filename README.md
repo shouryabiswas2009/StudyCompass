@@ -117,6 +117,19 @@ across countries the site uses open data instead (next section).
 Anything that couldn't be verified is left empty and shows as "not
 available", and the CSV's `notes` column says why.
 
+### Strength (Unicelerate index)
+
+Every shared university has a 0–100 **strength index**: our own labelled
+estimate from open data (College Scorecard outcomes, Leiden research impact,
+OpenAlex citations), never presented as an official ranking. It shows a tier
+(A–E), a confidence label and a position in our list; schools with too few
+figures are **estimated from similar schools** and shown as a range. It's
+computed at import time, not per request. How it works:
+[docs/STRENGTH-INDEX.md](docs/STRENGTH-INDEX.md); coverage and checks:
+[data/strength/report.md](data/strength/report.md); sources we considered
+and rejected (QS, THE, U.S. News, ShanghaiRanking, Webometrics, uniRank):
+[docs/DATA-SOURCES-CONSIDERED.md](docs/DATA-SOURCES-CONSIDERED.md).
+
 ### Research impact (Leiden Ranking / OpenAlex)
 
 A percentile of how often a university's 2020–2023 papers are among the

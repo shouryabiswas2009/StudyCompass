@@ -14,6 +14,7 @@ export const OUT_DIR = join(ROOT, "data", "research-impact");
 export const MATCHES_CSV = join(OUT_DIR, "matches.csv");
 export const OVERRIDES_CSV = join(OUT_DIR, "overrides.csv");
 export const COVERAGE_MD = join(OUT_DIR, "coverage.md");
+export const VALUES_JSON = join(OUT_DIR, "values.json");
 export const SEED_SQL = join(ROOT, "supabase", "seed_research_impact.sql");
 
 // CWTS Leiden Ranking Open Edition 2025 (CC0 1.0), on Zenodo.

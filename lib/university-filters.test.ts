@@ -65,9 +65,9 @@ const names = (entries: MatchEntry[]) => entries.map((e) => e.university.name);
 
 describe("applyFilters", () => {
   const entries = [
-    entry("University of Toronto", { tuition: 45000 }, { score: 90, chance: "Match", rank: 21 }),
-    entry("TU Munich", { country: "Germany", tuition: 3000 }, { score: 70, chance: "Safety", rank: 28 }),
-    entry("MIT", { country: "United States", tuition: 58000 }, { score: 60, chance: "Reach", rank: 1 }),
+    entry("University of Toronto", { tuition: 45000, strength_index: 90 }, { score: 90, chance: "Match", rank: 21 }),
+    entry("TU Munich", { country: "Germany", tuition: 3000, strength_index: 80 }, { score: 70, chance: "Safety", rank: 28 }),
+    entry("MIT", { country: "United States", tuition: 58000, strength_index: 99.2 }, { score: 60, chance: "Reach", rank: 1 }),
     entry("Local College", { degree_levels: ["Undergraduate"], tuition: 2000 }, { score: 40, rank: null }),
   ];
 
@@ -110,7 +110,7 @@ describe("applyFilters", () => {
     expect(names(result)).toEqual(["TU Munich", "MIT"]);
   });
 
-  it("sorts by ranking with unranked schools last", () => {
+  it("sorts strongest first by the Unicelerate index, schools without one last", () => {
     const result = applyFilters(entries, { ...NO_FILTERS, sortBy: "ranking" });
     expect(names(result)).toEqual(["MIT", "University of Toronto", "TU Munich", "Local College"]);
   });

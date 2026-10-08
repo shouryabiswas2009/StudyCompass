@@ -76,6 +76,29 @@ if (existsSync(IMPACT_SQL)) {
   }
 }
 
+// Strength index (migration_019): run twice; every statement must find
+// its university.
+const STRENGTH_DIR = join(import.meta.dirname, "..", "supabase", "seed_strength");
+const strengthFiles = existsSync(STRENGTH_DIR) ? readdirSync(STRENGTH_DIR).filter((f) => f.endsWith(".sql")).sort() : [];
+if (strengthFiles.length) {
+  let expectedStrength = 0;
+  for (let run = 0; run < 2; run++) {
+    for (const f of strengthFiles) {
+      const text = readFileSync(join(STRENGTH_DIR, f), "utf8");
+      if (run === 0) expectedStrength += (text.match(/^update /gm) ?? []).length;
+      await db.exec(text);
+    }
+  }
+  const { rows } = await db.query(
+    "select count(*)::int as n, count(*) filter (where strength_is_estimate)::int as est from public.universities where strength_index is not null"
+  );
+  console.log(`OK  seed_strength (${strengthFiles.length} files) run twice: ${rows[0].n} universities with an index (expected ${expectedStrength}), ${rows[0].est} estimates`);
+  if (rows[0].n !== expectedStrength) {
+    console.error("FAIL some strength-index rows didn't find their university.");
+    process.exit(1);
+  }
+}
+
 // The featured rule exists twice (SQL for the database, JavaScript for counts
 // and tests). Run the SQL and check both agree on the Scorecard schools.
 const FEATURED_SQL = join(import.meta.dirname, "..", "supabase", "featured", "featured.sql");

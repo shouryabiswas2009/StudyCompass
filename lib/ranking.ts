@@ -20,8 +20,10 @@ import type { Profile, UniversitySummary } from "@/lib/types";
 // - Fit gate: schools that fail a hard requirement (degree level, far over
 //   budget, outside the countries you chose) sort below every school that
 //   passes, whatever their other scores.
-// - Quality (lib/quality.ts): how strong the school is, from published
-//   figures; unknown counts as the middle (QUALITY_UNKNOWN).
+// - Quality (lib/quality.ts): how strong the school is: the Unicelerate
+//   strength index for shared schools (lib/strength.ts, computed at import
+//   time), published figures for a student's own school; unknown counts as
+//   the middle (QUALITY_UNKNOWN).
 // - Plausibility: FLOOR + (1 - FLOOR) × clamp(P / P_FULL, 0, 1) from the
 //   admission estimate P;
 //   the Reach/Match/Safety rule when there's no estimate; a neutral value
@@ -74,8 +76,18 @@ function reasonLine(
   gate: RankInfo["gate"]
 ): string {
   if (!gate.passes) return `Below the others because it ${gate.reasons.join(" and ")}.`;
+  // An estimated index is the average of similar schools, so it says
+  // nothing about this school in particular: no "highly regarded" for it.
   const regard =
-    quality === null ? null : quality >= HIGH_QUALITY ? "Highly regarded" : quality >= GOOD_QUALITY ? "Well regarded" : "Fewer signs of strong outcomes";
+    quality === null
+      ? null
+      : university.strength_is_estimate
+        ? "Strength estimated from similar schools"
+        : quality >= HIGH_QUALITY
+          ? "Highly regarded"
+          : quality >= GOOD_QUALITY
+            ? "Well regarded"
+            : "Fewer signs of strong outcomes";
   const verySelective = university.acceptance_rate !== null && university.acceptance_rate < VERY_SELECTIVE_BELOW;
   if (chance === "Reach") {
     if (verySelective) return `${regard ?? "Very selective"}, and a reach for almost everyone: apply, but don't count on it.`;

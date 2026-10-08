@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { OffersBoard, type OfferRow } from "@/components/offers/offers-board";
 import { coopSignal, countryMatches, researchSignal, scoreUniversity } from "@/lib/matching";
 import { describeImpact, researchImpactFor } from "@/lib/research-impact";
+import { hasVerifiedRanking, strengthForStudent, strengthSummary } from "@/lib/strength-display";
 import { focusesOf } from "@/lib/focus";
 import { netCostPerYear, totalProgramCost } from "@/lib/offers";
 import type { Application, Profile, University } from "@/lib/types";
@@ -47,7 +48,11 @@ export default async function OffersPage() {
   const offers: OfferRow[] = (applications ?? []).map((application) => {
     const university = application.universities;
     const { match, ranking } = scoreUniversity(profile, university);
-    const hasSubjectRank = ranking.label !== "Overall";
+    // Only rankings entered from their source count (never illustrative ones).
+    const verified = hasVerifiedRanking(university);
+    const hasSubjectRank = verified && ranking.label !== "Overall";
+    const strength = strengthForStudent(profile, university);
+    const summaryText = strengthSummary(university);
     const research = researchSignal(university);
     const impact = researchImpactFor(profile, university);
     const coop = coopSignal(university);
@@ -61,7 +66,9 @@ export default async function OffersPage() {
       totalCost: totalProgramCost(application),
       durationYears: application.duration_years,
       acceptBy: application.accept_by ?? null,
-      overallRank: university.qs_ranking,
+      overallRank: verified ? university.qs_ranking : null,
+      strength,
+      strengthLabel: summaryText ? `Tier ${summaryText.tier}, ${summaryText.value}` : null,
       subjectRank: hasSubjectRank ? ranking.rank : null,
       subjectLabel: hasSubjectRank ? ranking.label : null,
       matchScore: match.score,

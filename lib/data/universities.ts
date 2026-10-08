@@ -24,6 +24,9 @@ export const LIST_COLUMNS = [
   "tuition_basis", "fx_rate_date",
   // Used by the quality score (lib/quality.ts).
   "median_earnings_10yr", "research_impact",
+  // The strength index (lib/strength.ts), shown on every card.
+  "strength_index", "strength_low", "strength_high", "strength_tier", "strength_confidence",
+  "strength_is_estimate", "strength_position", "strength_signals",
 ] as const;
 
 // Supabase's default limit on rows per API response.
@@ -105,6 +108,21 @@ async function loadShared() {
 // POST /api/revalidate after an import. When it expires, the old list is
 // served while the new one loads in the background (stale-while-revalidate),
 // so no visitor waits for it.
+// The data cache keeps at most 2 MB per entry (Next.js skips larger ones,
+// silently). As plain objects, every row repeats all ~40 column names,
+// which was over half the list's size; packed, the names are stored once:
+// { columns: ["id", "name", …], rows: [["…", "MIT", …], …] }.
+export type PackedRows = { columns: string[]; rows: unknown[][] };
+
+export function packRows<T extends object>(rows: T[]): PackedRows {
+  const columns = [...new Set(rows.flatMap((r) => Object.keys(r)))];
+  return { columns, rows: rows.map((r) => columns.map((c) => (r as Record<string, unknown>)[c] ?? null)) };
+}
+
+export function unpackRows<T>({ columns, rows }: PackedRows): T[] {
+  return rows.map((values) => Object.fromEntries(columns.map((c, i) => [c, values[i]])) as T);
+}
+
 const loadSharedCached = unstable_cache(
   async () => {
     const result = await loadShared();
@@ -112,15 +130,15 @@ const loadSharedCached = unstable_cache(
     // the next request should see it, not wait 15 minutes. Throwing skips
     // the cache; the caller then loads it uncached.
     if (result.missing.length > 0) throw new Error("pending migration");
-    return result.rows;
+    return packRows(result.rows);
   },
-  ["shared-universities", "v3"], // bump the version when LIST_COLUMNS changes
+  ["shared-universities", "v4"], // bump the version when LIST_COLUMNS changes
   { revalidate: 86400, tags: ["universities"] }
 );
 
 export async function getSharedUniversities(): Promise<UniversitySummary[]> {
   try {
-    return await loadSharedCached();
+    return unpackRows<UniversitySummary>(await loadSharedCached());
   } catch {
     return (await loadShared()).rows;
   }

@@ -1,6 +1,8 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import scorecard from "../../data/scorecard/universities.json";
-import { LIST_COLUMNS, MAX_ROWS_PER_REQUEST, fetchAllRows } from "./universities";
+import { LIST_COLUMNS, MAX_ROWS_PER_REQUEST, fetchAllRows, packRows, unpackRows } from "./universities";
 import { DETAIL_ONLY_FIELDS, type University } from "@/lib/types";
 
 // Regression guards for the slowness and the missing-schools bug measured
@@ -59,6 +61,8 @@ describe("LIST_COLUMNS", () => {
       tuition_year: null, tuition_source_url: null, living_cost_local: null, living_cost_currency: null,
       living_cost_source_url: null, fx_rate_date: null, acceptance_source_url: null, programs_source_url: null,
       research_impact: null,
+      strength_index: null, strength_low: null, strength_high: null, strength_tier: null, strength_confidence: null,
+      strength_is_estimate: null, strength_position: null, strength_signals: null,
     };
     const summaryFields = Object.keys(everyField).filter(
       (f) => !(DETAIL_ONLY_FIELDS as readonly string[]).includes(f)
@@ -73,7 +77,41 @@ describe("LIST_COLUMNS", () => {
         LIST_COLUMNS.map((c) => [c, (u as Record<string, unknown>)[c] ?? null])
       )
     );
-    const bytes = new TextEncoder().encode(JSON.stringify(rows)).length;
+    // Cached packed (packRows): column names once, not on every row.
+    const bytes = new TextEncoder().encode(JSON.stringify(packRows(rows))).length;
     expect(bytes).toBeLessThan(1.5 * 1024 * 1024);
+  });
+});
+
+describe("packRows / unpackRows (the cached list)", () => {
+  // Every list column for each real College Scorecard school, with the real
+  // strength index values from supabase/seed_strength (as the database
+  // returns them after migration_019).
+  const strength = new Map<number, Record<string, unknown>>();
+  for (const file of readdirSync(join(__dirname, "..", "..", "supabase", "seed_strength"))) {
+    const sql = readFileSync(join(__dirname, "..", "..", "supabase", "seed_strength", file), "utf8");
+    for (const m of sql.matchAll(/strength_index = ([\d.]+), .*strength_signals = '(.*)'::jsonb where created_by is null and scorecard_id = (\d+);/g)) {
+      strength.set(Number(m[3]), { strength_index: Number(m[1]), strength_signals: JSON.parse(m[2].replaceAll("''", "'")) });
+    }
+  }
+  const rows = scorecard.universities.map((u: Record<string, unknown>) => ({
+    ...Object.fromEntries(LIST_COLUMNS.map((c) => [c, u[c] ?? null])),
+    id: "6845fafb-6f85-41bc-9d31-878a990bb4ff",
+    strength_low: null, strength_high: null, strength_tier: "B", strength_confidence: "High",
+    strength_is_estimate: false, strength_position: 412,
+    ...strength.get(u.scorecard_id as number),
+  }));
+
+  it("gives back exactly the rows it was given", () => {
+    const sample = rows.slice(0, 50);
+    expect(unpackRows(packRows(sample))).toEqual(sample);
+    expect(unpackRows(packRows([]))).toEqual([]);
+  });
+
+  it("keeps the whole list, strength index included, well under the 2 MB data-cache limit", () => {
+    expect(strength.size).toBe(scorecard.universities.length);
+    const packed = new TextEncoder().encode(JSON.stringify(packRows(rows))).length;
+    // These are 1,577 of the 1,688 rows; the 111 curated ones add ~10% more.
+    expect(packed * 1.1).toBeLessThan(1.5 * 1024 * 1024);
   });
 });

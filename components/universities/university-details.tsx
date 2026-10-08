@@ -4,6 +4,8 @@ import { TrendingUp, Percent, DollarSign } from "lucide-react";
 import { SourceBadge } from "@/components/universities/source-badge";
 import { CountryGuidance } from "@/components/universities/country-guidance";
 import { ResearchImpactPanel } from "@/components/universities/research-impact";
+import { StrengthBreakdown, StrengthValue } from "@/components/universities/strength";
+import { STRENGTH_LABEL, hasVerifiedRanking } from "@/lib/strength-display";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Flag } from "@/components/flag";
@@ -13,7 +15,6 @@ import { livingCostDisplay, tuitionDisplay } from "@/lib/money";
 import { COOP_LABELS, RESEARCH_LABELS } from "@/lib/focus";
 import { compareUrl } from "@/lib/compare";
 import { formatCheckedOn, sourcesWithDates } from "@/lib/source-dates";
-import { ordinal, RESEARCH_IMPACT_LABEL } from "@/lib/research-impact";
 import { canonicalCountry } from "@/lib/countries";
 import type { CountryInfoResult } from "@/lib/data/country-info";
 import type { University } from "@/lib/types";
@@ -120,18 +121,18 @@ export function UniversityDetails({
       label: tuition.approximate ? "Tuition (approximate)" : "Tuition",
       value: tuition.text,
     },
-    // Research impact where we have it (open data, every country); otherwise
-    // a ranking the student entered for their own school.
-    university.research_impact || ranking.rank === null
+    // The strength index (every shared school has one); a student's own
+    // school shows the ranking they entered, if any.
+    university.strength_index == null && ranking.rank !== null
       ? {
-          icon: TrendingUp,
-          label: RESEARCH_IMPACT_LABEL,
-          value: university.research_impact ? `${ordinal(university.research_impact.overall)} percentile` : "Not available",
-        }
-      : {
           icon: TrendingUp,
           label: `Ranking (entered by you) — ${ranking.label}`,
           value: formatRank(ranking.rank),
+        }
+      : {
+          icon: TrendingUp,
+          label: STRENGTH_LABEL,
+          value: <StrengthValue university={university} className="justify-center text-center" />,
         },
     {
       icon: Percent,
@@ -290,6 +291,33 @@ export function UniversityDetails({
           </p>
         </div>
       )}
+
+      <div className="mt-8 space-y-2">
+        <h2 className="font-medium">{STRENGTH_LABEL}</h2>
+        {university.strength_signals ? (
+          <div className="rounded-xl border p-4 text-sm">
+            <StrengthBreakdown university={university} />
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Not available{university.source === "user-entered" ? " for schools you add yourself" : ""}.
+          </p>
+        )}
+        {university.qs_ranking !== null && hasVerifiedRanking(university) && (
+          <p className="text-sm">
+            Ranking entered from its source: {formatRank(university.qs_ranking)}
+            {university.source_url && (
+              <>
+                {" "}(
+                <a href={university.source_url} target="_blank" rel="noopener noreferrer" className="underline">
+                  source
+                </a>
+                )
+              </>
+            )}
+          </p>
+        )}
+      </div>
 
       <ResearchImpactPanel university={university} />
 

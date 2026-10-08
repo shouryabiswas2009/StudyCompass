@@ -33,7 +33,12 @@ export type OfferInput = {
   id: string;
   universityName: string;
   totalCost: number | null;
+  // A ranking entered from its source (verified only; none for most schools).
   overallRank: number | null;
+  // The Unicelerate strength index for this student (0-100) and how it's
+  // shown ("Tier B, 71" / "est. 45–58"); null for a student's own school.
+  strength: number | null;
+  strengthLabel: string | null;
   // The ranking for the student's major, when the school has one.
   subjectRank: number | null;
   subjectLabel: string | null;
@@ -114,7 +119,7 @@ export function focusWeightsNote(focuses: Focus[]): string {
 
 export const CRITERION_LABELS: Record<OfferCriterion, string> = {
   cost: "Total cost",
-  ranking: "Overall ranking",
+  ranking: "Strength (Unicelerate index)",
   subjectRanking: "Subject ranking",
   match: "Match score",
   country: "Preferred country",
@@ -183,7 +188,9 @@ function scoreOffers<T extends OfferInput>(
   const scored = offers.map((offer, i) => {
     const criteria: Record<OfferCriterion, number | null> = {
       cost: cost[i],
-      ranking: ranking[i],
+      // The strength index is on a fixed 0-100 scale; without one (a
+      // student's own school), a verified ranking compared between offers.
+      ranking: offer.strength !== null ? offer.strength / 100 : ranking[i],
       subjectRanking: subject[i],
       match: offer.matchScore / 100,
       country: offer.inPreferredCountry ? 1 : 0,
@@ -226,7 +233,7 @@ function strongPhrase(key: OfferCriterion, offer: OfferInput, value: number): st
     case "cost":
       return `${value === 1 ? "the lowest" : "a low"} total cost (${usd(offer.totalCost ?? 0)})`;
     case "ranking":
-      return `a strong overall ranking (#${offer.overallRank})`;
+      return offer.strength !== null ? `its strength (${offer.strengthLabel})` : `a strong overall ranking (#${offer.overallRank})`;
     case "subjectRanking":
       return `a strong ${offer.subjectLabel} ranking (#${offer.subjectRank})`;
     case "match":
@@ -247,6 +254,7 @@ function weakPhrase(key: OfferCriterion, offer: OfferInput): string {
     case "cost":
       return `its higher total cost (${usd(offer.totalCost ?? 0)})`;
     case "ranking":
+      if (offer.strength !== null) return `its lower strength (${offer.strengthLabel})`;
       return offer.overallRank === null ? "having no overall ranking" : `its overall ranking (#${offer.overallRank})`;
     case "subjectRanking":
       return `its ${offer.subjectLabel} ranking (#${offer.subjectRank})`;
@@ -307,15 +315,19 @@ export function summarizeOffers<T extends OfferInput>(ranked: RankedOffer<T>[]):
   const offers = ranked.map((r) => r.offer);
   const withCost = offers.filter((o) => o.totalCost !== null);
   const withRank = offers.filter((o) => o.overallRank !== null);
+  const withStrength = offers.filter((o) => o.strength !== null);
 
   return {
     bestOverall: ranked[0]?.offer ?? null,
     cheapest: withCost.length
       ? withCost.reduce((a, b) => ((b.totalCost as number) < (a.totalCost as number) ? b : a))
       : null,
-    highestRanked: withRank.length
-      ? withRank.reduce((a, b) => ((b.overallRank as number) < (a.overallRank as number) ? b : a))
-      : null,
+    // Strongest by the index when offers have one, else best verified rank.
+    highestRanked: withStrength.length
+      ? withStrength.reduce((a, b) => ((b.strength as number) > (a.strength as number) ? b : a))
+      : withRank.length
+        ? withRank.reduce((a, b) => ((b.overallRank as number) < (a.overallRank as number) ? b : a))
+        : null,
   };
 }
 

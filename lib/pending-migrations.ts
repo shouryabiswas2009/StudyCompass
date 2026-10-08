@@ -27,6 +27,14 @@ export const PENDING_COLUMNS: Record<string, string> = {
   grade_system: "migration_017_grade_systems.sql",
   grade_input: "migration_017_grade_systems.sql",
   grade_basis: "migration_017_grade_systems.sql",
+  strength_index: "migration_019_strength_index.sql",
+  strength_low: "migration_019_strength_index.sql",
+  strength_high: "migration_019_strength_index.sql",
+  strength_tier: "migration_019_strength_index.sql",
+  strength_confidence: "migration_019_strength_index.sql",
+  strength_is_estimate: "migration_019_strength_index.sql",
+  strength_position: "migration_019_strength_index.sql",
+  strength_signals: "migration_019_strength_index.sql",
 };
 
 type DbError = { code?: string; message?: string } | null;

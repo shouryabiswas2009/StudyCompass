@@ -80,12 +80,11 @@ function sortEntries(entries: MatchEntry[], sortBy: SortKey): MatchEntry[] {
     case "tuition-desc":
       return sorted.sort((a, b) => byKnown(a.university.tuition, b.university.tuition, -1));
     case "ranking":
-      // Unranked schools go last rather than being treated as #0.
-      return sorted.sort((a, b) => {
-        if (a.ranking.rank === null) return b.ranking.rank === null ? 0 : 1;
-        if (b.ranking.rank === null) return -1;
-        return a.ranking.rank - b.ranking.rank;
-      });
+      // "Strongest first (Unicelerate index)": highest index first; schools
+      // without one (a student's own) last, never as if they were 0.
+      return sorted.sort(
+        (a, b) => byKnown(numberOrNull(a.university.strength_index), numberOrNull(b.university.strength_index), -1) || a.university.name.localeCompare(b.university.name)
+      );
     case "match":
       return sorted.sort((a, b) => b.match.score - a.match.score);
     case "safest":
@@ -304,3 +303,5 @@ export function topPicksByCountry(
     picks: best.filter((e) => canonicalCountry(e.university.country) === country).slice(0, perCountry),
   }));
 }
+
+const numberOrNull = (v: number | null | undefined) => (v === null || v === undefined ? null : Number(v));

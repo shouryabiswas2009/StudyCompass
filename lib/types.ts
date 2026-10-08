@@ -1,4 +1,5 @@
 import type { GradeBasis, GradeSystem } from "@/lib/grades";
+import type { StrengthConfidence, StrengthSignalKey, StrengthTier } from "@/lib/strength-config";
 // Shared types matching the Supabase schema in supabase/seed.sql plus the
 // numbered migrations in supabase/.
 
@@ -126,6 +127,30 @@ export type University = {
   // Research impact (migration_015), from the Leiden Ranking; null when the
   // school isn't in it. See lib/research-impact.ts.
   research_impact?: ResearchImpact | null;
+
+  // Unicelerate strength index (migration_019): our own estimate from open
+  // data, computed at import time (lib/strength.ts). Null for a student's own
+  // school, and missing until that migration runs.
+  strength_index?: number | null;
+  strength_low?: number | null; // estimate range
+  strength_high?: number | null;
+  strength_tier?: StrengthTier | null;
+  strength_confidence?: StrengthConfidence | null;
+  strength_is_estimate?: boolean | null;
+  strength_position?: number | null;
+  strength_signals?: StrengthDetails | null;
+};
+
+// universities.strength_signals: which signals were used, each with its
+// value and percentile; for an estimate, the peers it came from.
+export type StrengthDetails = {
+  signals: Partial<Record<StrengthSignalKey, { value: number; percentile: number }>>;
+  of: number; // schools in our list
+  computed_on: string;
+  openalex_fetched_on?: string;
+  peer_group?: string;
+  peer_count?: number;
+  position_range?: [number, number];
 };
 
 export type ResearchFieldKey = "biomedical" | "life_earth" | "math_cs" | "physical_eng" | "social_humanities";

@@ -4,6 +4,8 @@ import { MatchScoreBadge } from "@/components/universities/match-score-badge";
 import { StrengthsConcerns } from "@/components/universities/strengths-concerns";
 import { SourceBadge } from "@/components/universities/source-badge";
 import { ResearchImpactValue } from "@/components/universities/research-impact";
+import { StrengthValue } from "@/components/universities/strength";
+import { STRENGTH_LABEL, hasVerifiedRanking } from "@/lib/strength-display";
 import { RESEARCH_IMPACT_LABEL, researchImpactFor } from "@/lib/research-impact";
 import { bestIndexes, totalYearlyCost } from "@/lib/compare";
 import { usd } from "@/lib/format";
@@ -30,6 +32,8 @@ type Row = {
   better?: "higher" | "lower";
   // Some rows are only fair to compare in certain cases (see ranking below).
   comparable?: (entries: MatchEntry[], profile: Profile) => boolean;
+  // Rows shown only when they apply to at least one of the schools.
+  shown?: (entries: MatchEntry[]) => boolean;
 };
 
 const muted = (text: string) => <span className="text-muted-foreground">{text}</span>;
@@ -110,14 +114,24 @@ const ROWS: Row[] = [
     better: "lower",
   },
   {
-    label: "Ranking",
-    render: ({ ranking }) => `${formatRank(ranking.rank)} (${ranking.label})`,
-    value: ({ ranking }) => ranking.rank,
+    label: STRENGTH_LABEL,
+    render: ({ university }) => <StrengthValue university={university} className="justify-start text-left" />,
+    value: ({ university }) => university.strength_index ?? null,
+    better: "higher",
+    // An estimate is a range from similar schools, so no "best" mark then.
+    comparable: (entries) => entries.every((e) => e.university.strength_is_estimate === false),
+  },
+  {
+    label: "Ranking (entered from its source)",
+    render: ({ university, ranking }) =>
+      hasVerifiedRanking(university) && ranking.rank !== null ? `${formatRank(ranking.rank)} (${ranking.label})` : muted("None entered"),
+    value: ({ university, ranking }) => (hasVerifiedRanking(university) ? ranking.rank : null),
     better: "lower",
     // A subject ranking (#15 in Computer Science) and an overall ranking
     // (#30 overall) aren't the same scale, so only crown a winner when every
     // school is ranked the same way.
     comparable: (entries) => new Set(entries.map((e) => e.ranking.label)).size === 1,
+    shown: (entries) => entries.some((e) => hasVerifiedRanking(e.university)),
   },
   {
     label: RESEARCH_IMPACT_LABEL,
@@ -233,7 +247,7 @@ export function CompareTable({
             </tr>
           </thead>
           <tbody>
-            {ROWS.map((row) => {
+            {ROWS.filter((row) => row.shown?.(entries) ?? true).map((row) => {
               const highlight =
                 row.value && row.better && (row.comparable?.(entries, profile) ?? true)
                   ? bestIndexes(entries.map((e) => row.value!(e, profile)), row.better)
@@ -267,9 +281,10 @@ export function CompareTable({
       </div>
       <p className="text-xs text-muted-foreground">
         Green cells are the best value in their row (lowest cost, highest
-        score, and so on). Rankings are only compared when every school is
-        ranked the same way. The first row says where each school&apos;s figures
-        come from; rankings are illustrative for every school.
+        score, and so on). The strength index is our own estimate from open
+        data, not an official ranking; it isn&apos;t marked &ldquo;best&rdquo; when a
+        school&apos;s figure is estimated from similar schools. The first row says
+        where each school&apos;s figures come from.
       </p>
     </div>
   );

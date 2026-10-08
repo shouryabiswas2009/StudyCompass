@@ -278,3 +278,35 @@ describe("migration_018 (figure reports)", () => {
     ).rejects.toThrow(/check/);
   }, 30_000);
 });
+
+describe("migration_019 (strength index)", () => {
+  const set = (db, id, fields) =>
+    db.query(`update public.universities set ${fields} where id = $1`, [id]);
+  const base = "strength_index = 70, strength_tier = 'B', strength_confidence = 'High', strength_position = 10, strength_signals = '{}'::jsonb";
+
+  it("stores a measured index and an estimate with its range, and clears illustrative Scorecard rankings", async () => {
+    const { db } = await createInMemoryDb();
+    const { rows } = await db.query("select id from public.universities where created_by is null order by id limit 1");
+    await set(db, rows[0].id, `${base}, strength_is_estimate = false`);
+    await set(db, rows[0].id, `${base}, strength_is_estimate = true, strength_low = 60, strength_high = 75`);
+    await db.query("update public.universities set source = 'College Scorecard', qs_ranking = 1 where id = $1", [rows[0].id]);
+    await db.exec(sql("migration_019_strength_index.sql")); // safe to re-run; clears the leftover rank
+    const { rows: after } = await db.query("select qs_ranking, strength_low from public.universities where id = $1", [rows[0].id]);
+    expect(after[0]).toEqual({ qs_ranking: null, strength_low: "60.0" });
+  }, 30_000);
+
+  it("rejects an estimate without a range, a bad tier, and an index on a student's own school", async () => {
+    const { db } = await createInMemoryDb();
+    const { rows } = await db.query("select id from public.universities where created_by is null order by id limit 1");
+    await expect(set(db, rows[0].id, `${base}, strength_is_estimate = true`)).rejects.toThrow(/universities_strength_check/);
+    await expect(set(db, rows[0].id, `${base.replace("'B'", "'F'")}, strength_is_estimate = false`)).rejects.toThrow(/universities_strength_check/);
+    const student = "00000000-0000-0000-0000-0000000000ff";
+    await db.query("insert into auth.users (id) values ($1)", [student]);
+    await db.query(
+      `insert into public.universities (name, country, tuition, acceptance_rate, description, created_by, source) values ('Mine', 'Canada', 1, 50, '', $1, 'user-entered')`,
+      [student]
+    );
+    const own = (await db.query("select id from public.universities where created_by = $1", [student])).rows[0].id;
+    await expect(set(db, own, `${base}, strength_is_estimate = false`)).rejects.toThrow(/universities_strength_check/);
+  }, 30_000);
+});

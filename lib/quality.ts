@@ -1,6 +1,7 @@
 import { rankScore, subjectRanking } from "@/lib/matching";
 import { RESEARCH_SCORES } from "@/lib/focus";
 import { RESEARCH_FIELD_LABELS, researchImpactFor } from "@/lib/research-impact";
+import { STRENGTH_LABEL, strengthForStudent } from "@/lib/strength-display";
 import {
   QUALITY_MIN_KNOWN_WEIGHT,
   QUALITY_RANGES,
@@ -18,7 +19,7 @@ import type { Profile, UniversitySummary } from "@/lib/types";
 // answer is null: "quality not available", never a guess.
 
 export type QualityKey = keyof typeof QUALITY_WEIGHTS;
-export type QualityPart = { key: QualityKey; label: string; value: number };
+export type QualityPart = { key: QualityKey | "strength"; label: string; value: number };
 export type Quality = { score: number | null; parts: QualityPart[] };
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
@@ -33,7 +34,17 @@ function verifiedRankings(university: UniversitySummary): boolean {
 }
 
 export function qualityScore(profile: Profile, university: UniversitySummary): Quality {
-  const parts: QualityPart[] = [];
+  // Shared schools have the Unicelerate strength index (computed at import
+  // time from the same kinds of signals, plus OpenAlex, with peer estimates
+  // for schools with too few figures), so none of them counts as unknown
+  // quality. A student's own school has no index and is scored from the
+  // figures they entered, below.
+  const strength = strengthForStudent(profile, university);
+  if (strength !== null) {
+    return { score: strength / 100, parts: [{ key: "strength", label: STRENGTH_LABEL, value: strength / 100 }] };
+  }
+
+  const parts: (QualityPart & { key: QualityKey })[] = [];
   const add = (key: QualityKey, label: string, value: number | null) => {
     if (value !== null) parts.push({ key, label, value: clamp01(value) });
   };

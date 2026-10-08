@@ -139,6 +139,23 @@ describe("qualityScore with research impact", () => {
   });
 });
 
+describe("qualityScore with the strength index", () => {
+  it("uses the stored index for shared schools, so none counts as unknown quality", () => {
+    const u = makeUniversity({ source: "curated", qs_ranking: null, sat_25: null, sat_75: null, completion_rate: null, retention_rate: null, research_intensity: null, acceptance_rate: null,
+      strength_index: 72, strength_tier: "B", strength_confidence: "Medium", strength_is_estimate: false, strength_position: 300,
+      strength_signals: { signals: { leiden: { value: 72, percentile: 72 } }, of: 1688, computed_on: "2026-10-08" } });
+    expect(qualityScore(makeProfile({ intended_majors: ["History"] }), u)).toEqual({ score: 0.72, parts: [{ key: "strength", label: "Strength (Unicelerate index)", value: 0.72 }] });
+  });
+
+  it("doesn't call an estimated school 'highly regarded'", () => {
+    const u = makeUniversity({ strength_index: 95, strength_low: 90, strength_high: 98, strength_tier: "A", strength_confidence: "Low", strength_is_estimate: true, strength_position: 5,
+      strength_signals: { signals: {}, of: 1688, computed_on: "2026-10-08", peer_group: "all schools", peer_count: 1600, position_range: [1, 40] } });
+    const { rank } = scoreUniversity(makeProfile(), u);
+    expect(rank.reason).not.toMatch(/regarded/);
+    expect(rank.reason).toMatch(/estimated from similar schools/);
+  });
+});
+
 describe("fitGate", () => {
   it("passes a school that fits", () => {
     const u = makeUniversity();

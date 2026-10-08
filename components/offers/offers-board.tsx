@@ -119,9 +119,13 @@ export function OffersBoard({
             note={summary.cheapest?.totalCost != null ? `${money(summary.cheapest.totalCost)} total` : undefined}
           />
           <SummaryCard
-            title="Highest ranked"
+            title="Strongest (Unicelerate index)"
             name={summary.highestRanked?.universityName}
-            note={summary.highestRanked ? `${formatRank(summary.highestRanked.overallRank)} overall` : undefined}
+            note={
+              summary.highestRanked
+                ? summary.highestRanked.strengthLabel ?? `${formatRank(summary.highestRanked.overallRank)} overall`
+                : undefined
+            }
           />
         </div>
 
@@ -183,7 +187,7 @@ export function OffersBoard({
                   ? `${money(offer.netPerYear)}/yr after scholarship · ${money(offer.totalCost)} over ${offer.durationYears} years`
                   : "Cost unknown — add tuition and living cost on the Applications page"}
                 {" · "}
-                {formatRank(offer.overallRank)} overall
+                {offer.strengthLabel ? `strength ${offer.strengthLabel}` : `${formatRank(offer.overallRank)} overall`}
                 {offer.subjectRank !== null && ` · #${offer.subjectRank} in ${offer.subjectLabel}`}
                 {` · research impact (Leiden Ranking / OpenAlex): ${offer.researchImpactLabel ?? "not available"}`}
                 {` · ${offer.matchScore}% match`}
@@ -205,9 +209,11 @@ export function OffersBoard({
         </ol>
 
         <p className="text-xs text-muted-foreground">
-          Each offer gets 0–100 from the criteria above. Costs and rankings are
-          compared between your offers (best = full marks), rankings on a log
-          scale so #5 vs #10 counts more than #205 vs #210. Research intensity
+          Each offer gets 0–100 from the criteria above. Costs are compared
+          between your offers (best = full marks). Strength is the Unicelerate
+          index (our own estimate from open data, not an official ranking) on
+          its fixed 0–100 scale; a ranking you entered for your own school is
+          compared on a log scale instead. Research intensity
           (Carnegie classification) and co-op / internships (mandatory,
           optional or none) use fixed scales instead, and are only known for
           some schools. Anything unknown for an offer is left out of its score

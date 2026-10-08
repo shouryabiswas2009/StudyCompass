@@ -29,7 +29,7 @@ illustrative rows left); `country_info` has row level security on and 27
 countries (16 post-study, 7 proof of funds, 16 work-hour figures); and
 `applications.accept_by` exists. Step 15 was run on 2026-10-07 (reported
 done; check: `delete_my_account` exists as a security-definer function).
-Steps 16–20 were run on 2026-10-07 and verified read-only: 350 universities have research impact (Oxford 99), the four profile columns exist, `figure_reports` exists and refuses inserts without a login. **Nothing pending.**
+Steps 16–20 were run on 2026-10-07 and verified read-only: 350 universities have research impact (Oxford 99), the four profile columns exist, `figure_reports` exists and refuses inserts without a login. **Pending: steps 21–22** (strength index).
 
 New migrations will be added to this table when they're written.
 
@@ -59,6 +59,8 @@ this order: the seed files need both migrations first.
 | 18 | `supabase/migration_016_display_currency.sql` | Done, verified 2026-10-07 |
 | 19 | `supabase/migration_017_grade_systems.sql` | Done, verified 2026-10-07 |
 | 20 | `supabase/migration_018_figure_reports.sql` (check: row level security is on, two policies) | Done, verified 2026-10-07 |
+| 21 | `supabase/migration_019_strength_index.sql` | **To do** |
+| 22 | `supabase/seed_strength/01_strength.sql` … `06_strength.sql`, one at a time in order (check: `select count(*) filter (where strength_index is not null), count(*) filter (where strength_is_estimate) from universities where created_by is null` → 1688 and the estimate count in data/strength/report.md) | **To do** |
 
 All of them are safe to run again if you're not sure whether one went
 through.

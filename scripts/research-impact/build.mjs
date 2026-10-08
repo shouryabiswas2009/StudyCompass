@@ -22,6 +22,7 @@ import {
   OUT_DIR,
   OVERRIDES_CSV,
   SEED_SQL,
+  VALUES_JSON,
   SOURCE,
   WIKIDATA_FILE,
 } from "./config.mjs";
@@ -119,6 +120,15 @@ writeFileSync(MATCHES_CSV, toCsv(header, decided));
 
 // ─── SQL ─────────────────────────────────────────────────────────────────
 const accepted = decided.filter((m) => m.accepted === "yes");
+// The stored value per school, also written to values.json for the
+// strength index (scripts/strength/build.mjs).
+const records = Object.fromEntries(
+  accepted.map((m) => {
+    const u = universities.get(m.ror);
+    return [m.key, impactRecord({ ror: m.ror, overall: u.overall, fields: u.fields, source: SOURCE, checkedOn })];
+  })
+);
+writeFileSync(VALUES_JSON, JSON.stringify(records, null, 1) + "\n");
 const sqlText = (s) => `'${s.replaceAll("'", "''")}'`;
 const where = (key) => {
   const [kind, id] = key.split(":");
@@ -135,11 +145,9 @@ const sql = [
   "",
   "begin;",
   "update public.universities set research_impact = null where created_by is null and research_impact is not null;",
-  ...accepted.map((m) => {
-    const u = universities.get(m.ror);
-    const record = impactRecord({ ror: m.ror, overall: u.overall, fields: u.fields, source: SOURCE, checkedOn });
-    return `update public.universities set research_impact = ${sqlText(JSON.stringify(record))}::jsonb where created_by is null and ${where(m.key)};`;
-  }),
+  ...accepted.map(
+    (m) => `update public.universities set research_impact = ${sqlText(JSON.stringify(records[m.key]))}::jsonb where created_by is null and ${where(m.key)};`
+  ),
   "commit;",
   "",
 ].join("\n");

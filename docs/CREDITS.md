@@ -51,12 +51,21 @@ for visa guidance, and European Central Bank reference exchange rates.
 | Source | What we use | Licence |
 | --- | --- | --- |
 | [CWTS Leiden Ranking Open Edition 2025](https://open.leidenranking.com) ([data on Zenodo](https://doi.org/10.5281/zenodo.17473224)) | PP(top 10%) per university and main field, 2020–2023, turned into percentiles | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
-| [OpenAlex](https://openalex.org) institutions | Websites and other names, to match universities; the Leiden Ranking is itself built from OpenAlex | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| [OpenAlex](https://openalex.org) institutions | Citation figures for the strength index (works, citations, h-index, i10-index, 2-year mean citedness) and websites/other names to match universities; the Leiden Ranking is itself built from OpenAlex. Licence checked on OpenAlex's site: the data snapshot's `LICENSE.txt` is CC0 1.0 | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | [Wikidata](https://www.wikidata.org) | Which ROR id belongs to which US (IPEDS) school id, to match US universities | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | [ROR](https://ror.org) (Research Organization Registry) ids, as listed in the sources above | The shared identifier that links them | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
 
 No commercial ranking (QS, Times Higher Education, U.S. News,
-ShanghaiRanking) is copied into the site or its database.
+ShanghaiRanking, Webometrics, uniRank) is copied into the site or its
+database; why each was or wasn't used is in
+[DATA-SOURCES-CONSIDERED.md](https://github.com/shouryabiswas2009/Unicelerate/blob/main/docs/DATA-SOURCES-CONSIDERED.md).
+
+### Strength (Unicelerate index)
+
+Our own estimate, computed from the College Scorecard, Leiden Ranking and
+OpenAlex data above; not an official ranking. It inherits their licences:
+College Scorecard is listed as [CC BY](https://catalog.data.gov/dataset/college-scorecard)
+on data.gov (credited here), the others are CC0.
 
 ### Grade conversions (profile)
 

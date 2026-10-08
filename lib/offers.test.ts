@@ -25,6 +25,8 @@ function offer(overrides: Partial<OfferInput> & { id: string }): OfferInput {
     universityName: overrides.id,
     totalCost: 100000,
     overallRank: 50,
+    strength: null,
+    strengthLabel: null,
     subjectRank: null,
     subjectLabel: null,
     matchScore: 70,
@@ -321,5 +323,23 @@ describe("acceptByStatus", () => {
     expect(acceptByStatus(undefined, "admitted", today)).toBeNull();
     expect(acceptByStatus("soon", "admitted", today)).toBeNull();
     expect(acceptByStatus("2026-10-01", "accepted", today)).toBeNull();
+  });
+});
+
+describe("the strength index in offers", () => {
+  it("uses the index on its fixed scale when offers have one", () => {
+    const strong = offer({ id: "strong", totalCost: 100000, overallRank: null, strength: 92, strengthLabel: "Tier A, 92" });
+    const weaker = offer({ id: "weaker", totalCost: 100000, overallRank: null, strength: 40, strengthLabel: "Tier D, 40" });
+    const ranked = rankOffers([weaker, strong], only("ranking"));
+    expect(ranked.map((r) => r.offer.id)).toEqual(["strong", "weaker"]);
+    expect(ranked[0].criteria.ranking).toBeCloseTo(0.92);
+    expect(ranked[0].reason).toContain("its strength (Tier A, 92)");
+  });
+
+  it("calls the strongest offer by the index", () => {
+    const summary = summarizeOffers(
+      rankOffers([offer({ id: "a", strength: 60 }), offer({ id: "b", strength: 85 }), offer({ id: "c", strength: null })], DEFAULT_OFFER_WEIGHTS)
+    );
+    expect(summary.highestRanked?.id).toBe("b");
   });
 });

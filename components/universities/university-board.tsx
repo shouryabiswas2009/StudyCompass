@@ -36,15 +36,15 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "match", label: "Best match" },
   { value: "tuition-asc", label: "Lowest tuition" },
   { value: "tuition-desc", label: "Highest tuition" },
-  { value: "ranking", label: "Best ranking" },
+  { value: "ranking", label: "Strongest first (Unicelerate index)" },
 ];
 
 // Visitors have no profile, so only orders that don't need one.
 const GUEST_SORT_OPTIONS: { value: SortKey; label: string }[] = [
-  { value: "best", label: "Strongest first" },
+  // For visitors "best" is quality alone, which is the strength index.
+  { value: "best", label: "Strongest first (Unicelerate index)" },
   { value: "tuition-asc", label: "Lowest tuition" },
   { value: "tuition-desc", label: "Highest tuition" },
-  { value: "ranking", label: "Best ranking" },
 ];
 
 const CHANCES: AdmissionChance[] = ["Reach", "Match", "Safety", "Not enough data"];
